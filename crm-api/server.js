@@ -19,7 +19,10 @@ const pool = new Pool({
 
 const _allowedOrigins = (process.env.CORS_ORIGIN || 'https://crm.pulsecosta.es,https://ops.pulsecosta.es').split(',').map(s => s.trim());
 app.use(cors({
-  origin: (origin, cb) => (!origin || _allowedOrigins.includes(origin)) ? cb(null, true) : cb(new Error('CORS not allowed')),
+  origin: (origin, cb) => {
+    const o = origin ? origin.replace(/\.$/, '') : origin;
+    return (!o || _allowedOrigins.includes(o)) ? cb(null, true) : cb(new Error('CORS not allowed'));
+  },
   credentials: true,
 }));
 app.use(express.json());
