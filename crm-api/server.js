@@ -731,6 +731,18 @@ app.get('/api/ops/facturas/next-number', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── OPS: ADMIN RESET (super_admin only) ─────────────────────
+app.post('/api/ops/admin/reset', auth, async (req, res) => {
+  if (!req.user.roles?.includes('super_admin')) return res.status(403).json({ error: 'Forbidden' });
+  try {
+    await pool.query(`
+      TRUNCATE ops.factura_lineas, ops.facturas, ops.caja, ops.jornadas, ops.visitas, ops.clientes
+      RESTART IDENTITY CASCADE
+    `);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/crm/health', (_, res) =>
   res.json({ status: 'ok', version: '2.0-omnipulse', ts: new Date().toISOString() })
