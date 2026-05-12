@@ -17,7 +17,11 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'https://crm.pulsecosta.es' }));
+const _allowedOrigins = (process.env.CORS_ORIGIN || 'https://crm.pulsecosta.es,https://ops.pulsecosta.es').split(',').map(s => s.trim());
+app.use(cors({
+  origin: (origin, cb) => (!origin || _allowedOrigins.includes(origin)) ? cb(null, true) : cb(new Error('CORS not allowed')),
+  credentials: true,
+}));
 app.use(express.json());
 
 // ── Auth middleware ──────────────────────────────────────────
@@ -621,6 +625,109 @@ app.put('/api/ops/jornadas/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── OPS: VISITAS ─────────────────────────────────────────────
+async function ensureVisitasTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ops.visitas (
+      id                 SERIAL PRIMARY KEY,
+      org_id             INTEGER NOT NULL DEFAULT 1,
+      venue              TEXT NOT NULL,
+      ciudad             TEXT,
+      direccion          TEXT,
+      contacto           TEXT,
+      telefono           TEXT,
+      email              TEXT,
+      vat_number         TEXT,
+      fecha              DATE NOT NULL DEFAULT CURRENT_DATE,
+      plan               TEXT,
+      estado             TEXT NOT NULL DEFAULT 'pending'
+                           CHECK (estado IN ('pending','follow_up','closed','lost')),
+      prioridad          TEXT DEFAULT 'medium'
+                           CHECK (prioridad IN ('low','medium','high')),
+      propuesta_enviada  BOOLEAN DEFAULT false,
+      fecha_seguimiento  DATE,
+      proxima_accion     TEXT,
+      notas              TEXT,
+      cliente_id         INTEGER REFERENCES ops.clientes(id) ON DELETE SET NULL,
+      factura_id         INTEGER REFERENCES ops.facturas(id) ON DELETE SET NULL,
+      created_by         INTEGER REFERENCES core.users(id),
+      created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS visitas_org_idx    ON ops.visitas(org_id);
+    CREATE INDEX IF NOT EXISTS visitas_estado_idx ON ops.visitas(estado);
+  `);
+}
+
+app.get('/api/ops/visitas', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT v.*, c.nombre AS cliente_nombre
+       FROM ops.visitas v
+       LEFT JOIN ops.clientes c ON c.id = v.cliente_id
+       WHERE v.org_id = $1 ORDER BY v.fecha DESC, v.created_at DESC`,
+      [req.user.org_id || 1]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/ops/visitas', auth, async (req, res) => {
+  const { venue, ciudad, direccion, contacto, telefono, email, vat_number,
+          fecha, plan, estado, prioridad, propuesta_enviada,
+          fecha_seguimiento, proxima_accion, notas, cliente_id } = req.body;
+  if (!venue) return res.status(400).json({ error: 'venue es obligatorio' });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO ops.visitas
+         (org_id,venue,ciudad,direccion,contacto,telefono,email,vat_number,
+          fecha,plan,estado,prioridad,propuesta_enviada,fecha_seguimiento,
+          proxima_accion,notas,cliente_id,created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       RETURNING *`,
+      [req.user.org_id||1, venue, ciudad, direccion, contacto, telefono, email,
+       vat_number, fecha||new Date().toISOString().split('T')[0],
+       plan, estado||'pending', prioridad||'medium', propuesta_enviada||false,
+       fecha_seguimiento||null, proxima_accion, notas, cliente_id||null, req.user.id]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/ops/visitas/:id', auth, async (req, res) => {
+  const allowed = ['venue','ciudad','direccion','contacto','telefono','email',
+                   'vat_number','fecha','plan','estado','prioridad',
+                   'propuesta_enviada','fecha_seguimiento','proxima_accion',
+                   'notas','cliente_id','factura_id'];
+  const updates = [], p = [];
+  allowed.forEach(f => {
+    if (req.body[f] !== undefined) { p.push(req.body[f]); updates.push(`${f}=$${p.length}`); }
+  });
+  if (!updates.length) return res.status(400).json({ error: 'Nada que actualizar' });
+  updates.push(`updated_at=NOW()`);
+  p.push(req.params.id);
+  try {
+    const { rows } = await pool.query(
+      `UPDATE ops.visitas SET ${updates.join(',')}
+       WHERE id=$${p.length} AND org_id=${req.user.org_id||1} RETURNING *`, p
+    );
+    res.json(rows[0] || null);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── OPS: FACTURAS — número siguiente (preview) ───────────────
+app.get('/api/ops/facturas/next-number', auth, async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+    const { rows: [row] } = await pool.query(
+      `SELECT COALESCE(MAX(CAST(SPLIT_PART(numero,'-',2) AS INTEGER)),0)+1 AS n
+       FROM ops.facturas WHERE numero LIKE $1`,
+      [`${year}-%`]
+    );
+    res.json({ numero: `${year}-${String(row.n).padStart(3,'0')}` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/crm/health', (_, res) =>
   res.json({ status: 'ok', version: '2.0-omnipulse', ts: new Date().toISOString() })
@@ -630,4 +737,5 @@ app.get('/api/crm/health', (_, res) =>
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`OmniPulse API v2.0 — puerto ${PORT}`);
   await migrateIfNeeded();
+  await ensureVisitasTable();
 });
