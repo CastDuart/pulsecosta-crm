@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '../context/LangContext';
-import { MOCK_ACCOUNTS } from '../lib/mockData';
-import type { PipelineStage } from '../types';
+import { apiFetch } from '../lib/api';
+import type { Account, PipelineStage } from '../types';
 import PlanBadge from '../components/ui/PlanBadge';
 import NewLeadModal from '../components/ui/NewLeadModal';
 
@@ -25,12 +25,20 @@ export default function Pipeline() {
   const navigate = useNavigate();
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [showModal, setShowModal] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
-  const byStage = (stage: PipelineStage) => MOCK_ACCOUNTS.filter(a => a.stage === stage);
+  useEffect(() => {
+    apiFetch<Account[]>('/crm/accounts').then(setAccounts).catch(() => {});
+  }, []);
+
+  const byStage = (stage: PipelineStage) => accounts.filter(a => a.stage === stage);
 
   return (
     <>
-      {showModal && <NewLeadModal onClose={() => setShowModal(false)} />}
+      {showModal && <NewLeadModal onClose={() => {
+        setShowModal(false);
+        apiFetch<Account[]>('/crm/accounts').then(setAccounts).catch(() => {});
+      }} />}
 
       <div className="topbar">
         <span className="topbar-title">{t('nav.pipeline')}</span>
@@ -96,7 +104,7 @@ export default function Pipeline() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_ACCOUNTS.map(a => (
+                  {accounts.map(a => (
                     <tr key={a.id} onClick={() => navigate(`/accounts/${a.id}`)} style={{ cursor: 'pointer' }}>
                       <td className="td-name">{a.name}</td>
                       <td><PlanBadge plan={a.plan} /></td>

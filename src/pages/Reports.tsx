@@ -1,17 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLang } from '../context/LangContext';
 import { ZONES } from '../lib/zones';
-import { MOCK_ACCOUNTS } from '../lib/mockData';
+import { apiFetch } from '../lib/api';
+import type { Account } from '../types';
 
 type ReportType = 'executive' | 'pipeline' | 'activity' | 'leads' | 'billing' | 'agents';
 type Period = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
-const mrr = (accounts = MOCK_ACCOUNTS) => accounts.filter(a => a.stage === 'active').reduce((s, a) => s + a.mrr, 0);
+const calcMrr = (accounts: Account[]) => accounts.filter(a => a.stage === 'active').reduce((s, a) => s + a.mrr, 0);
 
 export default function Reports() {
   const { t } = useLang();
   const [reportType, setReportType] = useState<ReportType>('executive');
   const [period, setPeriod] = useState<Period>('month');
+  const [accounts, setAccounts] = useState<Account[]>([]);
+
+  useEffect(() => {
+    apiFetch<Account[]>('/crm/accounts').then(setAccounts).catch(() => {});
+  }, []);
+
+  const mrr = calcMrr(accounts);
 
   const REPORT_TYPES: { key: ReportType; label: string }[] = [
     { key: 'executive', label: t('report.executive') },
@@ -123,7 +131,7 @@ export default function Reports() {
               </div>
               <div className="report-kpi-grid">
                 {[
-                  { label: 'MRR Total', value: `€${mrr()}`, color: 'var(--verde)', sub: '+€290 vs mes anterior' },
+                  { label: 'MRR Total', value: `€${mrr}`, color: 'var(--verde)', sub: '+€290 vs mes anterior' },
                   { label: 'Cuentas Activas', value: '7', color: 'var(--teal)', sub: '+2 este mes' },
                   { label: 'Leads Activos', value: '28', color: 'var(--naranja)', sub: '+6 esta semana' },
                   { label: 'Conversión Pipeline', value: '32%', color: 'var(--gold)', sub: 'lead → activo' },
@@ -157,7 +165,7 @@ export default function Reports() {
               </div>
               <div className="card">
                 <div className="card-title">Top cuentas · MRR</div>
-                {MOCK_ACCOUNTS.filter(a => a.mrr > 0).sort((a, b) => b.mrr - a.mrr).map(a => (
+                {accounts.filter(a => a.mrr > 0).sort((a, b) => b.mrr - a.mrr).map(a => (
                   <div key={a.id} className="stat-row">
                     <span className="stat-label">{a.name}</span>
                     <span className="stat-val" style={{ color: 'var(--verde)' }}>€{a.mrr}/mes</span>
@@ -237,8 +245,8 @@ export default function Reports() {
             <div className="card-title">Facturación y MRR · Mayo 2026</div>
             <div className="report-kpi-grid">
               {[
-                { label: 'MRR actual', value: `€${mrr()}`, color: 'var(--verde)' },
-                { label: 'ARR proyectado', value: `€${mrr() * 12}`, color: 'var(--gold)' },
+                { label: 'MRR actual', value: `€${mrr}`, color: 'var(--verde)' },
+                { label: 'ARR proyectado', value: `€${mrr * 12}`, color: 'var(--gold)' },
                 { label: 'Churn mes', value: '€0', color: 'var(--rojo)' },
                 { label: 'Net MRR growth', value: '+€290', color: 'var(--verde)' },
               ].map(k => (
