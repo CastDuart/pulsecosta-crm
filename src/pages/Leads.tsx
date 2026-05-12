@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLang } from '../context/LangContext';
-import { MOCK_LEADS } from '../lib/mockData';
 import { ZONES } from '../lib/zones';
+import { apiFetch } from '../lib/api';
+import type { Lead } from '../types';
 import NewLeadModal from '../components/ui/NewLeadModal';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -14,12 +15,22 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default function Leads() {
   const { t } = useLang();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [filterZone, setFilterZone] = useState('');
   const [filterAgent, setFilterAgent] = useState('');
 
-  const filtered = MOCK_LEADS.filter(l => {
+  const fetchLeads = () => {
+    apiFetch<Lead[]>('/crm/leads')
+      .then(setLeads)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchLeads(); }, []);
+
+  const filtered = leads.filter(l => {
     if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterZone && l.zone !== filterZone) return false;
     if (filterAgent && l.assigned_to !== filterAgent) return false;
@@ -28,7 +39,7 @@ export default function Leads() {
 
   return (
     <>
-      {showModal && <NewLeadModal onClose={() => setShowModal(false)} />}
+      {showModal && <NewLeadModal onClose={() => { setShowModal(false); fetchLeads(); }} />}
 
       <div className="topbar">
         <span className="topbar-title">{t('nav.leads')}</span>
@@ -72,51 +83,55 @@ export default function Leads() {
         </div>
 
         <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t('label.name')}</th>
-                  <th>{t('label.type')}</th>
-                  <th>{t('label.zone')}</th>
-                  <th>{t('label.source')}</th>
-                  <th>{t('label.status')}</th>
-                  <th>{t('label.agent')}</th>
-                  <th>{t('label.date')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(l => (
-                  <tr key={l.id}>
-                    <td className="td-name">{l.name}</td>
-                    <td>
-                      <span className={`badge ${l.type === 'hotel' ? 'badge-purple' : 'badge-teal'}`}>
-                        {l.type === 'hotel' ? 'Hotel' : 'Local'}
-                      </span>
-                    </td>
-                    <td className="zone-tag">{l.zone}</td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--gris)' }}>{l.source}</td>
-                    <td>
-                      <span className={`badge ${STATUS_BADGE[l.status] ?? 'badge-gray'}`}>
-                        {t(`stage.${l.status}`)}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--gris)' }}>{l.assigned_to}</td>
-                    <td style={{ fontSize: '0.78rem', color: 'var(--gris)', fontFamily: 'var(--font-mono)' }}>
-                      {l.created_at}
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
+          {loading ? (
+            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>Cargando...</p>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', color: 'var(--gris)', padding: '24px' }}>
-                      {t('common.loading')}
-                    </td>
+                    <th>{t('label.name')}</th>
+                    <th>{t('label.type')}</th>
+                    <th>{t('label.zone')}</th>
+                    <th>{t('label.source')}</th>
+                    <th>{t('label.status')}</th>
+                    <th>{t('label.agent')}</th>
+                    <th>{t('label.date')}</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map(l => (
+                    <tr key={l.id}>
+                      <td className="td-name">{l.name}</td>
+                      <td>
+                        <span className={`badge ${l.type === 'hotel' ? 'badge-purple' : 'badge-teal'}`}>
+                          {l.type === 'hotel' ? 'Hotel' : 'Local'}
+                        </span>
+                      </td>
+                      <td className="zone-tag">{l.zone}</td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--gris)' }}>{l.source}</td>
+                      <td>
+                        <span className={`badge ${STATUS_BADGE[l.stage] ?? 'badge-gray'}`}>
+                          {t(`stage.${l.stage}`)}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--gris)' }}>{l.assigned_to}</td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--gris)', fontFamily: 'var(--font-mono)' }}>
+                        {l.created_at?.split('T')[0]}
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', color: 'var(--gris)', padding: '24px' }}>
+                        Sin leads registrados
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </>

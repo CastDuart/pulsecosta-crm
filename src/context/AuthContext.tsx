@@ -18,21 +18,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('crm_token'));
 
-  const login = async (email: string, _password: string) => {
-    // TODO: replace with POST /crm/auth/login when API is live
-    const mockToken = 'mock_jwt_' + Date.now();
-    const isCipry = email.includes('cipry');
-    const mockUser: User = {
-      id: isCipry ? 1 : 2,
-      name: isCipry ? 'Cipriano Castro' : 'Heidi Raaterova',
-      email,
-      role: 'super_admin',
-      initials: isCipry ? 'CC' : 'HR',
+  const login = async (email: string, password: string) => {
+    const res = await fetch('/api/crm/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error ?? 'Credenciales incorrectas');
+    }
+    const data = await res.json() as { token: string; user: { id: number; email: string; name: string; role: string } };
+    const u: User = {
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      role: data.user.role as User['role'],
+      initials: data.user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
     };
-    setUser(mockUser);
-    setToken(mockToken);
-    localStorage.setItem('crm_token', mockToken);
-    localStorage.setItem('crm_user', JSON.stringify(mockUser));
+    setUser(u);
+    setToken(data.token);
+    localStorage.setItem('crm_token', data.token);
+    localStorage.setItem('crm_user', JSON.stringify(u));
   };
 
   const logout = () => {

@@ -1,19 +1,28 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLang } from '../context/LangContext';
-import { MOCK_ACCOUNTS } from '../lib/mockData';
 import { ZONES } from '../lib/zones';
+import { apiFetch } from '../lib/api';
+import type { Account } from '../types';
 import PlanBadge from '../components/ui/PlanBadge';
 import StageBadge from '../components/ui/StageBadge';
 
 export default function Accounts() {
   const { t } = useLang();
   const navigate = useNavigate();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
   const [filterZone, setFilterZone] = useState('');
 
-  const filtered = MOCK_ACCOUNTS.filter(a => {
+  useEffect(() => {
+    apiFetch<Account[]>('/crm/accounts')
+      .then(setAccounts)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = accounts.filter(a => {
     if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterPlan && a.plan !== filterPlan) return false;
     if (filterZone && a.zone !== filterZone) return false;
@@ -58,43 +67,50 @@ export default function Accounts() {
         </div>
 
         <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t('label.name')}</th>
-                  <th>{t('label.plan')}</th>
-                  <th>{t('label.stage')}</th>
-                  <th>{t('label.zone')}</th>
-                  <th>{t('label.agent')}</th>
-                  <th>MRR</th>
-                  <th>Pulse</th>
-                  <th>{t('label.contact')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(a => (
-                  <tr key={a.id} onClick={() => navigate(`/accounts/${a.id}`)} style={{ cursor: 'pointer' }}>
-                    <td>
-                      <div className="td-name">{a.name}</div>
-                      <div className="zone-tag">{a.type === 'hotel' ? '🏨' : '🍽️'}</div>
-                    </td>
-                    <td><PlanBadge plan={a.plan} /></td>
-                    <td><StageBadge stage={a.stage} /></td>
-                    <td className="zone-tag">{a.zone}</td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--gris)' }}>{a.assigned_to}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: a.mrr > 0 ? 'var(--verde)' : 'var(--gris)' }}>
-                      {a.mrr > 0 ? `€${a.mrr}` : '—'}
-                    </td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--verde)' }}>
-                      {a.pulse_score ? `▲ ${a.pulse_score}` : '—'}
-                    </td>
-                    <td style={{ fontSize: '0.78rem', color: 'var(--gris)' }}>{a.contact_name ?? '—'}</td>
+          {loading ? (
+            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', padding: '24px 0', textAlign: 'center' }}>Cargando...</p>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t('label.name')}</th>
+                    <th>{t('label.plan')}</th>
+                    <th>{t('label.stage')}</th>
+                    <th>{t('label.zone')}</th>
+                    <th>{t('label.agent')}</th>
+                    <th>MRR</th>
+                    <th>Pulse</th>
+                    <th>{t('label.contact')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map(a => (
+                    <tr key={a.id} onClick={() => navigate(`/accounts/${a.id}`)} style={{ cursor: 'pointer' }}>
+                      <td>
+                        <div className="td-name">{a.name}</div>
+                        <div className="zone-tag">{a.plan?.includes('hotel') ? '🏨' : '🍽️'}</div>
+                      </td>
+                      <td><PlanBadge plan={a.plan} /></td>
+                      <td><StageBadge stage={a.stage} /></td>
+                      <td className="zone-tag">{a.zone}</td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--gris)' }}>{a.assigned_to}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: a.mrr > 0 ? 'var(--verde)' : 'var(--gris)' }}>
+                        {a.mrr > 0 ? `€${a.mrr}` : '—'}
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--verde)' }}>
+                        {a.pulse_score ? `▲ ${a.pulse_score}` : '—'}
+                      </td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--gris)' }}>{a.contact_name ?? '—'}</td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && !loading && (
+                    <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--gris)', padding: '24px 0' }}>Sin cuentas</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </>

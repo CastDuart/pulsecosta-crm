@@ -1,18 +1,32 @@
 import { useState } from 'react';
 import { useLang } from '../../context/LangContext';
 import { ZONES } from '../../lib/zones';
+import { apiFetch } from '../../lib/api';
+import type { Lead } from '../../types';
 
 export default function NewLeadModal({ onClose }: { onClose: () => void }) {
   const { t } = useLang();
   const [form, setForm] = useState({
     name: '', type: 'local', zone: '', source: 'Google Maps', phone: '', notes: '',
   });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: POST /crm/leads
-    alert(`Lead "${form.name}" registrado ✓\n(En producción se guardará en la API)`);
-    onClose();
+    setSaving(true);
+    setError('');
+    try {
+      await apiFetch<Lead>('/crm/leads', {
+        method: 'POST',
+        body: JSON.stringify({ ...form }),
+      });
+      onClose();
+    } catch (err) {
+      setError((err as Error).message ?? 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -24,6 +38,7 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {error && <p style={{ color: 'var(--rojo)', fontSize: '0.82rem', marginBottom: 8 }}>{error}</p>}
             <div className="form-field">
               <label className="form-label">{t('lead.name')} *</label>
               <input
@@ -83,7 +98,9 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t('btn.cancel')}</button>
-            <button type="submit" className="btn btn-primary">{t('btn.save')}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Guardando...' : t('btn.save')}
+            </button>
           </div>
         </form>
       </div>

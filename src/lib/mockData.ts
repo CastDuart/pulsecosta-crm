@@ -12,14 +12,14 @@ export const MOCK_ACCOUNTS: Account[] = [
 ];
 
 export const MOCK_LEADS: Lead[] = [
-  { id: 1, name: 'Casa Paco · Tapas', type: 'local', zone: 'Fuengirola', source: 'Google Maps', status: 'new', assigned_to: 'Heidi', created_at: '2026-05-12' },
-  { id: 2, name: 'Hotel Riviera Marbella', type: 'hotel', zone: 'Marbella Centro', source: 'Instagram', status: 'contacted', assigned_to: 'Heidi', created_at: '2026-05-11' },
-  { id: 3, name: 'El Ancla Fuengirola', type: 'local', zone: 'Fuengirola', source: 'Caminando', status: 'interested', assigned_to: 'Cipry', created_at: '2026-05-10' },
-  { id: 4, name: "Pepe's Chiringuito", type: 'local', zone: 'Benalmádena Costa', source: 'Referido', status: 'new', assigned_to: 'Cipry', created_at: '2026-05-12' },
-  { id: 5, name: 'La Marina Beach', type: 'local', zone: 'Estepona', source: 'Google Maps', status: 'contacted', assigned_to: 'Cipry', created_at: '2026-05-09' },
-  { id: 6, name: 'Ocean Club Marbella', type: 'local', zone: 'Marbella Centro', source: 'Instagram', status: 'attempting_contact', assigned_to: 'Heidi', created_at: '2026-05-08' },
-  { id: 7, name: 'Hotel Sol Arena', type: 'hotel', zone: 'Torremolinos', source: 'LinkedIn', status: 'new', assigned_to: 'Cipry', created_at: '2026-05-07' },
-  { id: 8, name: 'La Bodega de Antonio', type: 'local', zone: 'Nerja', source: 'Google Maps', status: 'new', assigned_to: 'Heidi', created_at: '2026-05-12' },
+  { id: 1, name: 'Casa Paco · Tapas', type: 'local', zone: 'Fuengirola', source: 'Google Maps', stage: 'new', assigned_to: 'Heidi', created_at: '2026-05-12' },
+  { id: 2, name: 'Hotel Riviera Marbella', type: 'hotel', zone: 'Marbella Centro', source: 'Instagram', stage: 'contacted', assigned_to: 'Heidi', created_at: '2026-05-11' },
+  { id: 3, name: 'El Ancla Fuengirola', type: 'local', zone: 'Fuengirola', source: 'Caminando', stage: 'interested', assigned_to: 'Cipry', created_at: '2026-05-10' },
+  { id: 4, name: "Pepe's Chiringuito", type: 'local', zone: 'Benalmádena Costa', source: 'Referido', stage: 'new', assigned_to: 'Cipry', created_at: '2026-05-12' },
+  { id: 5, name: 'La Marina Beach', type: 'local', zone: 'Estepona', source: 'Google Maps', stage: 'contacted', assigned_to: 'Cipry', created_at: '2026-05-09' },
+  { id: 6, name: 'Ocean Club Marbella', type: 'local', zone: 'Marbella Centro', source: 'Instagram', stage: 'attempting_contact', assigned_to: 'Heidi', created_at: '2026-05-08' },
+  { id: 7, name: 'Hotel Sol Arena', type: 'hotel', zone: 'Torremolinos', source: 'LinkedIn', stage: 'new', assigned_to: 'Cipry', created_at: '2026-05-07' },
+  { id: 8, name: 'La Bodega de Antonio', type: 'local', zone: 'Nerja', source: 'Google Maps', stage: 'new', assigned_to: 'Heidi', created_at: '2026-05-12' },
 ];
 
 export const MOCK_TASKS: Task[] = [

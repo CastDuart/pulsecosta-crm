@@ -46,6 +46,7 @@ export interface Account {
   contact_phone?: string;
   contact_email?: string;
   address?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +57,9 @@ export interface Lead {
   type: 'local' | 'hotel';
   zone: string;
   source: string;
-  status: string;
+  stage: string;
+  phone?: string;
+  email?: string;
   assigned_to: string;
   created_at: string;
   notes?: string;

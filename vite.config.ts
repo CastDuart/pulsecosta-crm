@@ -6,5 +6,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3003,
+    proxy: {
+      '/api': {
+        target: 'https://crm.pulsecosta.es',
+        changeOrigin: true,
+      },
+    },
   },
 })
