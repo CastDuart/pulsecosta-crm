@@ -956,6 +956,27 @@ app.post('/api/field/demos', fieldAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── FIELD: TRANSLATE ─────────────────────────────────────────
+app.post('/api/field/translate', fieldAuth, async (req, res) => {
+  const { texts, target_lang } = req.body;
+  if (!Array.isArray(texts) || texts.length === 0) return res.json({ translations: [] });
+  const apiKey = process.env.DEEPL_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'Translation not configured' });
+  try {
+    const baseUrl = apiKey.endsWith(':fx')
+      ? 'https://api-free.deepl.com/v2/translate'
+      : 'https://api.deepl.com/v2/translate';
+    const r = await fetch(baseUrl, {
+      method: 'POST',
+      headers: { Authorization: `DeepL-Auth-Key ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: texts, target_lang: (target_lang || 'EN').toUpperCase(), source_lang: 'ES' }),
+    });
+    if (!r.ok) throw new Error(`DeepL ${r.status}`);
+    const data = await r.json();
+    res.json({ translations: data.translations.map(t => t.text) });
+  } catch (err) { res.status(502).json({ error: err.message }); }
+});
+
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/crm/health', (_, res) =>
   res.json({ status: 'ok', version: '2.0-omnipulse', ts: new Date().toISOString() })
