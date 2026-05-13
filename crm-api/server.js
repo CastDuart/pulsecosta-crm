@@ -956,6 +956,20 @@ app.post('/api/field/demos', fieldAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── FIELD: CREATE VENUE ──────────────────────────────────────
+app.post('/api/field/venues', fieldAuth, async (req, res) => {
+  const { name, type, zone, address, contact_name, contact_phone, contact_email } = req.body;
+  if (!name || !type) return res.status(400).json({ error: 'name y type son obligatorios' });
+  try {
+    const { rows: [v] } = await pool.query(
+      `INSERT INTO field.venues (name, type, zone, address, contact_name, contact_phone, contact_email, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'pending') RETURNING *`,
+      [name, type, zone||'', address||'', contact_name||'', contact_phone||'', contact_email||'']
+    );
+    res.status(201).json(v);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── FIELD: TRANSLATE ─────────────────────────────────────────
 app.post('/api/field/translate', fieldAuth, async (req, res) => {
   const { texts, target_lang } = req.body;
