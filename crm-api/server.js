@@ -17,7 +17,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
-const _allowedOrigins = (process.env.CORS_ORIGIN || 'https://crm.pulsecosta.es,https://ops.pulsecosta.es').split(',').map(s => s.trim());
+const _allowedOrigins = (process.env.CORS_ORIGIN || 'https://crm.pulsecosta.es,https://ops.pulsecosta.es,https://field.pulsecosta.es').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, cb) => {
     const o = origin ? origin.replace(/\.$/, '') : origin;
@@ -743,6 +743,219 @@ app.post('/api/ops/admin/reset', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── FIELD: TABLES SETUP ──────────────────────────────────────
+async function ensureFieldTables() {
+  await pool.query(`CREATE SCHEMA IF NOT EXISTS field`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS field.venues (
+      id            SERIAL PRIMARY KEY,
+      name          TEXT NOT NULL,
+      type          TEXT NOT NULL DEFAULT 'local' CHECK (type IN ('local','hotel')),
+      zone          TEXT,
+      address       TEXT,
+      contact_name  TEXT,
+      contact_phone TEXT,
+      contact_email TEXT,
+      status        TEXT NOT NULL DEFAULT 'pending',
+      notes         TEXT,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS field.visits (
+      id          SERIAL PRIMARY KEY,
+      venue_id    INTEGER,
+      venue_name  TEXT NOT NULL,
+      agent_id    INTEGER REFERENCES core.users(id),
+      status      TEXT NOT NULL,
+      notes       TEXT,
+      doc_sent    TEXT,
+      visited_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS field.contracts (
+      id                 SERIAL PRIMARY KEY,
+      venue_id           INTEGER,
+      venue_name         TEXT,
+      doc_type           TEXT NOT NULL,
+      client_email       TEXT,
+      client_name        TEXT,
+      client_business    TEXT,
+      client_cif         TEXT,
+      plan               TEXT,
+      price              TEXT,
+      billing            TEXT,
+      signer_name        TEXT,
+      signature_data_url TEXT,
+      signed_at          TIMESTAMPTZ,
+      sent_by            INTEGER REFERENCES core.users(id),
+      created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS field.demos (
+      id            SERIAL PRIMARY KEY,
+      venue_id      INTEGER,
+      venue_name    TEXT,
+      contact_name  TEXT,
+      contact_email TEXT,
+      contact_phone TEXT,
+      scheduled_at  TIMESTAMPTZ NOT NULL,
+      notes         TEXT,
+      agent_id      INTEGER REFERENCES core.users(id),
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  const { rows: [{ count }] } = await pool.query('SELECT COUNT(*)::int FROM field.venues');
+  if (count === 0) {
+    await pool.query(`
+      INSERT INTO field.venues (name,type,zone,address,contact_name,contact_phone,contact_email) VALUES
+      ('La Bahía Club','local','Puerto Banús','Avda. Julio Iglesias 1, Puerto Banús','Marco Díaz','622 111 222','info@labahiaclub.es'),
+      ('La Terraza del Puerto','local','Marbella','Puerto Deportivo de Marbella, Local 12','Ana Ruiz','634 222 333','terraza@marbella.es'),
+      ('Flamenco Andaluz','local','Torremolinos','C/ San Miguel 45, Torremolinos','Carlos Moreno','612 333 444','flamenco@andaluz.es'),
+      ('The Jazz Corner','local','Fuengirola','Paseo Marítimo Rey de España 80','David Linares','655 444 555','hello@jazzcorner.es'),
+      ('Hotel Brisa Marina','hotel','Marbella','Ctra. de Cádiz km 176, Marbella','Sofía Vega','952 777 888','direccion@brisamarina.es'),
+      ('Chiringuito Los Gallos','local','Estepona','Playa del Cristo, Estepona','Pedro Gallego','600 555 666','losgallos@estepona.es'),
+      ('Restaurante El Faro','local','Benalmádena','Puerto Marina, Local 45, Benalmádena','Lucía Torres','633 666 777','elfaro@benalmadena.es'),
+      ('Hotel Sol Arena','hotel','Fuengirola','Paseo Marítimo 120, Fuengirola','Javier Blanco','952 888 999','jblanco@solarena.es'),
+      ('Club Náutico Marbella','local','Marbella','Puerto Deportivo de Marbella, Muelle Sur','Roberto Sanz','611 999 000','info@nauticomarbella.es'),
+      ('Sunset Beach Club','local','Benalmádena','Ctra. de Cádiz km 220, Benalmádena','Isabel Romero','644 000 111','sunset@beachclub.es')
+    `);
+    console.log('[field] Venues sembrados ✓');
+  }
+}
+
+// ── FIELD: AUTH MIDDLEWARE ────────────────────────────────────
+function fieldAuth(req, res, next) {
+  const h = req.headers.authorization;
+  if (!h?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(h.slice(7), JWT_SECRET);
+    const allowed = ['field_agent', 'sales_admin', 'super_admin'];
+    if (!decoded.roles?.some(r => allowed.includes(r)))
+      return res.status(403).json({ error: 'Sin acceso a PulseField' });
+    req.user = decoded;
+    next();
+  } catch { res.status(401).json({ error: 'Token invalido' }); }
+}
+
+// ── FIELD: LOGIN ──────────────────────────────────────────────
+app.post('/api/field/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Faltan campos' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.*, array_agg(r.role) FILTER (WHERE r.role IS NOT NULL) AS roles
+       FROM core.users u
+       LEFT JOIN core.user_roles r ON r.user_id = u.id AND r.org_id = 1
+       WHERE u.email = $1 AND u.active = true
+       GROUP BY u.id`,
+      [email.toLowerCase()]
+    );
+    const user = rows[0];
+    if (!user || !(await bcrypt.compare(password, user.password_hash)))
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
+
+    const roles = user.roles || [];
+    const allowed = ['field_agent', 'sales_admin', 'super_admin'];
+    if (!roles.some(r => allowed.includes(r)))
+      return res.status(403).json({ error: 'Sin acceso a PulseField' });
+
+    const role = roles.some(r => ['sales_admin','super_admin'].includes(r)) ? 'sales_admin' : 'field_agent';
+    await pool.query('UPDATE core.users SET last_login = NOW() WHERE id = $1', [user.id]);
+    const initials = user.initials || user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const token = jwt.sign(
+      { id: user.id, email: user.email, name: user.name, role, roles, org_id: 1 },
+      JWT_SECRET, { expiresIn: '8h' }
+    );
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role, initials } });
+  } catch (err) { res.status(500).json({ error: 'Error del servidor' }); }
+});
+
+// ── FIELD: REGISTER ───────────────────────────────────────────
+app.post('/api/field/auth/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ error: 'Faltan campos' });
+  if (password.length < 6) return res.status(400).json({ error: 'Contraseña mínimo 6 caracteres' });
+  try {
+    const hash = await bcrypt.hash(password, 12);
+    const initials = name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const { rows: [newUser] } = await pool.query(
+      `INSERT INTO core.users (email, password_hash, name, initials)
+       VALUES ($1,$2,$3,$4) ON CONFLICT (email) DO NOTHING RETURNING id`,
+      [email.toLowerCase(), hash, name.trim(), initials]
+    );
+    if (!newUser) return res.status(409).json({ error: 'Email ya registrado' });
+    await pool.query(
+      `INSERT INTO core.user_roles (user_id, org_id, role) VALUES ($1,1,'field_agent') ON CONFLICT DO NOTHING`,
+      [newUser.id]
+    );
+    const token = jwt.sign(
+      { id: newUser.id, email: email.toLowerCase(), name: name.trim(), role: 'field_agent', roles: ['field_agent'], org_id: 1 },
+      JWT_SECRET, { expiresIn: '8h' }
+    );
+    res.status(201).json({ token, user: { id: newUser.id, email: email.toLowerCase(), name: name.trim(), role: 'field_agent', initials } });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── FIELD: VENUES ─────────────────────────────────────────────
+app.get('/api/field/venues', fieldAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM field.venues ORDER BY zone, name');
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── FIELD: VISITS ─────────────────────────────────────────────
+app.post('/api/field/visits', fieldAuth, async (req, res) => {
+  const { venue_id, venue_name, status, notes } = req.body;
+  if (!status) return res.status(400).json({ error: 'status es obligatorio' });
+  try {
+    const { rows: [visit] } = await pool.query(
+      `INSERT INTO field.visits (venue_id, venue_name, agent_id, status, notes)
+       VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+      [venue_id || null, venue_name || '', req.user.id, status, notes || '']
+    );
+    res.status(201).json({ ok: true, visit_id: visit.id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── FIELD: CONTRACTS ──────────────────────────────────────────
+app.post('/api/field/contracts/send', fieldAuth, async (req, res) => {
+  const { doc_type, venue_id, venue_name, contract_data, signature_data_url } = req.body;
+  if (!doc_type) return res.status(400).json({ error: 'doc_type es obligatorio' });
+  const cd = contract_data || {};
+  try {
+    const { rows: [doc] } = await pool.query(
+      `INSERT INTO field.contracts
+         (venue_id,venue_name,doc_type,client_email,client_name,client_business,
+          client_cif,plan,price,billing,signer_name,signature_data_url,signed_at,sent_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),$13) RETURNING id`,
+      [venue_id || null, venue_name || cd.client_business || '',
+       doc_type, cd.client_email || '', cd.client_name || '', cd.client_business || '',
+       cd.client_cif || '', cd.plan || '', cd.price || '', cd.billing || '',
+       cd.signer_name || '', signature_data_url || '', req.user.id]
+    );
+    res.status(201).json({ ok: true, doc_id: doc.id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── FIELD: DEMOS ──────────────────────────────────────────────
+app.post('/api/field/demos', fieldAuth, async (req, res) => {
+  const { venue_id, venue_name, contact_name, contact_email, contact_phone, date, time, notes } = req.body;
+  if (!contact_email || !date) return res.status(400).json({ error: 'contact_email y date son obligatorios' });
+  try {
+    const scheduledAt = new Date(`${date}T${time || '10:00'}:00`);
+    const { rows: [demo] } = await pool.query(
+      `INSERT INTO field.demos (venue_id,venue_name,contact_name,contact_email,contact_phone,scheduled_at,notes,agent_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+      [venue_id || null, venue_name || '', contact_name || '', contact_email, contact_phone || '', scheduledAt, notes || '', req.user.id]
+    );
+    await pool.query(
+      `INSERT INTO crm.tasks (org_id,title,priority,due_at,assigned_to)
+       VALUES (1,$1,'high',$2,$3)`,
+      [`Demo PulseCosta — ${venue_name || contact_name}`, scheduledAt, req.user.id]
+    );
+    res.status(201).json({ ok: true, demo_id: demo.id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/crm/health', (_, res) =>
   res.json({ status: 'ok', version: '2.0-omnipulse', ts: new Date().toISOString() })
@@ -753,4 +966,5 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`OmniPulse API v2.0 — puerto ${PORT}`);
   await migrateIfNeeded();
   await ensureVisitasTable();
+  await ensureFieldTables();
 });
