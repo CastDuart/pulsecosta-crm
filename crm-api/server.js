@@ -134,7 +134,7 @@ app.post('/api/crm/auth/login', async (req, res) => {
     );
     res.json({ token, user: { id: user.id, email: user.email, name: user.name,
       role, roles, initials: user.initials } });
-  } catch (err) { res.status(500).json({ error: 'Error del servidor' }); }
+  } catch (err) { console.error('[login error]', err.message, err.stack); res.status(500).json({ error: 'Error del servidor' }); }
 });
 
 // ── CRM: ACCOUNTS ────────────────────────────────────────────
