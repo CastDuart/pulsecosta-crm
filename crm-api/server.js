@@ -27,7 +27,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
-const _allowedOrigins = (process.env.CORS_ORIGIN || 'https://crm.pulsecosta.es,https://ops.pulsecosta.es,https://field.pulsecosta.es').split(',').map(s => s.trim());
+const _allowedOrigins = (process.env.CORS_ORIGIN || 'https://crm.pulsecosta.es,https://ops.pulsecosta.es,https://field.pulsecosta.es,https://app.pulsecosta.es').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, cb) => {
     const o = origin ? origin.replace(/\.$/, '') : origin;
@@ -1447,6 +1447,63 @@ Responde en español de forma precisa y práctica. Si es una consulta fiscal, s�
   } catch (err) {
     console.error('[AI ops/heidi]', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── AI: PWA IMAGE MODERATION ─────────────────────────────────
+
+// POST /api/ai/pwa/moderate-image
+// Body: { imageBase64: string, mimeType: string }
+// Returns: { approved: boolean, reason: string, message: string, score: number }
+app.post('/api/ai/pwa/moderate-image', async (req, res) => {
+  try {
+    const { imageBase64, mimeType = 'image/jpeg' } = req.body;
+    if (!imageBase64) return res.status(400).json({ error: 'imageBase64 es obligatorio' });
+
+    const model = gemini();
+    const prompt = `Eres el moderador de imágenes de PulseCosta, una app de ocio en la Costa del Sol.
+Los negocios (bares, restaurantes, hoteles, clubs) suben fotos de su local para su perfil público.
+
+Analiza esta imagen y evalúa si es apta para publicar como foto de portada de un negocio.
+
+Criterios de rechazo (devuelve approved=false si alguno aplica):
+1. CALIDAD: imagen borrosa, pixelada, muy baja resolución, comprimida en exceso
+2. ILUMINACIÓN: demasiado oscura (apenas se ve el local), sobreexpuesta (quemada), con flash duro
+3. CONTENIDO: no muestra un local/negocio (ej: selfie, documento, pantalla, naturaleza sin local)
+4. INAPROPIADO: contenido ofensivo, político, o que no corresponde a hostelería/ocio
+
+Si la imagen es aceptable (aunque no perfecta), apruébala.
+
+Responde ÚNICAMENTE con JSON válido, sin explicaciones adicionales:
+{
+  "approved": true/false,
+  "score": 0-100,
+  "reason": "ok" | "low_quality" | "bad_lighting" | "wrong_content" | "inappropriate",
+  "message_es": "mensaje corto en español para mostrar al usuario (max 120 chars)",
+  "message_en": "short message in English for the user (max 120 chars)"
+}`;
+
+    const result = await model.generateContent([
+      { inlineData: { data: imageBase64, mimeType } },
+      prompt,
+    ]);
+
+    const raw = result.response.text().trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Gemini no devolvió JSON válido');
+    const verdict = JSON.parse(jsonMatch[0]);
+
+    res.json({
+      approved:   !!verdict.approved,
+      score:      verdict.score ?? 50,
+      reason:     verdict.reason || 'ok',
+      message:    verdict.message_es || (verdict.approved ? 'Imagen aceptada ✓' : 'Imagen rechazada'),
+      message_en: verdict.message_en || (verdict.approved ? 'Image accepted ✓' : 'Image rejected'),
+    });
+  } catch (err) {
+    console.error('[AI pwa/moderate-image]', err.message);
+    // En caso de error de Gemini, aprobamos para no bloquear al usuario
+    res.json({ approved: true, score: 50, reason: 'error', message: 'Moderación no disponible, imagen aceptada', message_en: 'Moderation unavailable, image accepted' });
   }
 });
 
