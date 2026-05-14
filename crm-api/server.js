@@ -4,6 +4,16 @@ const cors    = require('cors');
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { Pool } = require('pg');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
+
+function gemini() {
+  if (!genAI) throw new Error('GEMINI_API_KEY no configurada');
+  return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+}
 
 const app        = express();
 const PORT       = process.env.PORT || 3010;
@@ -989,6 +999,160 @@ app.post('/api/field/translate', fieldAuth, async (req, res) => {
     const data = await r.json();
     res.json({ translations: data.translations.map(t => t.text) });
   } catch (err) { res.status(502).json({ error: err.message }); }
+});
+
+// ── AI: GEMINI ASSISTANT ─────────────────────────────────────
+
+// POST /api/ai/crm/daily-summary  — "¿qué hemos hecho hoy?"
+app.post('/api/ai/crm/daily-summary', auth, async (req, res) => {
+  try {
+    const orgId = req.user.org_id || 1;
+    const date  = req.body.date || new Date().toISOString().split('T')[0];
+
+    const [activities, fieldVisits, tasks] = await Promise.all([
+      pool.query(`
+        SELECT a.type, a.description, u.name AS agent, ac.name AS account
+        FROM crm.activities a
+        LEFT JOIN core.users u   ON u.id = a.agent_id
+        LEFT JOIN crm.accounts ac ON ac.id = a.account_id
+        WHERE a.org_id = $1 AND DATE(a.created_at AT TIME ZONE 'Europe/Madrid') = $2
+        ORDER BY a.created_at DESC LIMIT 50
+      `, [orgId, date]),
+      pool.query(`
+        SELECT v.venue_name, v.status, v.notes, u.name AS agent
+        FROM field.visits v
+        LEFT JOIN core.users u ON u.id = v.agent_id
+        WHERE DATE(v.visited_at AT TIME ZONE 'Europe/Madrid') = $1
+        ORDER BY v.visited_at DESC LIMIT 50
+      `, [date]),
+      pool.query(`
+        SELECT t.title, t.priority, u.name AS assigned_to, t.done
+        FROM crm.tasks t
+        LEFT JOIN core.users u ON u.id = t.assigned_to
+        WHERE t.org_id = $1 AND DATE(t.due_at AT TIME ZONE 'Europe/Madrid') = $2
+        ORDER BY t.done ASC, t.priority DESC LIMIT 30
+      `, [orgId, date]),
+    ]);
+
+    const ctx = [
+      `Fecha: ${date}`,
+      `\nACTIVIDADES CRM (${activities.rows.length}):`,
+      activities.rows.length
+        ? activities.rows.map(a => `- ${a.agent}: [${a.type}] ${a.description}${a.account ? ` → ${a.account}` : ''}`).join('\n')
+        : '  Sin actividades registradas',
+      `\nVISITAS DE CAMPO (${fieldVisits.rows.length}):`,
+      fieldVisits.rows.length
+        ? fieldVisits.rows.map(v => `- ${v.agent}: "${v.venue_name}" → ${v.status}${v.notes ? ` (${v.notes})` : ''}`).join('\n')
+        : '  Sin visitas registradas',
+      `\nTAREAS DEL DÍA (${tasks.rows.length}):`,
+      tasks.rows.length
+        ? tasks.rows.map(t => `- [${t.done ? '✓' : 'pendiente'}] ${t.title} (${t.priority}) → ${t.assigned_to}`).join('\n')
+        : '  Sin tareas',
+    ].join('\n');
+
+    const prompt = `Eres el asistente interno de PulseCosta, startup de ocio en tiempo real en la Costa del Sol (España).
+El equipo comercial lo forman: Cipriano (CEO/técnico), Heidi (COO/finanzas), Sergio y Jota (agentes de campo).
+Analiza los datos del día y genera un resumen ejecutivo en español. Sé directo y destaca:
+1. Lo más importante realizado
+2. Estado de las visitas comerciales
+3. Tareas pendientes críticas
+4. Una valoración rápida del día
+
+Datos:\n${ctx}`;
+
+    const result = await gemini().generateContent(prompt);
+    res.json({
+      summary: result.response.text(),
+      meta: { date, activities: activities.rows.length, visits: fieldVisits.rows.length, tasks: tasks.rows.length },
+    });
+  } catch (err) {
+    console.error('[AI daily-summary]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/ai/crm/visit-analysis  — "¿cómo han ido las visitas?"
+app.post('/api/ai/crm/visit-analysis', auth, async (req, res) => {
+  try {
+    const date  = req.body.date  || new Date().toISOString().split('T')[0];
+    const agent = req.body.agent || null;
+
+    let q = `
+      SELECT v.venue_name, v.status, v.notes, v.doc_sent, u.name AS agent, v.visited_at
+      FROM field.visits v
+      LEFT JOIN core.users u ON u.id = v.agent_id
+      WHERE DATE(v.visited_at AT TIME ZONE 'Europe/Madrid') = $1
+    `;
+    const p = [date];
+    if (agent) { p.push(agent); q += ` AND u.name ILIKE $${p.length}`; }
+    q += ' ORDER BY v.visited_at DESC';
+
+    const { rows } = await pool.query(q, p);
+
+    if (!rows.length) return res.json({ summary: `No hay visitas registradas para el ${date}${agent ? ` de ${agent}` : ''}.`, meta: { date, total: 0 } });
+
+    const stats = rows.reduce((acc, v) => {
+      acc[v.status] = (acc[v.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const ctx = rows.map(v =>
+      `- ${v.agent} visitó "${v.venue_name}" a las ${new Date(v.visited_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} → estado: ${v.status}${v.doc_sent ? ` | doc: ${v.doc_sent}` : ''}${v.notes ? ` | notas: ${v.notes}` : ''}`
+    ).join('\n');
+
+    const prompt = `Eres el asistente comercial de PulseCosta. Analiza las visitas del día y genera un informe en español con:
+1. Resumen general (cuántas visitas, resultados)
+2. Destacados positivos
+3. Oportunidades o seguimientos pendientes
+4. Recomendación para mañana
+
+Fecha: ${date}
+Estadísticas: ${JSON.stringify(stats)}
+Detalle visitas:\n${ctx}`;
+
+    const result = await gemini().generateContent(prompt);
+    res.json({
+      summary: result.response.text(),
+      meta: { date, total: rows.length, stats },
+    });
+  } catch (err) {
+    console.error('[AI visit-analysis]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/ai/ask  — pregunta libre sobre datos CRM/OPS
+app.post('/api/ai/ask', auth, async (req, res) => {
+  try {
+    const { question, context: extraCtx } = req.body;
+    if (!question) return res.status(400).json({ error: 'question es obligatorio' });
+
+    const orgId = req.user.org_id || 1;
+    const [accounts, leads] = await Promise.all([
+      pool.query(`SELECT name, plan, stage, zone, mrr FROM crm.accounts WHERE org_id = $1 AND stage = 'active' LIMIT 20`, [orgId]),
+      pool.query(`SELECT name, type, zone, stage FROM crm.leads WHERE org_id = $1 ORDER BY created_at DESC LIMIT 10`, [orgId]),
+    ]);
+
+    const ctx = [
+      `Cuentas activas (${accounts.rows.length}): ${accounts.rows.map(a => `${a.name} (${a.plan}, ${a.zone}, MRR: €${a.mrr})`).join('; ')}`,
+      `Leads recientes (${leads.rows.length}): ${leads.rows.map(l => `${l.name} (${l.type}, ${l.stage})`).join('; ')}`,
+      extraCtx ? `\nContexto adicional: ${extraCtx}` : '',
+    ].join('\n');
+
+    const prompt = `Eres el asistente interno de PulseCosta (startup de ocio en tiempo real, Costa del Sol, empresa OÜ Estonia).
+El usuario es ${req.user.name} (${req.user.role}).
+Responde en español de forma concisa y útil.
+
+Datos disponibles:\n${ctx}
+
+Pregunta: ${question}`;
+
+    const result = await gemini().generateContent(prompt);
+    res.json({ answer: result.response.text() });
+  } catch (err) {
+    console.error('[AI ask]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── HEALTH ───────────────────────────────────────────────────
