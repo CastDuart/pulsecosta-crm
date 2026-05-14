@@ -67,6 +67,7 @@ export default function Sidebar() {
 
         <div className="nav-section-label">{t('sec.analytics')}</div>
         <NavItem to="/reports" icon="📊" label={t('nav.reports')} />
+        <NavItem to="/assistant" icon="✦" label={lang === 'es' ? 'Asistente IA' : 'AI Assistant'} />
       </nav>
 
       <div className="lang-install-bar">

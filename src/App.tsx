@@ -11,6 +11,7 @@ import AccountDetail from './pages/AccountDetail';
 import Tasks from './pages/Tasks';
 import Activities from './pages/Activities';
 import Reports from './pages/Reports';
+import Assistant from './pages/Assistant';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="tasks" element={<Tasks />} />
         <Route path="activities" element={<Activities />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="assistant" element={<Assistant />} />
       </Route>
     </Routes>
   );
