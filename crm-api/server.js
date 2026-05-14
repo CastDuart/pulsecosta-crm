@@ -12,7 +12,7 @@ const genAI = process.env.GEMINI_API_KEY
 
 function gemini() {
   if (!genAI) throw new Error('GEMINI_API_KEY no configurada');
-  return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 }
 
 const app        = express();
