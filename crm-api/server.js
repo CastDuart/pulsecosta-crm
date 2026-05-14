@@ -1507,6 +1507,15 @@ Responde ÚNICAMENTE con JSON válido, sin explicaciones adicionales:
   }
 });
 
+// ── PROMO CODE VALIDATION ─────────────────────────────────────
+// POST /api/promo/validate  { code: string, plan?: string }
+app.post('/api/promo/validate', (req, res) => {
+  const { code } = req.body || {};
+  const validCodes = (process.env.PROMO_CODES || 'pulse2026').split(',').map(s => s.trim().toLowerCase());
+  const valid = typeof code === 'string' && validCodes.includes(code.trim().toLowerCase());
+  res.json({ valid });
+});
+
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/crm/health', (_, res) =>
   res.json({ status: 'ok', version: '2.0-omnipulse', ts: new Date().toISOString() })
