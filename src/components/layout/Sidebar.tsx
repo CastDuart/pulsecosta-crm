@@ -72,15 +72,15 @@ export default function Sidebar() {
         {user?.role === 'super_admin' && (
           <>
             <div className="nav-section-label" style={{ marginTop: '1rem', color: 'var(--orange)' }}>
-              OPS — Finanzas
+              {t('ops.nav.section')}
             </div>
-            <NavItem to="/ops" icon="◉" label="Dashboard OPS" end />
-            <NavItem to="/ops/invoices" icon="🧾" label="Facturas" />
-            <NavItem to="/ops/cash" icon="💰" label="Caja" />
-            <NavItem to="/ops/timelog" icon="⏱" label="Control Horario" />
-            <NavItem to="/ops/clients" icon="🏢" label="Clientes OPS" />
-            <NavItem to="/ops/visits" icon="📍" label="Visitas" />
-            <NavItem to="/ops/ai" icon="✦" label="Asistente IA OPS" />
+            <NavItem to="/ops" icon="◉" label={t('ops.nav.dashboard')} end />
+            <NavItem to="/ops/invoices" icon="🧾" label={t('ops.nav.invoices')} />
+            <NavItem to="/ops/cash" icon="💰" label={t('ops.nav.cash')} />
+            <NavItem to="/ops/timelog" icon="⏱" label={t('ops.nav.timelog')} />
+            <NavItem to="/ops/clients" icon="🏢" label={t('ops.nav.clients')} />
+            <NavItem to="/ops/visits" icon="📍" label={t('ops.nav.visits')} />
+            <NavItem to="/ops/ai" icon="✦" label={t('ops.nav.ai')} />
           </>
         )}
       </nav>

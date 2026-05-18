@@ -3,22 +3,7 @@ import { apiFetch } from '../../lib/opsFetch';
 import type { Factura, CajaMovimiento, TimeFilter } from '../../types';
 import { formatEur, formatDate, isOverdue, daysOverdue } from '../../lib/iva';
 import { useAuth } from '../../context/AuthContext';
-
-const t = {
-  common:    { loading: 'Cargando...', date: 'Fecha', total: 'Total', status: 'Estado' },
-  dashboard: {
-    title: 'Dashboard OPS', allTime: 'Todo', thisMonth: 'Este mes',
-    lastMonth: 'Mes anterior', thisYear: 'Este año',
-    resetData: 'Reset datos', collected: 'Cobrado', outstanding: 'Pendiente',
-    cashBalance: 'Saldo caja', forecast: 'Previsión 30d',
-    overdueInvoices: 'Facturas vencidas', daysOverdue: 'd vencidos',
-    vatReport: 'Informe IVA', outputVat: 'IVA repercutido', inputVat: 'IVA soportado',
-    netVat: 'IVA neto a ingresar', recentCash: 'Últimos movimientos',
-    noMovements: 'Sin movimientos', latestInvoices: 'Últimas facturas', noInvoices: 'Sin facturas',
-  },
-  invoices:  { number: 'Número', due: 'Vencimiento' },
-  clients:   { name: 'Cliente' },
-};
+import { useLang } from '../../context/LangContext';
 import { AlertTriangle, TrendingUp, Clock, Wallet, BarChart3, Trash2 } from 'lucide-react';
 
 type QFilter = 'all' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
@@ -44,18 +29,11 @@ function filterByQ<T extends { fecha_emision?: string; fecha?: string }>(
   items: T[], q: QFilter
 ): T[] {
   if (q === 'all') return items;
-  const qMap: Record<string, number[]> = { Q1:[0,1,2], Q2:[3,4,5], Q3:[6,7,8], Q4:[9,10,11] };
-  const months = qMap[q];
-  const now = new Date();
-  return items.filter(item => {
-    const d = new Date((item.fecha_emision || item.fecha) as string);
-    return months.includes(d.getMonth()) && d.getFullYear() === now.getFullYear();
-  });
+  const map: Record<string, number[]> = { Q1:[0,1,2], Q2:[3,4,5], Q3:[6,7,8], Q4:[9,10,11] };
+  return items.filter(i => map[q].includes(new Date((i.fecha_emision||i.fecha) as string).getMonth()));
 }
 
-function StatCard({ label, value, color = '#E8F0FE', icon }: {
-  label: string; value: string; color?: string; icon: React.ReactNode;
-}) {
+function StatCard({ label, value, color, icon }: { label: string; value: string; color: string; icon: React.ReactNode }) {
   return (
     <div style={{
       background: '#112240', borderRadius: 12, padding: '20px 24px',
@@ -77,6 +55,7 @@ const RESET_SUCCESS = 'Todos los datos de prueba eliminados correctamente.';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t } = useLang();
   const [facturas, setFacturas]     = useState<Factura[]>([]);
   const [caja, setCaja]             = useState<CajaMovimiento[]>([]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('this_month');
@@ -115,7 +94,7 @@ export default function Dashboard() {
   const filtered = filterByTime(enriched, timeFilter);
   const vatFiltered = filterByQ(enriched, vatQ);
 
-  const collected  = filtered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.total, 0);
+  const collected   = filtered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.total, 0);
   const outstanding = filtered.filter(f => ['sent','overdue'].includes(f.estado)).reduce((s, f) => s + f.total, 0);
   const cashBalance = caja.reduce((s, m) => s + (m.tipo === 'income' ? m.importe : -m.importe), 0);
 
@@ -125,25 +104,23 @@ export default function Dashboard() {
     .reduce((s, f) => s + f.total, 0);
 
   const overdueList = enriched.filter(f => f.estado === 'overdue');
+  const outputVat   = vatFiltered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.iva_importe, 0);
+  const inputVat    = filterByQ(caja, vatQ).filter(m => m.tipo === 'expense').reduce((s, m) => s + m.iva_importe, 0);
 
-  // VAT report
-  const outputVat = vatFiltered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.iva_importe, 0);
-  const inputVat  = filterByQ(caja, vatQ).filter(m => m.tipo === 'expense').reduce((s, m) => s + m.iva_importe, 0);
-
-  if (loading) return <div style={{ color: '#8892B0', padding: 40 }}>{t.common.loading}</div>;
+  if (loading) return <div style={{ color: '#8892B0', padding: 40 }}>{t('ops.loading')}</div>;
 
   const timeOpts: { value: TimeFilter; label: string }[] = [
-    { value: 'all',        label: t.dashboard.allTime },
-    { value: 'this_month', label: t.dashboard.thisMonth },
-    { value: 'last_month', label: t.dashboard.lastMonth },
-    { value: 'this_year',  label: t.dashboard.thisYear },
+    { value: 'all',        label: t('ops.allTime') },
+    { value: 'this_month', label: t('ops.thisMonth') },
+    { value: 'last_month', label: t('ops.lastMonth') },
+    { value: 'this_year',  label: t('ops.thisYear') },
   ];
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: '#E8F0FE', margin: 0 }}>
-          {t.dashboard.title}
+          {t('ops.title')}
         </h1>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {isAdmin && (
@@ -153,7 +130,7 @@ export default function Dashboard() {
               background: 'rgba(255,71,87,0.08)', color: '#FF4757',
               cursor: 'pointer', fontSize: 12, fontWeight: 600,
             }}>
-              <Trash2 size={13} /> {resetting ? '...' : t.dashboard.resetData}
+              <Trash2 size={13} /> {resetting ? '...' : t('ops.resetData')}
             </button>
           )}
           <select
@@ -165,15 +142,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Metric cards */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <StatCard label={t.dashboard.collected}  value={formatEur(collected)}  color="#43E97B" icon={<TrendingUp size={28} />} />
-        <StatCard label={t.dashboard.outstanding} value={formatEur(outstanding)} color="#FF8C00" icon={<Clock size={28} />} />
-        <StatCard label={t.dashboard.cashBalance} value={formatEur(cashBalance)} color="#38BDF8" icon={<Wallet size={28} />} />
-        <StatCard label={t.dashboard.forecast}   value={formatEur(forecast)}   color="#A78BFA" icon={<BarChart3 size={28} />} />
+        <StatCard label={t('ops.collected')}   value={formatEur(collected)}   color="#43E97B" icon={<TrendingUp size={28} />} />
+        <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="#FF8C00" icon={<Clock size={28} />} />
+        <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="#38BDF8" icon={<Wallet size={28} />} />
+        <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="#A78BFA" icon={<BarChart3 size={28} />} />
       </div>
 
-      {/* Overdue warning */}
       {overdueList.length > 0 && (
         <div style={{
           background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.3)',
@@ -182,21 +157,20 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <AlertTriangle size={16} color="#FF4757" />
             <span style={{ color: '#FF4757', fontWeight: 700, fontSize: 14 }}>
-              {t.dashboard.overdueInvoices} ({overdueList.length})
+              {t('ops.overdueInvoices')} ({overdueList.length})
             </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {overdueList.map(f => (
               <div key={f.id} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '8px 12px', background: 'rgba(255,71,87,0.05)', borderRadius: 8,
-                fontSize: 13,
+                padding: '8px 12px', background: 'rgba(255,71,87,0.05)', borderRadius: 8, fontSize: 13,
               }}>
                 <span style={{ color: '#E8F0FE', fontWeight: 500 }}>{f.cliente_nombre}</span>
                 <span style={{ color: '#8892B0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{f.numero}</span>
                 <span style={{ color: '#FF8C00', fontFamily: 'JetBrains Mono, monospace' }}>{formatEur(f.total)}</span>
                 <span style={{ color: '#FF4757', fontSize: 12 }}>
-                  {f.fecha_vencimiento ? `${daysOverdue(f.fecha_vencimiento)}${t.dashboard.daysOverdue}` : ''}
+                  {f.fecha_vencimiento ? `${daysOverdue(f.fecha_vencimiento)}${t('ops.daysOverdue')}` : ''}
                 </span>
               </div>
             ))}
@@ -205,10 +179,9 @@ export default function Dashboard() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
-        {/* VAT Report */}
         <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t.dashboard.vatReport}</h3>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t('ops.vatReport')}</h3>
             <select value={vatQ} onChange={e => setVatQ(e.target.value as QFilter)} style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
               {(['all','Q1','Q2','Q3','Q4'] as QFilter[]).map(q => (
                 <option key={q} value={q}>{q === 'all' ? 'All' : q}</option>
@@ -216,9 +189,9 @@ export default function Dashboard() {
             </select>
           </div>
           {[
-            { label: t.dashboard.outputVat, value: outputVat, color: '#43E97B' },
-            { label: t.dashboard.inputVat,  value: inputVat,  color: '#FF4757' },
-            { label: t.dashboard.netVat,    value: outputVat - inputVat, color: '#FF8C00' },
+            { label: t('ops.outputVat'), value: outputVat,              color: '#43E97B' },
+            { label: t('ops.inputVat'),  value: inputVat,               color: '#FF4757' },
+            { label: t('ops.netVat'),    value: outputVat - inputVat,   color: '#FF8C00' },
           ].map(row => (
             <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1a2f50', fontSize: 13 }}>
               <span style={{ color: '#8892B0' }}>{row.label}</span>
@@ -227,35 +200,30 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Recent Cash */}
         <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t.dashboard.recentCash}</h3>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t('ops.recentCash')}</h3>
           {caja.slice(0, 5).map(m => (
             <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #1a2f50', fontSize: 13 }}>
               <div>
                 <div style={{ color: '#E8F0FE', fontWeight: 500 }}>{m.concepto}</div>
                 <div style={{ color: '#8892B0', fontSize: 11 }}>{formatDate(m.fecha)}</div>
               </div>
-              <span style={{
-                fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
-                color: m.tipo === 'income' ? '#43E97B' : '#FF4757',
-              }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: m.tipo === 'income' ? '#43E97B' : '#FF4757' }}>
                 {m.tipo === 'income' ? '+' : '-'}{formatEur(m.importe)}
               </span>
             </div>
           ))}
-          {caja.length === 0 && <div style={{ color: '#8892B0', fontSize: 13 }}>{t.dashboard.noMovements}</div>}
+          {caja.length === 0 && <div style={{ color: '#8892B0', fontSize: 13 }}>{t('ops.noMovements')}</div>}
         </div>
       </div>
 
-      {/* Recent Invoices */}
       <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t.dashboard.latestInvoices}</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t('ops.latestInvoices')}</h3>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #1a2f50' }}>
-                {[t.invoices.number, t.clients.name, t.common.date, t.invoices.due, t.common.total, t.common.status].map(h => (
+                {[t('ops.invoiceNumber'), t('ops.clientName'), t('ops.date'), t('ops.invoiceDue'), t('ops.total'), t('ops.status')].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: '#8892B0', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
@@ -268,14 +236,12 @@ export default function Dashboard() {
                   <td style={{ padding: '8px 12px', color: '#8892B0' }}>{formatDate(f.fecha_emision)}</td>
                   <td style={{ padding: '8px 12px', color: f.estado === 'overdue' ? '#FF4757' : '#8892B0' }}>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}</td>
                   <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: '#E8F0FE' }}>{formatEur(f.total)}</td>
-                  <td style={{ padding: '8px 12px' }}>
-                    <StatusBadge estado={f.estado} />
-                  </td>
+                  <td style={{ padding: '8px 12px' }}><StatusBadge estado={f.estado} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {enriched.length === 0 && <div style={{ color: '#8892B0', fontSize: 13, padding: '12px 0' }}>{t.dashboard.noInvoices}</div>}
+          {enriched.length === 0 && <div style={{ color: '#8892B0', fontSize: 13, padding: '12px 0' }}>{t('ops.noInvoices')}</div>}
         </div>
       </div>
     </div>
