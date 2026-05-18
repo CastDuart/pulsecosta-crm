@@ -18,6 +18,7 @@ function gemini() {
 const app        = express();
 const PORT       = process.env.PORT || 3010;
 const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) { console.error('FATAL: JWT_SECRET no configurado'); process.exit(1); }
 
 const pool = new Pool({
   host:     process.env.DB_HOST     || 'postgres',
@@ -512,6 +513,9 @@ app.post('/api/ops/facturas', auth, async (req, res) => {
 });
 
 app.put('/api/ops/facturas/:id', auth, async (req, res) => {
+  const VALID_ESTADOS = ['draft','sent','collected','overdue','cancelled'];
+  if (req.body.estado !== undefined && !VALID_ESTADOS.includes(req.body.estado))
+    return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${VALID_ESTADOS.join(', ')}` });
   const allowed = ['estado','fecha_vencimiento','metodo_pago','tipo_iva',
                    'iva_rate','subtotal','iva_importe','total','notas'];
   const updates = [], p = [];
@@ -1455,7 +1459,7 @@ Responde en español de forma precisa y práctica. Si es una consulta fiscal, s�
 // POST /api/ai/pwa/moderate-image
 // Body: { imageBase64: string, mimeType: string }
 // Returns: { approved: boolean, reason: string, message: string, score: number }
-app.post('/api/ai/pwa/moderate-image', async (req, res) => {
+app.post('/api/ai/pwa/moderate-image', auth, async (req, res) => {
   try {
     const { imageBase64, mimeType = 'image/jpeg' } = req.body;
     if (!imageBase64) return res.status(400).json({ error: 'imageBase64 es obligatorio' });
@@ -1509,7 +1513,7 @@ Responde ÚNICAMENTE con JSON válido, sin explicaciones adicionales:
 
 // ── PROMO CODE VALIDATION ─────────────────────────────────────
 // POST /api/promo/validate  { code: string, plan?: string }
-app.post('/api/promo/validate', (req, res) => {
+app.post('/api/promo/validate', auth, (req, res) => {
   const { code } = req.body || {};
   const validCodes = (process.env.PROMO_CODES || 'pulse2026').split(',').map(s => s.trim().toLowerCase());
   const valid = typeof code === 'string' && validCodes.includes(code.trim().toLowerCase());

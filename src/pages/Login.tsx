@@ -7,7 +7,7 @@ export default function Login() {
   const { login } = useAuth();
   const { lang, setLang, t } = useLang();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('cipry@pulsecosta.es');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
