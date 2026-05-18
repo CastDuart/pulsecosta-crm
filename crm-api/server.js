@@ -485,6 +485,11 @@ app.post('/api/ops/facturas', auth, async (req, res) => {
   if (!cliente_id) return res.status(400).json({ error: 'cliente_id es obligatorio' });
   const client = pool;
   try {
+    const { rows: [cli] } = await client.query(
+      'SELECT id FROM ops.clientes WHERE id = $1 AND org_id = $2',
+      [cliente_id, req.user.org_id || 1]
+    );
+    if (!cli) return res.status(400).json({ error: 'Cliente no encontrado en esta organización' });
     await client.query('BEGIN');
     const numero = (await client.query('SELECT ops.next_invoice_number() AS n')).rows[0].n;
     const { rows: [factura] } = await client.query(
@@ -542,8 +547,15 @@ app.get('/api/ops/caja', auth, async (req, res) => {
              LEFT JOIN ops.clientes c ON c.id = m.cliente_id
              WHERE m.org_id = $1`;
     const p = [req.user.org_id || 1];
-    if (desde) { p.push(desde); q += ` AND m.fecha >= $${p.length}`; }
-    if (hasta) { p.push(hasta); q += ` AND m.fecha <= $${p.length}`; }
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (desde) {
+      if (!dateRe.test(desde)) return res.status(400).json({ error: 'desde debe ser YYYY-MM-DD' });
+      p.push(desde); q += ` AND m.fecha >= $${p.length}`;
+    }
+    if (hasta) {
+      if (!dateRe.test(hasta)) return res.status(400).json({ error: 'hasta debe ser YYYY-MM-DD' });
+      p.push(hasta); q += ` AND m.fecha <= $${p.length}`;
+    }
     q += ' ORDER BY m.fecha DESC, m.created_at DESC';
     const { rows } = await pool.query(q, p);
     res.json(rows);

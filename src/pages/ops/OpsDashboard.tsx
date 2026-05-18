@@ -62,15 +62,20 @@ export default function Dashboard() {
   const [vatQ, setVatQ]             = useState<QFilter>('all');
   const [loading, setLoading]       = useState(true);
   const [resetting, setResetting]   = useState(false);
+  const [loadError, setLoadError]   = useState('');
 
   const isAdmin = user?.role === 'super_admin';
 
   const load = () => Promise.all([
     apiFetch<Factura[]>('/ops/facturas'),
     apiFetch<CajaMovimiento[]>('/ops/caja'),
-  ]).then(([f, c]) => { setFacturas(f); setCaja(c); });
+  ]).then(([f, c]) => { setFacturas(f); setCaja(c); setLoadError(''); });
 
-  useEffect(() => { load().finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    load()
+      .catch(e => setLoadError(e instanceof Error ? e.message : 'Error cargando datos'))
+      .finally(() => setLoading(false));
+  }, []);
 
   async function handleReset() {
     if (!window.confirm(RESET_CONFIRM)) return;
@@ -108,6 +113,11 @@ export default function Dashboard() {
   const inputVat    = filterByQ(caja, vatQ).filter(m => m.tipo === 'expense').reduce((s, m) => s + m.iva_importe, 0);
 
   if (loading) return <div style={{ color: '#8892B0', padding: 40 }}>{t('ops.loading')}</div>;
+  if (loadError) return (
+    <div style={{ background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.3)', borderRadius: 12, padding: '20px 24px', margin: 40, color: '#FF4757', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <AlertTriangle size={18} /> {loadError}
+    </div>
+  );
 
   const timeOpts: { value: TimeFilter; label: string }[] = [
     { value: 'all',        label: t('ops.allTime') },
