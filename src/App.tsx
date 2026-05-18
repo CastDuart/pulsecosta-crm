@@ -12,10 +12,22 @@ import Tasks from './pages/Tasks';
 import Activities from './pages/Activities';
 import Reports from './pages/Reports';
 import Assistant from './pages/Assistant';
+import OpsDashboard from './pages/ops/OpsDashboard';
+import Invoices from './pages/ops/Invoices';
+import Cash from './pages/ops/Cash';
+import TimeLog from './pages/ops/TimeLog';
+import OpsClients from './pages/ops/OpsClients';
+import OpsVisits from './pages/ops/OpsVisits';
+import AiAssistant from './pages/ops/AiAssistant';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function OpsRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  return user?.role === 'super_admin' ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 function AppRoutes() {
@@ -43,6 +55,13 @@ function AppRoutes() {
         <Route path="activities" element={<Activities />} />
         <Route path="reports" element={<Reports />} />
         <Route path="assistant" element={<Assistant />} />
+        <Route path="ops" element={<OpsRoute><OpsDashboard /></OpsRoute>} />
+        <Route path="ops/invoices" element={<OpsRoute><Invoices /></OpsRoute>} />
+        <Route path="ops/cash" element={<OpsRoute><Cash /></OpsRoute>} />
+        <Route path="ops/timelog" element={<OpsRoute><TimeLog /></OpsRoute>} />
+        <Route path="ops/clients" element={<OpsRoute><OpsClients /></OpsRoute>} />
+        <Route path="ops/visits" element={<OpsRoute><OpsVisits /></OpsRoute>} />
+        <Route path="ops/ai" element={<OpsRoute><AiAssistant /></OpsRoute>} />
       </Route>
     </Routes>
   );

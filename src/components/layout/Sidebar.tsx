@@ -68,6 +68,21 @@ export default function Sidebar() {
         <div className="nav-section-label">{t('sec.analytics')}</div>
         <NavItem to="/reports" icon="📊" label={t('nav.reports')} />
         <NavItem to="/assistant" icon="✦" label={lang === 'es' ? 'Asistente IA' : 'AI Assistant'} />
+
+        {user?.role === 'super_admin' && (
+          <>
+            <div className="nav-section-label" style={{ marginTop: '1rem', color: 'var(--orange)' }}>
+              OPS — Finanzas
+            </div>
+            <NavItem to="/ops" icon="◉" label="Dashboard OPS" end />
+            <NavItem to="/ops/invoices" icon="🧾" label="Facturas" />
+            <NavItem to="/ops/cash" icon="💰" label="Caja" />
+            <NavItem to="/ops/timelog" icon="⏱" label="Control Horario" />
+            <NavItem to="/ops/clients" icon="🏢" label="Clientes OPS" />
+            <NavItem to="/ops/visits" icon="📍" label="Visitas" />
+            <NavItem to="/ops/ai" icon="✦" label="Asistente IA OPS" />
+          </>
+        )}
       </nav>
 
       <div className="lang-install-bar">

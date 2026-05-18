@@ -1,0 +1,302 @@
+import { useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '../../lib/opsFetch';
+import type { Factura, CajaMovimiento, TimeFilter } from '../../types';
+import { formatEur, formatDate, isOverdue, daysOverdue } from '../../lib/iva';
+import { useAuth } from '../../context/AuthContext';
+
+const t = {
+  common:    { loading: 'Cargando...', date: 'Fecha', total: 'Total', status: 'Estado' },
+  dashboard: {
+    title: 'Dashboard OPS', allTime: 'Todo', thisMonth: 'Este mes',
+    lastMonth: 'Mes anterior', thisYear: 'Este año',
+    resetData: 'Reset datos', collected: 'Cobrado', outstanding: 'Pendiente',
+    cashBalance: 'Saldo caja', forecast: 'Previsión 30d',
+    overdueInvoices: 'Facturas vencidas', daysOverdue: 'd vencidos',
+    vatReport: 'Informe IVA', outputVat: 'IVA repercutido', inputVat: 'IVA soportado',
+    netVat: 'IVA neto a ingresar', recentCash: 'Últimos movimientos',
+    noMovements: 'Sin movimientos', latestInvoices: 'Últimas facturas', noInvoices: 'Sin facturas',
+  },
+  invoices:  { number: 'Número', due: 'Vencimiento' },
+  clients:   { name: 'Cliente' },
+};
+import { AlertTriangle, TrendingUp, Clock, Wallet, BarChart3, Trash2 } from 'lucide-react';
+
+type QFilter = 'all' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
+
+function filterByTime<T extends { fecha_emision?: string; fecha?: string }>(
+  items: T[], filter: TimeFilter
+): T[] {
+  const now = new Date();
+  return items.filter(item => {
+    const d = new Date((item.fecha_emision || item.fecha) as string);
+    if (filter === 'this_month')
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (filter === 'last_month') {
+      const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
+    }
+    if (filter === 'this_year') return d.getFullYear() === now.getFullYear();
+    return true;
+  });
+}
+
+function filterByQ<T extends { fecha_emision?: string; fecha?: string }>(
+  items: T[], q: QFilter
+): T[] {
+  if (q === 'all') return items;
+  const qMap: Record<string, number[]> = { Q1:[0,1,2], Q2:[3,4,5], Q3:[6,7,8], Q4:[9,10,11] };
+  const months = qMap[q];
+  const now = new Date();
+  return items.filter(item => {
+    const d = new Date((item.fecha_emision || item.fecha) as string);
+    return months.includes(d.getMonth()) && d.getFullYear() === now.getFullYear();
+  });
+}
+
+function StatCard({ label, value, color = '#E8F0FE', icon }: {
+  label: string; value: string; color?: string; icon: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      background: '#112240', borderRadius: 12, padding: '20px 24px',
+      border: '1px solid #1a2f50', flex: 1, minWidth: 180,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: 12, color: '#8892B0', marginBottom: 8 }}>{label}</div>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 22, fontWeight: 700, color }}>{value}</div>
+        </div>
+        <div style={{ color: '#1a2f50', marginTop: 4 }}>{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+const RESET_CONFIRM = 'Esto BORRARÁ TODOS los datos (clientes, facturas, caja, visitas, jornadas) y reiniciará la numeración a cero.\n\nEsta acción no se puede deshacer. ¿Continuar?';
+const RESET_SUCCESS = 'Todos los datos de prueba eliminados correctamente.';
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const [facturas, setFacturas]     = useState<Factura[]>([]);
+  const [caja, setCaja]             = useState<CajaMovimiento[]>([]);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('this_month');
+  const [vatQ, setVatQ]             = useState<QFilter>('all');
+  const [loading, setLoading]       = useState(true);
+  const [resetting, setResetting]   = useState(false);
+
+  const isAdmin = user?.role === 'super_admin';
+
+  const load = () => Promise.all([
+    apiFetch<Factura[]>('/ops/facturas'),
+    apiFetch<CajaMovimiento[]>('/ops/caja'),
+  ]).then(([f, c]) => { setFacturas(f); setCaja(c); });
+
+  useEffect(() => { load().finally(() => setLoading(false)); }, []);
+
+  async function handleReset() {
+    if (!window.confirm(RESET_CONFIRM)) return;
+    setResetting(true);
+    try {
+      await apiFetch('/ops/admin/reset', { method: 'POST' });
+      alert(RESET_SUCCESS);
+      await load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  const enriched = useMemo(() => facturas.map(f => ({
+    ...f,
+    estado: isOverdue(f) ? 'overdue' as const : f.estado,
+  })), [facturas]);
+
+  const filtered = filterByTime(enriched, timeFilter);
+  const vatFiltered = filterByQ(enriched, vatQ);
+
+  const collected  = filtered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.total, 0);
+  const outstanding = filtered.filter(f => ['sent','overdue'].includes(f.estado)).reduce((s, f) => s + f.total, 0);
+  const cashBalance = caja.reduce((s, m) => s + (m.tipo === 'income' ? m.importe : -m.importe), 0);
+
+  const in30days = new Date(); in30days.setDate(in30days.getDate() + 30);
+  const forecast = enriched
+    .filter(f => f.estado === 'sent' && f.fecha_vencimiento && new Date(f.fecha_vencimiento) <= in30days)
+    .reduce((s, f) => s + f.total, 0);
+
+  const overdueList = enriched.filter(f => f.estado === 'overdue');
+
+  // VAT report
+  const outputVat = vatFiltered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.iva_importe, 0);
+  const inputVat  = filterByQ(caja, vatQ).filter(m => m.tipo === 'expense').reduce((s, m) => s + m.iva_importe, 0);
+
+  if (loading) return <div style={{ color: '#8892B0', padding: 40 }}>{t.common.loading}</div>;
+
+  const timeOpts: { value: TimeFilter; label: string }[] = [
+    { value: 'all',        label: t.dashboard.allTime },
+    { value: 'this_month', label: t.dashboard.thisMonth },
+    { value: 'last_month', label: t.dashboard.lastMonth },
+    { value: 'this_year',  label: t.dashboard.thisYear },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: '#E8F0FE', margin: 0 }}>
+          {t.dashboard.title}
+        </h1>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {isAdmin && (
+            <button onClick={handleReset} disabled={resetting} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(255,71,87,0.3)',
+              background: 'rgba(255,71,87,0.08)', color: '#FF4757',
+              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            }}>
+              <Trash2 size={13} /> {resetting ? '...' : t.dashboard.resetData}
+            </button>
+          )}
+          <select
+            value={timeFilter} onChange={e => setTimeFilter(e.target.value as TimeFilter)}
+            style={{ width: 'auto', padding: '6px 12px', fontSize: 13 }}
+          >
+            {timeOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Metric cards */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
+        <StatCard label={t.dashboard.collected}  value={formatEur(collected)}  color="#43E97B" icon={<TrendingUp size={28} />} />
+        <StatCard label={t.dashboard.outstanding} value={formatEur(outstanding)} color="#FF8C00" icon={<Clock size={28} />} />
+        <StatCard label={t.dashboard.cashBalance} value={formatEur(cashBalance)} color="#38BDF8" icon={<Wallet size={28} />} />
+        <StatCard label={t.dashboard.forecast}   value={formatEur(forecast)}   color="#A78BFA" icon={<BarChart3 size={28} />} />
+      </div>
+
+      {/* Overdue warning */}
+      {overdueList.length > 0 && (
+        <div style={{
+          background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.3)',
+          borderRadius: 12, padding: '16px 20px', marginBottom: 28,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <AlertTriangle size={16} color="#FF4757" />
+            <span style={{ color: '#FF4757', fontWeight: 700, fontSize: 14 }}>
+              {t.dashboard.overdueInvoices} ({overdueList.length})
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {overdueList.map(f => (
+              <div key={f.id} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 12px', background: 'rgba(255,71,87,0.05)', borderRadius: 8,
+                fontSize: 13,
+              }}>
+                <span style={{ color: '#E8F0FE', fontWeight: 500 }}>{f.cliente_nombre}</span>
+                <span style={{ color: '#8892B0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{f.numero}</span>
+                <span style={{ color: '#FF8C00', fontFamily: 'JetBrains Mono, monospace' }}>{formatEur(f.total)}</span>
+                <span style={{ color: '#FF4757', fontSize: 12 }}>
+                  {f.fecha_vencimiento ? `${daysOverdue(f.fecha_vencimiento)}${t.dashboard.daysOverdue}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
+        {/* VAT Report */}
+        <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t.dashboard.vatReport}</h3>
+            <select value={vatQ} onChange={e => setVatQ(e.target.value as QFilter)} style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
+              {(['all','Q1','Q2','Q3','Q4'] as QFilter[]).map(q => (
+                <option key={q} value={q}>{q === 'all' ? 'All' : q}</option>
+              ))}
+            </select>
+          </div>
+          {[
+            { label: t.dashboard.outputVat, value: outputVat, color: '#43E97B' },
+            { label: t.dashboard.inputVat,  value: inputVat,  color: '#FF4757' },
+            { label: t.dashboard.netVat,    value: outputVat - inputVat, color: '#FF8C00' },
+          ].map(row => (
+            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1a2f50', fontSize: 13 }}>
+              <span style={{ color: '#8892B0' }}>{row.label}</span>
+              <span style={{ color: row.color, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>{formatEur(row.value)}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Recent Cash */}
+        <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t.dashboard.recentCash}</h3>
+          {caja.slice(0, 5).map(m => (
+            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #1a2f50', fontSize: 13 }}>
+              <div>
+                <div style={{ color: '#E8F0FE', fontWeight: 500 }}>{m.concepto}</div>
+                <div style={{ color: '#8892B0', fontSize: 11 }}>{formatDate(m.fecha)}</div>
+              </div>
+              <span style={{
+                fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
+                color: m.tipo === 'income' ? '#43E97B' : '#FF4757',
+              }}>
+                {m.tipo === 'income' ? '+' : '-'}{formatEur(m.importe)}
+              </span>
+            </div>
+          ))}
+          {caja.length === 0 && <div style={{ color: '#8892B0', fontSize: 13 }}>{t.dashboard.noMovements}</div>}
+        </div>
+      </div>
+
+      {/* Recent Invoices */}
+      <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t.dashboard.latestInvoices}</h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #1a2f50' }}>
+                {[t.invoices.number, t.clients.name, t.common.date, t.invoices.due, t.common.total, t.common.status].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: '#8892B0', fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {enriched.slice(0, 8).map(f => (
+                <tr key={f.id} style={{ borderBottom: '1px solid #0A192F' }}>
+                  <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#FF8C00' }}>{f.numero}</td>
+                  <td style={{ padding: '8px 12px', color: '#E8F0FE' }}>{f.cliente_nombre}</td>
+                  <td style={{ padding: '8px 12px', color: '#8892B0' }}>{formatDate(f.fecha_emision)}</td>
+                  <td style={{ padding: '8px 12px', color: f.estado === 'overdue' ? '#FF4757' : '#8892B0' }}>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}</td>
+                  <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: '#E8F0FE' }}>{formatEur(f.total)}</td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <StatusBadge estado={f.estado} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {enriched.length === 0 && <div style={{ color: '#8892B0', fontSize: 13, padding: '12px 0' }}>{t.dashboard.noInvoices}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const STATUS_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
+  draft:     { bg: 'rgba(136,146,176,0.15)', color: '#8892B0', label: 'Draft' },
+  sent:      { bg: 'rgba(56,189,248,0.15)',  color: '#38BDF8', label: 'Sent' },
+  collected: { bg: 'rgba(67,233,123,0.15)',  color: '#43E97B', label: 'Collected' },
+  overdue:   { bg: 'rgba(255,71,87,0.15)',   color: '#FF4757', label: 'Overdue' },
+  cancelled: { bg: 'rgba(136,146,176,0.15)', color: '#8892B0', label: 'Cancelled' },
+};
+
+function StatusBadge({ estado }: { estado: string }) {
+  const s = STATUS_BADGE_MAP[estado] || STATUS_BADGE_MAP.draft;
+  return (
+    <span style={{
+      background: s.bg, color: s.color, borderRadius: 20,
+      padding: '3px 10px', fontSize: 11, fontWeight: 600,
+      fontFamily: 'DM Sans, sans-serif',
+    }}>{s.label}</span>
+  );
+}

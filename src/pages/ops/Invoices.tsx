@@ -1,0 +1,494 @@
+import { useEffect, useState, useCallback } from 'react';
+import { apiFetch } from '../../lib/opsFetch';
+import type { Factura, FacturaLinea, Cliente, TipoIva, EstadoFactura, TipoFactura } from '../../types';
+import {
+  formatEur, formatDate, isOverdue,
+  calcIva, calcTotal, getDefaultIvaRate,
+  tipoIvaLabel, invoiceLegalNote, IVA_RATES_NORMAL,
+} from '../../lib/iva';
+import { exportFacturasExcel } from '../../lib/excel';
+import { generateInvoicePDF } from '../../lib/pdf';
+import { Plus, X, Download, Printer, ChevronRight, Trash2 } from 'lucide-react';
+
+function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
+      <div style={{ background:'#112240',borderRadius:16,padding:32,width:'100%',maxWidth:wide?760:560,border:'1px solid #1a2f50',maxHeight:'92vh',overflowY:'auto' }}>
+        <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
+          <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'#E8F0FE' }}>{title}</h2>
+          <button onClick={onClose} style={{ background:'none',border:'none',color:'#8892B0',cursor:'pointer' }}><X size={20}/></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children, span2 }: { label: string; children: React.ReactNode; span2?: boolean }) {
+  return (
+    <div style={{ marginBottom:12, ...(span2 ? { gridColumn:'span 2' } : {}) }}>
+      <label style={{ fontSize:12,color:'#8892B0',display:'block',marginBottom:5 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function StatusBadge({ estado }: { estado: string }) {
+  const m: Record<string, [string,string]> = {
+    draft:['rgba(136,146,176,0.15)','#8892B0'],
+    sent:['rgba(56,189,248,0.15)','#38BDF8'],
+    collected:['rgba(67,233,123,0.15)','#43E97B'],
+    overdue:['rgba(255,71,87,0.15)','#FF4757'],
+    cancelled:['rgba(136,146,176,0.15)','#8892B0'],
+  };
+  const [bg,color] = m[estado] || m.draft;
+  return <span style={{ background:bg,color,borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:600 }}>{estado}</span>;
+}
+
+type NewLine = Omit<FacturaLinea, 'id' | 'factura_id' | 'orden'>;
+
+function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
+  clientes: Cliente[];
+  onSave: (data: Record<string, unknown>) => Promise<void>;
+  onClose: () => void;
+  preClienteId?: number;
+}) {
+  const today = new Date().toISOString().split('T')[0];
+  const due30 = new Date(Date.now() + 30*864e5).toISOString().split('T')[0];
+
+  const [nextNum, setNextNum] = useState('...');
+  const [clienteId, setClienteId]     = useState<string>(preClienteId?.toString() || '');
+  const [fechaEmision, setFechaEmision] = useState(today);
+  const [fechaVenc, setFechaVenc]       = useState(due30);
+  const [metodoPago, setMetodoPago]     = useState('Transferencia');
+  const [tipoIva, setTipoIva]           = useState<TipoIva>('normal');
+  const [ivaRate, setIvaRate]           = useState(22);
+  const [tipo, setTipo]                 = useState<TipoFactura>('normal');
+  const [intervalo, setIntervalo]       = useState('monthly');
+  const [notas, setNotas]               = useState('');
+  const [lineas, setLineas]             = useState<NewLine[]>([{ descripcion:'', cantidad:1, precio_unitario:0, importe:0 }]);
+  const [saving, setSaving]             = useState(false);
+  const [err, setErr]                   = useState('');
+
+  useEffect(() => {
+    apiFetch<{ numero: string }>('/ops/facturas/next-number').then(r => setNextNum(r.numero));
+  }, []);
+
+  // When tipo_iva changes, adjust rate
+  useEffect(() => {
+    setIvaRate(getDefaultIvaRate(tipoIva));
+  }, [tipoIva]);
+
+  const cliente = clientes.find(c => c.id === Number(clienteId));
+
+  const subtotal = lineas.reduce((s, l) => s + l.importe, 0);
+  const ivaImporte = calcIva(subtotal, ivaRate);
+  const total = calcTotal(subtotal, ivaImporte);
+  const legalNote = invoiceLegalNote(tipoIva);
+
+  function setLinea(i: number, k: keyof NewLine, v: string | number) {
+    setLineas(prev => {
+      const n = [...prev];
+      n[i] = { ...n[i], [k]: v };
+      if (k === 'cantidad' || k === 'precio_unitario') {
+        n[i].importe = Math.round(n[i].cantidad * n[i].precio_unitario * 100) / 100;
+      }
+      return n;
+    });
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!clienteId) { setErr('Select a client'); return; }
+    setSaving(true); setErr('');
+    try {
+      await onSave({
+        cliente_id: Number(clienteId),
+        fecha_emision: fechaEmision,
+        fecha_vencimiento: fechaVenc || null,
+        metodo_pago: metodoPago,
+        tipo_iva: tipoIva,
+        iva_rate: ivaRate,
+        subtotal,
+        iva_importe: ivaImporte,
+        total,
+        tipo,
+        intervalo_recurrencia: tipo === 'recurring' ? intervalo : null,
+        notas: notas || null,
+        lineas: lineas.filter(l => l.descripcion.trim()),
+      });
+      onClose();
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      {/* Invoice number preview */}
+      <div style={{ background:'rgba(255,140,0,0.08)',border:'1px solid rgba(255,140,0,0.2)',borderRadius:8,padding:'10px 16px',marginBottom:20,display:'flex',justifyContent:'space-between' }}>
+        <span style={{ fontSize:13,color:'#8892B0' }}>Invoice number</span>
+        <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:'#FF8C00',fontSize:15 }}>{nextNum}</span>
+      </div>
+
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+        <Field label="Client *" span2>
+          <select value={clienteId} onChange={e => setClienteId(e.target.value)} required>
+            <option value="">Select client...</option>
+            {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre} {c.vat_number ? `(${c.vat_number})` : ''}</option>)}
+          </select>
+        </Field>
+
+        <Field label="Issue Date"><input type="date" value={fechaEmision} onChange={e => setFechaEmision(e.target.value)} /></Field>
+        <Field label="Due Date"><input type="date" value={fechaVenc} onChange={e => setFechaVenc(e.target.value)} /></Field>
+        <Field label="Payment Method">
+          <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}>
+            <option>Transferencia</option><option>SEPA</option><option>Stripe</option><option>Cash</option>
+          </select>
+        </Field>
+        <Field label="Type">
+          <select value={tipo} onChange={e => setTipo(e.target.value as TipoFactura)}>
+            <option value="normal">Normal</option>
+            <option value="recurring">Recurring</option>
+          </select>
+        </Field>
+        {tipo === 'recurring' && (
+          <Field label="Interval">
+            <select value={intervalo} onChange={e => setIntervalo(e.target.value)}>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+            </select>
+          </Field>
+        )}
+
+        {/* IVA type — central lógica */}
+        <Field label="VAT Type" span2>
+          <select value={tipoIva} onChange={e => setTipoIva(e.target.value as TipoIva)}>
+            <option value="normal">Normal (Estonian VAT applies)</option>
+            <option value="intracomunitario">Intra-EU B2B — Reverse Charge (Art. 44)</option>
+            <option value="exento">Exempt</option>
+          </select>
+        </Field>
+
+        {/* Warning for intracomunitario */}
+        {tipoIva === 'intracomunitario' && (
+          <div style={{ gridColumn:'span 2',background:'rgba(255,140,0,0.08)',border:'1px solid rgba(255,140,0,0.25)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'#FF8C00' }}>
+            <strong>Reverse Charge:</strong> VAT = 0%. The client's VAT number is required. Legal note will appear on the PDF invoice.
+            {cliente && !cliente.vat_number && (
+              <div style={{ marginTop:4,color:'#FF4757' }}>⚠ This client has no VAT number — add it in Clients before issuing this invoice.</div>
+            )}
+          </div>
+        )}
+
+        {tipoIva === 'normal' && (
+          <Field label="VAT Rate (%)">
+            <select value={ivaRate} onChange={e => setIvaRate(Number(e.target.value))}>
+              {IVA_RATES_NORMAL.map(r => <option key={r} value={r}>{r}%</option>)}
+            </select>
+          </Field>
+        )}
+      </div>
+
+      {/* Line items */}
+      <div style={{ margin:'16px 0 8px',fontSize:13,fontWeight:700,color:'#FF8C00',borderBottom:'1px solid #1a2f50',paddingBottom:8 }}>Line Items</div>
+      <div style={{ overflowX:'auto' }}>
+        <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
+          <thead>
+            <tr style={{ borderBottom:'1px solid #1a2f50' }}>
+              {['Description','Qty','Unit Price','Amount',''].map(h => (
+                <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'#8892B0',fontWeight:500,fontSize:11 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {lineas.map((l, i) => (
+              <tr key={i}>
+                <td style={{ padding:'4px 6px' }}>
+                  <input value={l.descripcion} onChange={e => setLinea(i,'descripcion',e.target.value)} placeholder="Service description" />
+                </td>
+                <td style={{ padding:'4px 6px',width:60 }}>
+                  <input type="number" value={l.cantidad} min={0} onChange={e => setLinea(i,'cantidad',Number(e.target.value))} style={{ width:60 }} />
+                </td>
+                <td style={{ padding:'4px 6px',width:100 }}>
+                  <input type="number" value={l.precio_unitario} min={0} step={0.01} onChange={e => setLinea(i,'precio_unitario',Number(e.target.value))} style={{ width:100 }} />
+                </td>
+                <td style={{ padding:'4px 6px',width:90,fontFamily:'JetBrains Mono, monospace',color:'#E8F0FE',textAlign:'right' }}>
+                  {formatEur(l.importe)}
+                </td>
+                <td style={{ padding:'4px 6px',width:30 }}>
+                  {lineas.length > 1 && (
+                    <button type="button" onClick={() => setLineas(p => p.filter((_,j) => j !== i))} style={{ background:'none',border:'none',color:'#FF4757',cursor:'pointer',padding:2 }}>
+                      <Trash2 size={14}/>
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button type="button" onClick={() => setLineas(p => [...p, { descripcion:'',cantidad:1,precio_unitario:0,importe:0 }])}
+        style={{ marginTop:8,background:'none',border:'1px dashed #1a2f50',borderRadius:8,padding:'6px 16px',color:'#8892B0',cursor:'pointer',fontSize:12 }}>
+        + Add line
+      </button>
+
+      {/* Totals */}
+      <div style={{ marginTop:16,borderTop:'1px solid #1a2f50',paddingTop:12 }}>
+        <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontSize:13 }}>
+          <div style={{ display:'flex',gap:20 }}>
+            <span style={{ color:'#8892B0' }}>Subtotal</span>
+            <span style={{ fontFamily:'JetBrains Mono, monospace',color:'#E8F0FE',minWidth:90,textAlign:'right' }}>{formatEur(subtotal)}</span>
+          </div>
+          <div style={{ display:'flex',gap:20 }}>
+            <span style={{ color: tipoIva==='normal'?'#8892B0':'#FF8C00' }}>
+              {tipoIva==='normal' ? `VAT (${ivaRate}%)` : tipoIvaLabel(tipoIva)}
+            </span>
+            <span style={{ fontFamily:'JetBrains Mono, monospace',color: tipoIva==='normal'?'#E8F0FE':'#FF8C00',minWidth:90,textAlign:'right' }}>{formatEur(ivaImporte)}</span>
+          </div>
+          <div style={{ display:'flex',gap:20,borderTop:'1px solid #1a2f50',paddingTop:6 }}>
+            <span style={{ fontWeight:700,color:'#E8F0FE' }}>TOTAL</span>
+            <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,fontSize:16,color:'#FF8C00',minWidth:90,textAlign:'right' }}>{formatEur(total)}</span>
+          </div>
+        </div>
+        {legalNote && (
+          <div style={{ marginTop:12,padding:'8px 12px',background:'rgba(255,140,0,0.05)',borderRadius:8,fontSize:11,color:'#8892B0',borderLeft:'3px solid #FF8C00' }}>
+            {legalNote}
+          </div>
+        )}
+      </div>
+
+      <Field label="Notes"><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder="Internal notes or additional info" /></Field>
+
+      {err && <div style={{ color:'#FF4757',fontSize:13,marginBottom:10 }}>{err}</div>}
+      <div style={{ display:'flex',gap:10,justifyContent:'flex-end',marginTop:8 }}>
+        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid #1a2f50',background:'none',color:'#8892B0',cursor:'pointer' }}>Cancel</button>
+        <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'#FF8C00',color:'#0A192F',fontWeight:700,cursor:'pointer' }}>
+          {saving ? 'Saving...' : 'Create Invoice'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export default function Invoices() {
+  const [facturas, setFacturas]       = useState<Factura[]>([]);
+  const [clientes, setClientes]       = useState<Cliente[]>([]);
+  const [filterEstado, setFilter]     = useState<'all' | EstadoFactura>('all');
+  const [showModal, setShowModal]     = useState(false);
+  const [selected, setSelected]       = useState<Factura | null>(null);
+  const [selectedLineas, setSelLineas]= useState<FacturaLinea[]>([]);
+  const [loading, setLoading]         = useState(true);
+
+  const load = useCallback(() => Promise.all([
+    apiFetch<Factura[]>('/ops/facturas'),
+    apiFetch<Cliente[]>('/ops/clientes'),
+  ]).then(([f, c]) => { setFacturas(f); setClientes(c); }), []);
+
+  useEffect(() => { load().finally(() => setLoading(false)); }, [load]);
+
+  const enriched = facturas.map(f => ({ ...f, estado: isOverdue(f) ? 'overdue' as const : f.estado }));
+  const filtered = enriched.filter(f => filterEstado === 'all' || f.estado === filterEstado);
+
+  const collected   = enriched.filter(f => f.estado==='collected').reduce((s,f)=>s+f.total,0);
+  const outstanding = enriched.filter(f=>['sent','overdue'].includes(f.estado)).reduce((s,f)=>s+f.total,0);
+
+  async function createInvoice(data: Record<string, unknown>) {
+    await apiFetch('/ops/facturas', { method:'POST', body:JSON.stringify(data) });
+    await load();
+  }
+
+  async function updateEstado(id: number, estado: EstadoFactura, extra: Record<string, unknown> = {}) {
+    const updated = await apiFetch<Factura>(`/ops/facturas/${id}`, { method:'PUT', body:JSON.stringify({ estado, ...extra }) });
+    // If collected → auto-create cash income entry
+    if (estado === 'collected') {
+      const f = enriched.find(x => x.id === id);
+      if (f) {
+        await apiFetch('/ops/caja', {
+          method: 'POST',
+          body: JSON.stringify({
+            tipo: 'income', concepto: `Invoice ${f.numero}`,
+            importe: f.total, tipo_iva: f.tipo_iva, iva_rate: f.iva_rate,
+            iva_importe: f.iva_importe, fecha: new Date().toISOString().split('T')[0],
+            categoria: 'Invoice', cliente_id: f.cliente_id, factura_id: f.id,
+          }),
+        });
+      }
+    }
+    await load();
+    if (selected?.id === id) setSelected({ ...selected, ...updated });
+  }
+
+  async function openDetail(f: Factura) {
+    setSelected(f);
+    const lineas = await apiFetch<FacturaLinea[]>(`/ops/facturas/${f.id}/lineas`);
+    setSelLineas(lineas);
+  }
+
+  async function printInvoice() {
+    if (!selected) return;
+    generateInvoicePDF(selected, selectedLineas);
+  }
+
+  if (loading) return <div style={{ color:'#8892B0' }}>Loading...</div>;
+
+  const ESTADOS_FILTER: ('all' | EstadoFactura)[] = ['all','draft','sent','collected','overdue'];
+
+  return (
+    <div>
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
+        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'#E8F0FE',margin:0 }}>
+          Invoices
+        </h1>
+        <div style={{ display:'flex',gap:10 }}>
+          <button onClick={() => exportFacturasExcel(enriched)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'#1a2f50',border:'none',borderRadius:8,color:'#E8F0FE',cursor:'pointer',fontSize:13 }}>
+            <Download size={14}/> Export
+          </button>
+          <button onClick={() => setShowModal(true)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'#FF8C00',border:'none',borderRadius:8,color:'#0A192F',fontWeight:700,cursor:'pointer',fontSize:14 }}>
+            <Plus size={16}/> New Invoice
+          </button>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div style={{ display:'flex',gap:16,marginBottom:24 }}>
+        <div style={{ background:'#112240',borderRadius:12,padding:'16px 20px',border:'1px solid #1a2f50',flex:1 }}>
+          <div style={{ fontSize:12,color:'#8892B0',marginBottom:4 }}>Collected</div>
+          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'#43E97B' }}>{formatEur(collected)}</div>
+        </div>
+        <div style={{ background:'#112240',borderRadius:12,padding:'16px 20px',border:'1px solid #1a2f50',flex:1 }}>
+          <div style={{ fontSize:12,color:'#8892B0',marginBottom:4 }}>Outstanding</div>
+          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'#FF8C00' }}>{formatEur(outstanding)}</div>
+        </div>
+      </div>
+
+      {/* Status filters */}
+      <div style={{ display:'flex',gap:8,marginBottom:20 }}>
+        {ESTADOS_FILTER.map(e => (
+          <button key={e} onClick={() => setFilter(e)} style={{
+            padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:12,fontWeight:600,
+            background: filterEstado===e?'#FF8C00':'#1a2f50',
+            color: filterEstado===e?'#0A192F':'#8892B0',
+          }}>
+            {e==='all'?'All':e.charAt(0).toUpperCase()+e.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Invoice table */}
+      <div style={{ background:'#112240',borderRadius:12,border:'1px solid #1a2f50',overflow:'hidden' }}>
+        <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
+          <thead>
+            <tr style={{ borderBottom:'1px solid #1a2f50' }}>
+              {['Number','Client','VAT Type','Date','Due','Total','Status',''].map(h => (
+                <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'#8892B0',fontWeight:500,fontSize:12 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={8} style={{ padding:'24px',color:'#8892B0',textAlign:'center' }}>No invoices found</td></tr>
+            ) : filtered.map(f => (
+              <tr key={f.id} style={{ borderBottom:'1px solid #0A192F',cursor:'pointer' }} onClick={() => openDetail(f)}>
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontSize:12,color:'#FF8C00' }}>{f.numero}</td>
+                <td style={{ padding:'10px 16px',color:'#E8F0FE',fontWeight:500 }}>{f.cliente_nombre}</td>
+                <td style={{ padding:'10px 16px' }}>
+                  {f.tipo_iva === 'intracomunitario' && <span style={{ fontSize:11,color:'#FF8C00',background:'rgba(255,140,0,0.1)',padding:'2px 8px',borderRadius:20 }}>Reverse Charge</span>}
+                  {f.tipo_iva === 'exento' && <span style={{ fontSize:11,color:'#8892B0' }}>Exempt</span>}
+                  {f.tipo_iva === 'normal' && <span style={{ fontSize:11,color:'#8892B0' }}>{f.iva_rate}% VAT</span>}
+                </td>
+                <td style={{ padding:'10px 16px',color:'#8892B0' }}>{formatDate(f.fecha_emision)}</td>
+                <td style={{ padding:'10px 16px',color:f.estado==='overdue'?'#FF4757':'#8892B0' }}>
+                  {f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}
+                </td>
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontWeight:600,color:'#E8F0FE' }}>{formatEur(f.total)}</td>
+                <td style={{ padding:'10px 16px' }}><StatusBadge estado={f.estado} /></td>
+                <td style={{ padding:'10px 16px',color:'#8892B0' }}><ChevronRight size={14}/></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Invoice detail modal */}
+      {selected && (
+        <Modal title={`Invoice ${selected.numero}`} onClose={() => setSelected(null)} wide>
+          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16,fontSize:13 }}>
+            <div>
+              <div style={{ color:'#8892B0',fontSize:11,marginBottom:4 }}>Client</div>
+              <div style={{ color:'#E8F0FE',fontWeight:600 }}>{selected.cliente_nombre}</div>
+              {selected.vat_number && <div style={{ color:'#8892B0',fontSize:12 }}>VAT: {selected.vat_number}</div>}
+            </div>
+            <div>
+              <div style={{ color:'#8892B0',fontSize:11,marginBottom:4 }}>Amount</div>
+              <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'#FF8C00' }}>{formatEur(selected.total)}</div>
+              <div style={{ fontSize:12,color:'#8892B0' }}>{tipoIvaLabel(selected.tipo_iva)}{selected.tipo_iva==='normal'?` (${selected.iva_rate}%)`:'= 0%'}</div>
+            </div>
+            <div>
+              <div style={{ color:'#8892B0',fontSize:11 }}>Issued / Due</div>
+              <div style={{ color:'#E8F0FE' }}>{formatDate(selected.fecha_emision)} → {selected.fecha_vencimiento ? formatDate(selected.fecha_vencimiento) : 'No due date'}</div>
+            </div>
+            <div>
+              <div style={{ color:'#8892B0',fontSize:11 }}>Status</div>
+              <StatusBadge estado={selected.estado} />
+            </div>
+          </div>
+
+          {/* Legal note preview */}
+          {(() => { const note = invoiceLegalNote(selected.tipo_iva); return note ? (
+            <div style={{ padding:'10px 14px',background:'rgba(255,140,0,0.06)',borderLeft:'3px solid #FF8C00',borderRadius:8,fontSize:12,color:'#8892B0',marginBottom:16 }}>
+              {note}
+            </div>
+          ) : null; })()}
+
+          {/* Line items */}
+          {selectedLineas.length > 0 && (
+            <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12,marginBottom:16 }}>
+              <thead><tr style={{ borderBottom:'1px solid #1a2f50' }}>
+                {['Description','Qty','Unit Price','Amount'].map(h => (
+                  <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'#8892B0',fontWeight:500 }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {selectedLineas.map(l => (
+                  <tr key={l.id} style={{ borderBottom:'1px solid #0A192F' }}>
+                    <td style={{ padding:'6px 8px',color:'#E8F0FE' }}>{l.descripcion}</td>
+                    <td style={{ padding:'6px 8px',color:'#8892B0' }}>{l.cantidad}</td>
+                    <td style={{ padding:'6px 8px',fontFamily:'JetBrains Mono, monospace',color:'#8892B0' }}>{formatEur(l.precio_unitario)}</td>
+                    <td style={{ padding:'6px 8px',fontFamily:'JetBrains Mono, monospace',fontWeight:600,color:'#E8F0FE' }}>{formatEur(l.importe)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* Status transitions */}
+          <div style={{ display:'flex',gap:10,flexWrap:'wrap',borderTop:'1px solid #1a2f50',paddingTop:16 }}>
+            {selected.estado === 'draft' && (
+              <button onClick={() => updateEstado(selected.id,'sent')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(56,189,248,0.15)',color:'#38BDF8',cursor:'pointer',fontWeight:600 }}>
+                Mark as Sent
+              </button>
+            )}
+            {selected.estado === 'sent' && (
+              <button onClick={() => updateEstado(selected.id,'collected')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(67,233,123,0.15)',color:'#43E97B',cursor:'pointer',fontWeight:600 }}>
+                Mark as Collected → Auto-add to Cash
+              </button>
+            )}
+            {(selected.estado === 'draft' || selected.estado === 'sent') && (
+              <button onClick={() => updateEstado(selected.id,'cancelled')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(136,146,176,0.1)',color:'#8892B0',cursor:'pointer' }}>
+                Cancel
+              </button>
+            )}
+            <button onClick={printInvoice} style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 18px',borderRadius:8,border:'1px solid #1a2f50',background:'none',color:'#E8F0FE',cursor:'pointer' }}>
+              <Printer size={14}/> Download PDF
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {showModal && (
+        <Modal title="New Invoice" onClose={() => setShowModal(false)} wide>
+          <InvoiceForm clientes={clientes} onSave={createInvoice} onClose={() => setShowModal(false)} />
+        </Modal>
+      )}
+    </div>
+  );
+}
