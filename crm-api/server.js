@@ -903,9 +903,9 @@ app.post('/api/field/auth/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 12);
     const initials = name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     const { rows: [newUser] } = await pool.query(
-      `INSERT INTO core.users (email, password_hash, name, initials)
-       VALUES ($1,$2,$3,$4) ON CONFLICT (email) DO NOTHING RETURNING id`,
-      [email.toLowerCase(), hash, name.trim(), initials]
+      `INSERT INTO core.users (email, password_hash, name)
+       VALUES ($1,$2,$3) ON CONFLICT (email) DO NOTHING RETURNING id`,
+      [email.toLowerCase(), hash, name.trim()]
     );
     if (!newUser) return res.status(409).json({ error: 'Email ya registrado' });
     await pool.query(
@@ -1555,9 +1555,17 @@ app.post('/api/translate', auth, async (req, res) => {
 });
 
 // ── HEALTH ───────────────────────────────────────────────────
-app.get('/api/crm/health', (_, res) =>
-  res.json({ status: 'ok', version: '2.0-omnipulse', ts: new Date().toISOString() })
-);
+app.get('/api/crm/health', async (_, res) => {
+  const health = { status: 'ok', api: 'ok', db: 'ok', disk_pct: 0, version: '2.0-omnipulse', ts: new Date().toISOString() };
+  try { await pool.query('SELECT 1'); } catch { health.db = 'error'; health.status = 'degraded'; }
+  try {
+    const { execSync } = require('child_process');
+    const pct = execSync("df / | tail -1 | awk '{print $5}'").toString().trim().replace('%','');
+    health.disk_pct = parseInt(pct) || 0;
+    if (health.disk_pct > 85) health.status = 'degraded';
+  } catch { }
+  res.json(health);
+});
 
 // ── START ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', async () => {
