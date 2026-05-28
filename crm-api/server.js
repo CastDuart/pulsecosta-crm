@@ -347,10 +347,21 @@ app.post('/api/crm/activities', auth, async (req, res) => {
 app.get('/api/crm/dashboard', auth, async (req, res) => {
   try {
     const orgId = req.user.org_id || 1;
-    const [accounts, leads, tasks] = await Promise.all([
+    const [accounts, leads, tasks, demos] = await Promise.all([
       pool.query('SELECT stage, mrr FROM crm.accounts WHERE org_id = $1', [orgId]),
       pool.query('SELECT stage FROM crm.leads WHERE org_id = $1', [orgId]),
       pool.query('SELECT done FROM crm.tasks WHERE org_id = $1', [orgId]),
+      // Próximas demos de PulseField (opcional — no falla si la tabla no existe)
+      pool.query(`
+        SELECT fv.id, fv.venue_name, fv.zone, fv.scheduled_at, fv.status,
+               fa.name AS agent_name
+        FROM public.field_visits fv
+        LEFT JOIN public.field_agents fa ON fa.id = fv.agent_id
+        WHERE fv.status = 'scheduled'
+          AND fv.scheduled_at >= NOW()
+        ORDER BY fv.scheduled_at ASC
+        LIMIT 5
+      `).catch(() => ({ rows: [] })),  // silencia error si tabla no existe
     ]);
     const active = accounts.rows.filter(a => a.stage === 'active');
     res.json({
@@ -358,6 +369,7 @@ app.get('/api/crm/dashboard', auth, async (req, res) => {
       activeAccounts: active.length,
       totalLeads:     leads.rows.length,
       pendingTasks:   tasks.rows.filter(t => !t.done).length,
+      upcomingDemos:  demos.rows,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
