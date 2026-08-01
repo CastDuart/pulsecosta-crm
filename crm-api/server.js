@@ -915,9 +915,9 @@ app.post('/api/field/auth/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 12);
     const initials = name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     const { rows: [newUser] } = await pool.query(
-      `INSERT INTO core.users (email, password_hash, name)
-       VALUES ($1,$2,$3) ON CONFLICT (email) DO NOTHING RETURNING id`,
-      [email.toLowerCase(), hash, name.trim()]
+      `INSERT INTO core.users (email, password_hash, name, initials)
+       VALUES ($1,$2,$3,$4) ON CONFLICT (email) DO NOTHING RETURNING id`,
+      [email.toLowerCase(), hash, name.trim(), initials]
     );
     if (!newUser) return res.status(409).json({ error: 'Email ya registrado' });
     await pool.query(
@@ -1229,7 +1229,7 @@ app.post('/api/ai/ops/billing', auth, async (req, res) => {
       `- ${f.numero} | ${f.cliente} (${f.pais}) | €${f.total} | ${f.estado} | ${f.tipo_iva}`
     ).join('\n');
 
-    const prompt = `Eres el asistente financiero de Pulse Costa S.L. (OÜ Estonia, opera en España y Escandinavia).
+    const prompt = `Eres el asistente financiero de Novitum Technologies OÜ (OÜ Estonia, opera en España y Escandinavia).
 Analiza la situación de facturación del período ${dateFrom} al ${dateTo} y genera un informe ejecutivo en español con:
 1. Resumen financiero (facturado, cobrado, pendiente, IVA acumulado)
 2. Alertas de facturas vencidas (${overdue.rows.length} facturas)
@@ -1331,7 +1331,7 @@ CONTEXTO FISCAL:
 - OÜ Estonia: 0% impuesto de sociedades hasta distribución de dividendos
 - Clientes españoles: IVA 21% repercutido
 - Clientes UE (escandinavos): operaciones intracomunitarias B2B (exentas con VAT number) o régimen OSS B2C
-- CIF ES: 79015456Z | VAT OÜ: pendiente de confirmar`;
+- Registrikood: 17545241 | VAT OÜ: pendiente de confirmar`;
 
     const result = await gemini().generateContent(prompt);
     res.json({
