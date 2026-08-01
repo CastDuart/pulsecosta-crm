@@ -1304,7 +1304,7 @@ app.post('/api/ai/ops/accountant-report', auth, async (req, res) => {
       `${f.numero} | ${f.fecha_emision?.toISOString().split('T')[0]} | ${f.cliente} | ${f.pais} | Base: €${f.subtotal} | IVA(${f.iva_rate}%): €${f.iva_importe} | Total: €${f.total} | ${f.tipo_iva} | ${f.estado}`
     ).join('\n');
 
-    const prompt = `Eres el asistente contable de Pulse Costa OÜ (Estonia).
+    const prompt = `Eres el asistente contable de Novitum Technologies OÜ (Estonia).
 La empresa opera desde Estonia y factura a clientes en España y Escandinavia.
 Genera el informe mensual para el gestor correspondiente al mes ${month}/${year} en español, estructurado así:
 
@@ -1444,16 +1444,16 @@ app.post('/api/ai/ops/heidi', auth, async (req, res) => {
       `${a.name} | ${a.plan} | €${a.mrr}/mes | ${a.zone}`
     ).join('\n');
 
-    const prompt = `Eres el asistente personal de Heidi (COO/finanzas de Pulse Costa OÜ, Estonia).
+    const prompt = `Eres el asistente personal de Heidi (COO/finanzas de Novitum Technologies OÜ, Estonia).
 Heidi gestiona las finanzas, la base de clientes y las consultas fiscales.
 La empresa opera desde Estonia y tiene clientes en España y Escandinavia.
 
 CONTEXTO FISCAL CLAVE:
-- Pulse Costa OÜ (Estonia): impuesto de sociedades 0% hasta distribución dividendos
+- Novitum Technologies OÜ (Estonia): impuesto de sociedades 0% hasta distribución dividendos
 - Clientes españoles (B2B): IVA 21% repercutido, obligación declaración trimestral
 - Clientes escandinavos B2B: operación intracomunitaria exenta (necesitan VAT válido)
 - Clientes escandinavos B2C: régimen OSS (One Stop Shop UE)
-- CIF español: 79015456Z
+- Registrikood (Estonia): 17545241
 - Heidi gestiona también el mercado nórdico (Finlandia, Suecia, contactos propios)
 
 DATOS ACTUALES:
