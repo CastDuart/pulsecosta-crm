@@ -1288,37 +1288,6 @@ Responde ÚNICAMENTE con JSON válido, sin explicaciones adicionales:
   }
 });
 
-// ── PROMO CODE VALIDATION ─────────────────────────────────────
-// POST /api/promo/validate  { code: string, plan?: string }
-app.post('/api/promo/validate', auth, (req, res) => {
-  const { code } = req.body || {};
-  const validCodes = (process.env.PROMO_CODES || 'pulse2026').split(',').map(s => s.trim().toLowerCase());
-  const valid = typeof code === 'string' && validCodes.includes(code.trim().toLowerCase());
-  res.json({ valid });
-});
-
-// ── DEEPL TRANSLATE ─────────────────────────────────────────
-app.post('/api/translate', auth, async (req, res) => {
-  const { texts, target = 'EN-GB' } = req.body;
-  if (!Array.isArray(texts) || texts.length === 0)
-    return res.status(400).json({ error: 'texts[] requerido' });
-  const key = process.env.DEEPL_API_KEY;
-  if (!key) return res.status(503).json({ error: 'Servicio de traducción no configurado' });
-  try {
-    const params = new URLSearchParams();
-    texts.forEach(t => params.append('text', t));
-    params.append('target_lang', target);
-    const r = await fetch('https://api-free.deepl.com/v2/translate', {
-      method: 'POST',
-      headers: { 'Authorization': `DeepL-Auth-Key ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
-    if (!r.ok) throw new Error(`DeepL ${r.status}`);
-    const data = await r.json();
-    res.json({ translations: data.translations });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/crm/health', async (_, res) => {
   const health = { status: 'ok', api: 'ok', db: 'ok', disk_pct: 0, version: '2.0-omnipulse', ts: new Date().toISOString() };
