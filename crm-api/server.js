@@ -915,9 +915,9 @@ app.post('/api/field/auth/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 12);
     const initials = name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     const { rows: [newUser] } = await pool.query(
-      `INSERT INTO core.users (email, password_hash, name)
-       VALUES ($1,$2,$3) ON CONFLICT (email) DO NOTHING RETURNING id`,
-      [email.toLowerCase(), hash, name.trim()]
+      `INSERT INTO core.users (email, password_hash, name, initials)
+       VALUES ($1,$2,$3,$4) ON CONFLICT (email) DO NOTHING RETURNING id`,
+      [email.toLowerCase(), hash, name.trim(), initials]
     );
     if (!newUser) return res.status(409).json({ error: 'Email ya registrado' });
     await pool.query(
@@ -1229,7 +1229,7 @@ app.post('/api/ai/ops/billing', auth, async (req, res) => {
       `- ${f.numero} | ${f.cliente} (${f.pais}) | €${f.total} | ${f.estado} | ${f.tipo_iva}`
     ).join('\n');
 
-    const prompt = `Eres el asistente financiero de Pulse Costa S.L. (OÜ Estonia, opera en España y Escandinavia).
+    const prompt = `Eres el asistente financiero de Novitum Technologies OÜ (OÜ Estonia, opera en España y Escandinavia).
 Analiza la situación de facturación del período ${dateFrom} al ${dateTo} y genera un informe ejecutivo en español con:
 1. Resumen financiero (facturado, cobrado, pendiente, IVA acumulado)
 2. Alertas de facturas vencidas (${overdue.rows.length} facturas)
@@ -1304,7 +1304,7 @@ app.post('/api/ai/ops/accountant-report', auth, async (req, res) => {
       `${f.numero} | ${f.fecha_emision?.toISOString().split('T')[0]} | ${f.cliente} | ${f.pais} | Base: €${f.subtotal} | IVA(${f.iva_rate}%): €${f.iva_importe} | Total: €${f.total} | ${f.tipo_iva} | ${f.estado}`
     ).join('\n');
 
-    const prompt = `Eres el asistente contable de Pulse Costa OÜ (Estonia).
+    const prompt = `Eres el asistente contable de Novitum Technologies OÜ (Estonia).
 La empresa opera desde Estonia y factura a clientes en España y Escandinavia.
 Genera el informe mensual para el gestor correspondiente al mes ${month}/${year} en español, estructurado así:
 
@@ -1331,7 +1331,7 @@ CONTEXTO FISCAL:
 - OÜ Estonia: 0% impuesto de sociedades hasta distribución de dividendos
 - Clientes españoles: IVA 21% repercutido
 - Clientes UE (escandinavos): operaciones intracomunitarias B2B (exentas con VAT number) o régimen OSS B2C
-- CIF ES: 79015456Z | VAT OÜ: pendiente de confirmar`;
+- Registrikood: 17545241 | VAT OÜ: pendiente de confirmar`;
 
     const result = await gemini().generateContent(prompt);
     res.json({
@@ -1444,16 +1444,16 @@ app.post('/api/ai/ops/heidi', auth, async (req, res) => {
       `${a.name} | ${a.plan} | €${a.mrr}/mes | ${a.zone}`
     ).join('\n');
 
-    const prompt = `Eres el asistente personal de Heidi (COO/finanzas de Pulse Costa OÜ, Estonia).
+    const prompt = `Eres el asistente personal de Heidi (COO/finanzas de Novitum Technologies OÜ, Estonia).
 Heidi gestiona las finanzas, la base de clientes y las consultas fiscales.
 La empresa opera desde Estonia y tiene clientes en España y Escandinavia.
 
 CONTEXTO FISCAL CLAVE:
-- Pulse Costa OÜ (Estonia): impuesto de sociedades 0% hasta distribución dividendos
+- Novitum Technologies OÜ (Estonia): impuesto de sociedades 0% hasta distribución dividendos
 - Clientes españoles (B2B): IVA 21% repercutido, obligación declaración trimestral
 - Clientes escandinavos B2B: operación intracomunitaria exenta (necesitan VAT válido)
 - Clientes escandinavos B2C: régimen OSS (One Stop Shop UE)
-- CIF español: 79015456Z
+- Registrikood (Estonia): 17545241
 - Heidi gestiona también el mercado nórdico (Finlandia, Suecia, contactos propios)
 
 DATOS ACTUALES:

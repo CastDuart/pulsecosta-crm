@@ -119,7 +119,7 @@ export default function AiAssistant() {
           </h1>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>
-          Powered by Gemini 2.5 Flash · Pulse Costa OÜ
+          Powered by Gemini 2.5 Flash · Novitum Technologies OÜ
         </p>
       </div>
 
