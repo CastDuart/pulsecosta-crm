@@ -130,7 +130,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
         <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:'var(--naranja-tint)',fontSize:15 }}>{nextNum}</span>
       </div>
 
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <Field label="Client *" span2>
           <select value={clienteId} onChange={e => setClienteId(e.target.value)} required>
             <option value="">Select client...</option>
@@ -411,7 +411,7 @@ export default function Invoices() {
       {/* Invoice detail modal */}
       {selected && (
         <Modal title={`Invoice ${selected.numero}`} onClose={() => setSelected(null)} wide>
-          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16,fontSize:13 }}>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:16,marginBottom:16,fontSize:13 }}>
             <div>
               <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>Client</div>
               <div style={{ color:'var(--ink)',fontWeight:600 }}>{selected.cliente_nombre}</div>

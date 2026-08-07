@@ -74,7 +74,7 @@ function ClientForm({
 
   return (
     <form onSubmit={submit}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <div style={{ gridColumn: 'span 2' }}>
           <Field label="Company / Name *"><input value={f.nombre} onChange={set('nombre')} required /></Field>
         </div>
@@ -159,7 +159,7 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
 
       {expanded && (
         <div style={{ borderTop: '1px solid var(--linea)', padding: '16px 20px', background: 'var(--ivory)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             {/* Invoice history */}
             <div>
               <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Invoice History</div>

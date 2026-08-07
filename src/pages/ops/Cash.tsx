@@ -79,7 +79,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
 
   return (
     <form onSubmit={submit}>
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
           <Field label="Concept *"><input value={concepto} onChange={e => setConcepto(e.target.value)} required placeholder={tipo==='income'?'e.g. Monthly subscription La Bahía':'e.g. VPS hosting Hostinger'} /></Field>
         </div>

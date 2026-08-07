@@ -32,7 +32,7 @@ function NavItem({
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ id, className = '' }: { id?: string; className?: string } = {}) {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLang();
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
+    <aside id={id} className={`sidebar${className ? ' ' + className : ''}`}>
       <div className="sidebar-brand">
         <div className="brand-name">
           <span className="brand-pulse">PULSE</span>

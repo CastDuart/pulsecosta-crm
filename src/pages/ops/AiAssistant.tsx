@@ -124,7 +124,7 @@ export default function AiAssistant() {
       </div>
 
       {/* Mode selector */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 20 }}>
         {MODES.map(m => {
           const Icon = m.icon;
           const active = mode === m.id;

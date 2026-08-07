@@ -69,7 +69,7 @@ export default function AccountDetail() {
       </div>
 
       <div className="page-content">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
           {[
             { label: 'MRR', value: account.mrr > 0 ? `€${account.mrr}/mes` : '—', color: 'var(--verde)' },
             { label: 'Pulse Score', value: account.pulse_score ? `▲ ${account.pulse_score}` : '—', color: 'var(--verde)' },

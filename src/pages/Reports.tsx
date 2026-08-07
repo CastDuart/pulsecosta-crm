@@ -154,7 +154,7 @@ export default function Reports() {
                   { plan: 'Pro BI', mrr: 59, color: 'var(--teal-tint)', pct: 8 },
                   { plan: 'Premium Local', mrr: 87, color: 'var(--naranja-text)', pct: 12 },
                 ].map(p => (
-                  <div key={p.plan} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 60px', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+                  <div key={p.plan} style={{ display: 'grid', gridTemplateColumns: 'minmax(90px, 130px) 1fr 60px', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{p.plan}</div>
                     <div style={{ height: 8, background: 'rgba(15,46,56,0.15)', borderRadius: 20, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${p.pct}%`, background: p.color, borderRadius: 20 }} />
@@ -269,7 +269,7 @@ export default function Reports() {
             ].map(ag => (
               <div key={ag.name} style={{ padding: '14px 0', borderBottom: '1px solid rgba(15,46,56,0.08)' }}>
                 <div style={{ fontWeight: 700, marginBottom: 10 }}>{ag.name}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                   {[
                     { label: 'Leads', value: ag.leads, color: 'var(--naranja-text)' },
                     { label: 'Cuentas', value: ag.accounts, color: 'var(--verde-text)' },

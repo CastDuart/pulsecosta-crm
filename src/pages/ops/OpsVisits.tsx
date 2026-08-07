@@ -83,7 +83,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
     <form onSubmit={submit}>
       {/* Prospect / Company */}
       <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',marginBottom:12,borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Prospect / Company</div>
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
           <Field label="Venue / Company *"><input value={f.venue} onChange={set('venue')} required /></Field>
         </div>
@@ -97,7 +97,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
 
       {/* Visit details */}
       <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',margin:'16px 0 12px',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Visit Details</div>
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <Field label="Existing client (optional — only for upsell visits)">
           <select value={f.cliente_id} onChange={set('cliente_id')}>
             <option value="">— Prospect (new) —</option>

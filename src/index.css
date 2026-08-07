@@ -650,3 +650,109 @@ tr:hover td { background: rgba(255,122,26,0.03); }
 .report-kpi-label { font-size: 0.68rem; color: var(--muted-tint); font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
 .report-kpi-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; }
 .report-kpi-sub { font-size: 0.68rem; color: var(--muted-tint); margin-top: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   MÓVIL Y TABLETA — el CRM y OPS operables fuera de la oficina
+   ═══════════════════════════════════════════════════════════════
+   Medido a 375px antes de escribir esto: la sidebar se comía 220 de
+   375 píxeles (el 59% de la pantalla) y entre 36 y 86 elementos por
+   pantalla quedaban fuera del borde. Y como no había scroll
+   horizontal, ese contenido no estaba pequeño: era inalcanzable.   */
+
+.app-shell { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
+.app-main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  overflow-y: auto;
+  background: var(--ivory);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hamburguesa: oculta en escritorio, donde la sidebar siempre está */
+.menu-toggle { display: none; }
+.sidebar-backdrop { display: none; }
+
+@media (max-width: 900px) {
+  /* La sidebar pasa a ser un cajón que entra desde la izquierda */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    width: min(82vw, 300px);
+  }
+  .sidebar.open {
+    transform: none;
+    box-shadow: 0 0 40px rgba(8,28,35,0.45);
+  }
+  .app-main { margin-left: 0; }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(8,28,35,0.45);
+    z-index: 45;   /* por debajo de .sidebar (50), por encima de .topbar (40) */
+  }
+
+  .menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 60;
+    width: 40px;
+    height: 40px;
+    padding: 0 9px;
+    border: 1px solid var(--linea-alta);
+    border-radius: var(--radius-sm);
+    background: var(--petrol);
+    cursor: pointer;
+  }
+  .menu-toggle span {
+    display: block;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--ivory);
+  }
+
+  /* Sitio para la hamburguesa, y que la barra se pliegue en vez de desbordar */
+  .topbar {
+    padding: 10px 14px 10px 60px;
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar-title { font-size: 1rem; }
+  .topbar-actions { flex-wrap: wrap; }
+
+  .page-content { padding: 16px 14px; }
+
+  /* Cualquier tabla se desplaza dentro de su propia caja: sin esto, las
+     columnas de facturas y caja empujan la página entera fuera de pantalla. */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Las rejillas del CSS bajan a una columna */
+  .kpi-grid, .grid-3, .report-kpi-grid { grid-template-columns: 1fr; }
+
+  /* El kanban del pipeline se desliza en horizontal, no se comprime */
+  .kanban-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Objetivo táctil decente en los botones de acción */
+  .btn { min-height: 40px; }
+}
+
+/* El teléfono en vertical: apretar un poco más */
+@media (max-width: 480px) {
+  .page-content { padding: 14px 10px; }
+  .topbar-title { font-size: 0.95rem; }
+}
