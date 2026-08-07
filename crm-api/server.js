@@ -1582,7 +1582,24 @@ app.get('/api/crm/health', async (_, res) => {
 // ── START ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`OmniPulse API v2.0 — puerto ${PORT}`);
-  await migrateIfNeeded();
+  // migrateIfNeeded() DESACTIVADA a propósito (07/08/2026).
+  //
+  // Copiaba public.crm_* → crm.* en cada arranque del contenedor. Se apaga por
+  // dos motivos:
+  //
+  // 1. Contradice la decisión de arquitectura del 06/08: NO se migra el legado.
+  //    Lo nuevo se construye directamente en los esquemas limpios (crm.*, ops.*,
+  //    pwa.*, accounting.*) y public.* sigue sirviendo a la PWA hasta que le
+  //    toque. Migrar primero es el camino caro.
+  //
+  // 2. Migrar datos es una decisión, no un efecto secundario de reiniciar un
+  //    contenedor. Hoy solo la frena que public.crm_leads.type vale
+  //    'bar_restaurante' y crm.leads tiene CHECK (type IN ('local','hotel')).
+  //    El día que alguien "arregle" ese mapeo, el siguiente reinicio migraría
+  //    los datos sin que nadie lo haya pedido.
+  //
+  // La función se conserva por si algún día se hace la migración de verdad:
+  // entonces se ejecuta a mano, con respaldo y revisando el mapeo de tipos.
   await ensureVisitasTable();
   await ensureFieldTables();
 });
