@@ -63,6 +63,7 @@
 
   /* Texto MUY pequeño (<12px) o apoyado sobre su propio tinte. */
   --muted-tint:    #48545A;  /* 3.96 sobre tinte al 15%; ahora 4.97 */
+  --rojo-tint:     #A81F24;  /* --rojo-text se queda en 4.12 sobre su tinte */
   --teal-tint:     #0C6260;
   --naranja-tint:  #8F4200;
 

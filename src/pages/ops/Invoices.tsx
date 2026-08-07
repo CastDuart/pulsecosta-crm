@@ -35,11 +35,11 @@ function Field({ label, children, span2 }: { label: string; children: React.Reac
 
 function StatusBadge({ estado }: { estado: string }) {
   const m: Record<string, [string,string]> = {
-    draft:['rgba(15,46,56,0.15)','var(--muted)'],
-    sent:['rgba(23,129,127,0.15)','var(--teal-accent)'],
-    collected:['rgba(23,129,127,0.15)','var(--verde-text)'],
-    overdue:['rgba(229,72,77,0.15)','var(--rojo-text)'],
-    cancelled:['rgba(15,46,56,0.15)','var(--muted)'],
+    draft:['rgba(15,46,56,0.15)','var(--muted-tint)'],
+    sent:['rgba(23,129,127,0.15)','var(--teal-tint)'],
+    collected:['rgba(23,129,127,0.15)','var(--teal-tint)'],
+    overdue:['rgba(229,72,77,0.15)','var(--rojo-tint)'],
+    cancelled:['rgba(15,46,56,0.15)','var(--muted-tint)'],
   };
   const [bg,color] = m[estado] || m.draft;
   return <span style={{ background:bg,color,borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:600 }}>{estado}</span>;
@@ -126,8 +126,8 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
     <form onSubmit={submit}>
       {/* Invoice number preview */}
       <div style={{ background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.2)',borderRadius:8,padding:'10px 16px',marginBottom:20,display:'flex',justifyContent:'space-between' }}>
-        <span style={{ fontSize:13,color:'var(--muted)' }}>Invoice number</span>
-        <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:'var(--naranja-text)',fontSize:15 }}>{nextNum}</span>
+        <span style={{ fontSize:13,color:'var(--muted-tint)' }}>Invoice number</span>
+        <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:'var(--naranja-tint)',fontSize:15 }}>{nextNum}</span>
       </div>
 
       <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
@@ -171,7 +171,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
 
         {/* Warning for intracomunitario */}
         {tipoIva === 'intracomunitario' && (
-          <div style={{ gridColumn:'span 2',background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.25)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'var(--naranja-text)' }}>
+          <div style={{ gridColumn:'span 2',background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.25)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'var(--naranja-tint)' }}>
             <strong>Reverse Charge:</strong> VAT = 0%. The client's VAT number is required. Legal note will appear on the PDF invoice.
             {cliente && !cliente.vat_number && (
               <div style={{ marginTop:4,color:'var(--rojo-text)' }}>⚠ This client has no VAT number — add it in Clients before issuing this invoice.</div>
@@ -250,7 +250,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
           </div>
         </div>
         {legalNote && (
-          <div style={{ marginTop:12,padding:'8px 12px',background:'rgba(255,122,26,0.05)',borderRadius:8,fontSize:11,color:'var(--muted)',borderLeft:'3px solid var(--pulse)' }}>
+          <div style={{ marginTop:12,padding:'8px 12px',background:'rgba(255,122,26,0.05)',borderRadius:8,fontSize:11,color:'var(--muted-tint)',borderLeft:'3px solid var(--pulse)' }}>
             {legalNote}
           </div>
         )}
@@ -391,7 +391,7 @@ export default function Invoices() {
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontSize:12,color:'var(--naranja-text)' }}>{f.numero}</td>
                 <td style={{ padding:'10px 16px',color:'var(--ink)',fontWeight:500 }}>{f.cliente_nombre}</td>
                 <td style={{ padding:'10px 16px' }}>
-                  {f.tipo_iva === 'intracomunitario' && <span style={{ fontSize:11,color:'var(--naranja-text)',background:'rgba(255,122,26,0.1)',padding:'2px 8px',borderRadius:20 }}>Reverse Charge</span>}
+                  {f.tipo_iva === 'intracomunitario' && <span style={{ fontSize:11,color:'var(--naranja-tint)',background:'rgba(255,122,26,0.1)',padding:'2px 8px',borderRadius:20 }}>Reverse Charge</span>}
                   {f.tipo_iva === 'exento' && <span style={{ fontSize:11,color:'var(--muted)' }}>Exempt</span>}
                   {f.tipo_iva === 'normal' && <span style={{ fontSize:11,color:'var(--muted)' }}>{f.iva_rate}% VAT</span>}
                 </td>
@@ -434,7 +434,7 @@ export default function Invoices() {
 
           {/* Legal note preview */}
           {(() => { const note = invoiceLegalNote(selected.tipo_iva); return note ? (
-            <div style={{ padding:'10px 14px',background:'rgba(255,122,26,0.06)',borderLeft:'3px solid var(--pulse)',borderRadius:8,fontSize:12,color:'var(--muted)',marginBottom:16 }}>
+            <div style={{ padding:'10px 14px',background:'rgba(255,122,26,0.06)',borderLeft:'3px solid var(--pulse)',borderRadius:8,fontSize:12,color:'var(--muted-tint)',marginBottom:16 }}>
               {note}
             </div>
           ) : null; })()}

@@ -11,7 +11,13 @@ type VisitaPrioridad = Visita['prioridad'];
 const PLANES = ['Premium Local €29/mes', 'Pro BI €59/mes', 'Hotel Analytics €129/mes', 'Hotel Elite €429/mes', 'Other'];
 const ESTADOS: VisitaEstado[] = ['pending', 'follow_up', 'closed', 'lost'];
 const ESTADO_LABEL: Record<VisitaEstado, string> = { pending:'Pending', follow_up:'Follow-up', closed:'Closed', lost:'Lost' };
-const ESTADO_COLOR: Record<VisitaEstado, string> = { pending:'var(--naranja-text)', follow_up:'var(--teal-accent)', closed:'var(--verde-text)', lost:'var(--muted)' };
+// [texto, fondo] — el texto va sobre su propio tinte, de ahi las variantes hondas
+const ESTADO_COLOR: Record<VisitaEstado, [string, string]> = {
+  pending:   ['var(--naranja-tint)', 'rgba(255,122,26,0.15)'],
+  follow_up: ['var(--teal-tint)',    'rgba(23,129,127,0.15)'],
+  closed:    ['var(--teal-tint)',    'rgba(23,129,127,0.15)'],
+  lost:      ['var(--muted-tint)',   'rgba(15,46,56,0.15)'],
+};
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -244,12 +250,12 @@ export default function Visits() {
                 <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:4 }}>
                   <span style={{ fontWeight:700,fontSize:15,color:'var(--ink)' }}>{v.venue}</span>
                   <span style={{
-                    background:`${ESTADO_COLOR[v.estado]}20`,color:ESTADO_COLOR[v.estado],
+                    background:ESTADO_COLOR[v.estado][1],color:ESTADO_COLOR[v.estado][0],
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
                   }}>{ESTADO_LABEL[v.estado]}</span>
                   <span style={{
-                    background: v.prioridad==='high'?'rgba(229,72,77,0.1)':v.prioridad==='medium'?'rgba(255,122,26,0.1)':'rgba(15,46,56,0.1)',
-                    color: v.prioridad==='high'?'var(--rojo-text)':v.prioridad==='medium'?'var(--naranja-text)':'var(--muted)',
+                    background: v.prioridad==='high'?'rgba(229,72,77,0.15)':v.prioridad==='medium'?'rgba(255,122,26,0.15)':'rgba(15,46,56,0.15)',
+                    color: v.prioridad==='high'?'var(--rojo-tint)':v.prioridad==='medium'?'var(--naranja-tint)':'var(--muted-tint)',
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
                   }}>{v.prioridad}</span>
                 </div>

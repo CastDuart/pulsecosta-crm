@@ -177,7 +177,7 @@ export default function Dashboard() {
                 padding: '8px 12px', background: 'rgba(229,72,77,0.05)', borderRadius: 8, fontSize: 13,
               }}>
                 <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{f.cliente_nombre}</span>
-                <span style={{ color: 'var(--muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{f.numero}</span>
+                <span style={{ color: 'var(--muted-tint)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{f.numero}</span>
                 <span style={{ color: 'var(--naranja-text)', fontFamily: 'JetBrains Mono, monospace' }}>{formatEur(f.total)}</span>
                 <span style={{ color: 'var(--rojo-text)', fontSize: 12 }}>
                   {f.fecha_vencimiento ? `${daysOverdue(f.fecha_vencimiento)}${t('ops.daysOverdue')}` : ''}
@@ -259,11 +259,11 @@ export default function Dashboard() {
 }
 
 const STATUS_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
-  draft:     { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted)', label: 'Draft' },
+  draft:     { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Draft' },
   sent:      { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Sent' },
-  collected: { bg: 'rgba(23,129,127,0.15)',  color: 'var(--verde-text)', label: 'Collected' },
-  overdue:   { bg: 'rgba(229,72,77,0.15)',   color: 'var(--rojo-text)', label: 'Overdue' },
-  cancelled: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted)', label: 'Cancelled' },
+  collected: { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Collected' },
+  overdue:   { bg: 'rgba(229,72,77,0.15)',   color: 'var(--rojo-tint)', label: 'Overdue' },
+  cancelled: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Cancelled' },
 };
 
 function StatusBadge({ estado }: { estado: string }) {

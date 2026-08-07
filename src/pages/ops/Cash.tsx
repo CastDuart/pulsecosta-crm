@@ -250,7 +250,7 @@ export default function Cash() {
                 <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{formatDate(m.fecha)}</td>
                 <td style={{ padding:'10px 16px',color:'var(--ink)',fontWeight:500 }}>
                   {m.concepto}
-                  {m.recurrente && <span style={{ marginLeft:6,fontSize:10,color:'var(--muted)',background:'rgba(94,109,114,0.1)',padding:'1px 6px',borderRadius:20 }}>recurring</span>}
+                  {m.recurrente && <span style={{ marginLeft:6,fontSize:10,color:'var(--muted-tint)',background:'rgba(94,109,114,0.1)',padding:'1px 6px',borderRadius:20 }}>recurring</span>}
                 </td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)',fontSize:12 }}>{m.categoria || '-'}</td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)',fontSize:12 }}>{m.cliente_nombre || '-'}</td>
