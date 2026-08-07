@@ -168,8 +168,8 @@ export default function Assistant() {
           <div key={i} style={{
             padding: '16px 20px',
             borderRadius: 12,
-            background: msg.role === 'user' ? 'rgba(255,140,0,0.08)' : 'var(--azul-2)',
-            border: `1px solid ${msg.role === 'user' ? 'rgba(255,140,0,0.2)' : 'var(--borde)'}`,
+            background: msg.role === 'user' ? 'rgba(255,122,26,0.08)' : 'var(--azul-2)',
+            border: `1px solid ${msg.role === 'user' ? 'rgba(255,122,26,0.2)' : 'var(--borde)'}`,
             alignSelf: msg.role === 'user' ? 'flex-end' : 'stretch',
             maxWidth: msg.role === 'user' ? '80%' : '100%',
           }}>

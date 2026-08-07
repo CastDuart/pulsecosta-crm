@@ -125,16 +125,16 @@ export default function Reports() {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 800 }}>Resumen Ejecutivo</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--gris)', marginTop: 2 }}>Mayo 2026 · Generado 13/05/2026</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted-tint)', marginTop: 2 }}>Mayo 2026 · Generado 13/05/2026</div>
                 </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.7rem', color: 'var(--gris)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>PulseCosta CRM v1.0</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.7rem', color: 'var(--muted-tint)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>PulseCosta CRM v1.0</div>
               </div>
               <div className="report-kpi-grid">
                 {[
-                  { label: 'MRR Total', value: `€${mrr}`, color: 'var(--verde)', sub: '+€290 vs mes anterior' },
-                  { label: 'Cuentas Activas', value: '7', color: 'var(--teal)', sub: '+2 este mes' },
-                  { label: 'Leads Activos', value: '28', color: 'var(--naranja)', sub: '+6 esta semana' },
-                  { label: 'Conversión Pipeline', value: '32%', color: 'var(--gold)', sub: 'lead → activo' },
+                  { label: 'MRR Total', value: `€${mrr}`, color: 'var(--verde-text)', sub: '+€290 vs mes anterior' },
+                  { label: 'Cuentas Activas', value: '7', color: 'var(--teal-tint)', sub: '+2 este mes' },
+                  { label: 'Leads Activos', value: '28', color: 'var(--naranja-text)', sub: '+6 esta semana' },
+                  { label: 'Conversión Pipeline', value: '32%', color: 'var(--amarillo-text)', sub: 'lead → activo' },
                 ].map(k => (
                   <div key={k.label} className="report-kpi">
                     <div className="report-kpi-label">{k.label}</div>
@@ -149,14 +149,14 @@ export default function Reports() {
               <div className="card">
                 <div className="card-title">MRR por plan</div>
                 {[
-                  { plan: 'Hotel Elite', mrr: 429, color: 'var(--gold)', pct: 59 },
+                  { plan: 'Hotel Elite', mrr: 429, color: 'var(--amarillo-text)', pct: 59 },
                   { plan: 'Hotel Analytics', mrr: 129, color: 'var(--purple)', pct: 18 },
-                  { plan: 'Pro BI', mrr: 59, color: 'var(--teal)', pct: 8 },
-                  { plan: 'Premium Local', mrr: 87, color: 'var(--naranja)', pct: 12 },
+                  { plan: 'Pro BI', mrr: 59, color: 'var(--teal-tint)', pct: 8 },
+                  { plan: 'Premium Local', mrr: 87, color: 'var(--naranja-text)', pct: 12 },
                 ].map(p => (
                   <div key={p.plan} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 60px', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{p.plan}</div>
-                    <div style={{ height: 8, background: 'rgba(136,146,176,0.15)', borderRadius: 20, overflow: 'hidden' }}>
+                    <div style={{ height: 8, background: 'rgba(15,46,56,0.15)', borderRadius: 20, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${p.pct}%`, background: p.color, borderRadius: 20 }} />
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', textAlign: 'right', color: p.color }}>€{p.mrr}</div>
@@ -168,7 +168,7 @@ export default function Reports() {
                 {accounts.filter(a => a.mrr > 0).sort((a, b) => b.mrr - a.mrr).map(a => (
                   <div key={a.id} className="stat-row">
                     <span className="stat-label">{a.name}</span>
-                    <span className="stat-val" style={{ color: 'var(--verde)' }}>€{a.mrr}/mes</span>
+                    <span className="stat-val" style={{ color: 'var(--verde-text)' }}>€{a.mrr}/mes</span>
                   </div>
                 ))}
               </div>
@@ -182,10 +182,10 @@ export default function Reports() {
             <div className="card-title">Pipeline y Conversión</div>
             <div className="report-kpi-grid">
               {[
-                { label: 'Leads totales', value: '28', color: 'var(--naranja)' },
-                { label: 'En negociación', value: '2', color: 'var(--gold)' },
-                { label: 'Cerrados este mes', value: '3', color: 'var(--verde)' },
-                { label: 'Tasa conversión', value: '32%', color: 'var(--teal)' },
+                { label: 'Leads totales', value: '28', color: 'var(--naranja-text)' },
+                { label: 'En negociación', value: '2', color: 'var(--amarillo-text)' },
+                { label: 'Cerrados este mes', value: '3', color: 'var(--verde-text)' },
+                { label: 'Tasa conversión', value: '32%', color: 'var(--teal-tint)' },
               ].map(k => (
                 <div key={k.label} className="report-kpi">
                   <div className="report-kpi-label">{k.label}</div>
@@ -193,7 +193,7 @@ export default function Reports() {
                 </div>
               ))}
             </div>
-            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', marginTop: 8 }}>
+            <p style={{ color: 'var(--muted-tint)', fontSize: '0.82rem', marginTop: 8 }}>
               Gráfica de embudo de conversión — disponible cuando la API esté conectada.
             </p>
           </div>
@@ -205,9 +205,9 @@ export default function Reports() {
             <div className="card-title">Actividad Comercial · Mayo 2026</div>
             <div className="report-kpi-grid">
               {[
-                { label: 'Llamadas', value: '14', color: 'var(--teal)' },
-                { label: 'Emails', value: '22', color: 'var(--naranja)' },
-                { label: 'Visitas', value: '6', color: 'var(--verde)' },
+                { label: 'Llamadas', value: '14', color: 'var(--teal-tint)' },
+                { label: 'Emails', value: '22', color: 'var(--naranja-text)' },
+                { label: 'Visitas', value: '6', color: 'var(--verde-text)' },
                 { label: 'Notas', value: '31', color: 'var(--purple)' },
               ].map(k => (
                 <div key={k.label} className="report-kpi">
@@ -225,10 +225,10 @@ export default function Reports() {
             <div className="card-title">Leads y Prospección · Mayo 2026</div>
             <div className="report-kpi-grid">
               {[
-                { label: 'Leads nuevos', value: '12', color: 'var(--naranja)' },
-                { label: 'Contactados', value: '8', color: 'var(--teal)' },
-                { label: 'Interesados', value: '5', color: 'var(--gold)' },
-                { label: 'Convertidos', value: '3', color: 'var(--verde)' },
+                { label: 'Leads nuevos', value: '12', color: 'var(--naranja-text)' },
+                { label: 'Contactados', value: '8', color: 'var(--teal-tint)' },
+                { label: 'Interesados', value: '5', color: 'var(--amarillo-text)' },
+                { label: 'Convertidos', value: '3', color: 'var(--verde-text)' },
               ].map(k => (
                 <div key={k.label} className="report-kpi">
                   <div className="report-kpi-label">{k.label}</div>
@@ -245,10 +245,10 @@ export default function Reports() {
             <div className="card-title">Facturación y MRR · Mayo 2026</div>
             <div className="report-kpi-grid">
               {[
-                { label: 'MRR actual', value: `€${mrr}`, color: 'var(--verde)' },
-                { label: 'ARR proyectado', value: `€${mrr * 12}`, color: 'var(--gold)' },
-                { label: 'Churn mes', value: '€0', color: 'var(--rojo)' },
-                { label: 'Net MRR growth', value: '+€290', color: 'var(--verde)' },
+                { label: 'MRR actual', value: `€${mrr}`, color: 'var(--verde-text)' },
+                { label: 'ARR proyectado', value: `€${mrr * 12}`, color: 'var(--amarillo-text)' },
+                { label: 'Churn mes', value: '€0', color: 'var(--rojo-text)' },
+                { label: 'Net MRR growth', value: '+€290', color: 'var(--verde-text)' },
               ].map(k => (
                 <div key={k.label} className="report-kpi">
                   <div className="report-kpi-label">{k.label}</div>
@@ -267,14 +267,14 @@ export default function Reports() {
               { name: 'Cipriano Castro', leads: 16, accounts: 5, mrr: 576, calls: 8 },
               { name: 'Heidi Raaterova', leads: 12, accounts: 3, mrr: 158, calls: 6 },
             ].map(ag => (
-              <div key={ag.name} style={{ padding: '14px 0', borderBottom: '1px solid rgba(136,146,176,0.08)' }}>
+              <div key={ag.name} style={{ padding: '14px 0', borderBottom: '1px solid rgba(15,46,56,0.08)' }}>
                 <div style={{ fontWeight: 700, marginBottom: 10 }}>{ag.name}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                   {[
-                    { label: 'Leads', value: ag.leads, color: 'var(--naranja)' },
-                    { label: 'Cuentas', value: ag.accounts, color: 'var(--verde)' },
-                    { label: 'MRR', value: `€${ag.mrr}`, color: 'var(--gold)' },
-                    { label: 'Llamadas', value: ag.calls, color: 'var(--teal)' },
+                    { label: 'Leads', value: ag.leads, color: 'var(--naranja-text)' },
+                    { label: 'Cuentas', value: ag.accounts, color: 'var(--verde-text)' },
+                    { label: 'MRR', value: `€${ag.mrr}`, color: 'var(--amarillo-text)' },
+                    { label: 'Llamadas', value: ag.calls, color: 'var(--teal-tint)' },
                   ].map(k => (
                     <div key={k.label} className="report-kpi">
                       <div className="report-kpi-label">{k.label}</div>

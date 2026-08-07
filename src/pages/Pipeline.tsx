@@ -7,17 +7,17 @@ import PlanBadge from '../components/ui/PlanBadge';
 import NewLeadModal from '../components/ui/NewLeadModal';
 
 const STAGES: { key: PipelineStage; color: string }[] = [
-  { key: 'new',               color: 'var(--gris)' },
-  { key: 'attempting_contact',color: 'var(--gris)' },
-  { key: 'contacted',         color: 'var(--teal)' },
-  { key: 'interested',        color: 'var(--teal)' },
-  { key: 'demo_scheduled',    color: 'var(--naranja)' },
-  { key: 'proposal_sent',     color: 'var(--naranja)' },
-  { key: 'negotiation',       color: 'var(--gold)' },
+  { key: 'new',               color: 'var(--muted-tint)' },
+  { key: 'attempting_contact',color: 'var(--muted-tint)' },
+  { key: 'contacted',         color: 'var(--teal-tint)' },
+  { key: 'interested',        color: 'var(--teal-tint)' },
+  { key: 'demo_scheduled',    color: 'var(--naranja-text)' },
+  { key: 'proposal_sent',     color: 'var(--naranja-text)' },
+  { key: 'negotiation',       color: 'var(--amarillo-text)' },
   { key: 'onboarding_pending',color: 'var(--purple)' },
   { key: 'payment_pending',   color: 'var(--purple)' },
-  { key: 'active',            color: 'var(--verde)' },
-  { key: 'at_risk',           color: 'var(--rojo)' },
+  { key: 'active',            color: 'var(--verde-text)' },
+  { key: 'at_risk',           color: 'var(--rojo-text)' },
 ];
 
 export default function Pipeline() {
@@ -110,7 +110,7 @@ export default function Pipeline() {
                       <td><PlanBadge plan={a.plan} /></td>
                       <td><span className="badge badge-gray">{t(`stage.${a.stage}`)}</span></td>
                       <td className="zone-tag">{a.zone}</td>
-                      <td style={{ color: 'var(--gris)', fontSize: '0.8rem' }}>{a.assigned_to}</td>
+                      <td style={{ color: 'var(--muted-tint)', fontSize: '0.8rem' }}>{a.assigned_to}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: a.mrr > 0 ? 'var(--verde)' : 'var(--gris)' }}>
                         {a.mrr > 0 ? `€${a.mrr}` : '—'}
                       </td>

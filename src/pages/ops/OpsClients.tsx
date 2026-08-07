@@ -13,13 +13,13 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div style={{
-        background: '#112240', borderRadius: 16, padding: 32,
-        width: '100%', maxWidth: 560, border: '1px solid #1a2f50',
+        background: 'var(--ivory-alt)', borderRadius: 16, padding: 32,
+        width: '100%', maxWidth: 560, border: '1px solid var(--linea)',
         maxHeight: '90vh', overflowY: 'auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#E8F0FE' }}>{title}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8892B0', cursor: 'pointer' }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{title}</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>
@@ -32,7 +32,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ fontSize: 12, color: '#8892B0', display: 'block', marginBottom: 6 }}>{label}</label>
+      <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>{label}</label>
       {children}
     </div>
   );
@@ -106,10 +106,10 @@ function ClientForm({
           <Field label="Notes"><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
         </div>
       </div>
-      {err && <div style={{ color: '#FF4757', fontSize: 13, marginBottom: 12 }}>{err}</div>}
+      {err && <div style={{ color: 'var(--rojo-text)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-        <button type="button" onClick={onClose} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid #1a2f50', background: 'none', color: '#8892B0', cursor: 'pointer' }}>Cancel</button>
-        <button type="submit" disabled={saving} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#FF8C00', color: '#0A192F', fontWeight: 700, cursor: 'pointer' }}>
+        <button type="button" onClick={onClose} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--linea)', background: 'none', color: 'var(--muted)', cursor: 'pointer' }}>Cancel</button>
+        <button type="submit" disabled={saving} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'var(--pulse)', color: 'var(--petrol)', fontWeight: 700, cursor: 'pointer' }}>
           {saving ? 'Saving...' : 'Save Client'}
         </button>
       </div>
@@ -128,15 +128,15 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
     .reduce((s, f) => s + f.total, 0);
 
   return (
-    <div style={{ background: '#112240', borderRadius: 12, border: '1px solid #1a2f50', overflow: 'hidden', marginBottom: 8 }}>
+    <div style={{ background: 'var(--ivory-alt)', borderRadius: 12, border: '1px solid var(--linea)', overflow: 'hidden', marginBottom: 8 }}>
       <div
         onClick={() => setExpanded(e => !e)}
         style={{ padding: '14px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div>
-            <div style={{ fontWeight: 600, color: '#E8F0FE', fontSize: 15 }}>{cliente.nombre}</div>
-            <div style={{ fontSize: 12, color: '#8892B0', marginTop: 2 }}>
+            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 15 }}>{cliente.nombre}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
               {cliente.pais} {cliente.vat_number ? `· ${cliente.vat_number}` : ''}
               {cliente.ciudad ? ` · ${cliente.ciudad}` : ''}
             </div>
@@ -144,46 +144,46 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {openBalance > 0 && (
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#FF8C00', fontWeight: 700 }}>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: 'var(--naranja-text)', fontWeight: 700 }}>
               Open: {formatEur(openBalance)}
             </span>
           )}
-          <span style={{ fontSize: 11, color: '#8892B0' }}>
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
             <FileText size={12} style={{ display: 'inline', marginRight: 4 }} />
             {clientFacturas.length}
           </span>
-          <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: '1px solid #1a2f50', borderRadius: 6, padding: '4px 10px', color: '#8892B0', cursor: 'pointer', fontSize: 12 }}>Edit</button>
-          {expanded ? <ChevronUp size={16} color="#8892B0" /> : <ChevronDown size={16} color="#8892B0" />}
+          <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: '1px solid var(--linea)', borderRadius: 6, padding: '4px 10px', color: 'var(--muted)', cursor: 'pointer', fontSize: 12 }}>Edit</button>
+          {expanded ? <ChevronUp size={16} color="var(--muted)" /> : <ChevronDown size={16} color="var(--muted)" />}
         </div>
       </div>
 
       {expanded && (
-        <div style={{ borderTop: '1px solid #1a2f50', padding: '16px 20px', background: '#0A192F' }}>
+        <div style={{ borderTop: '1px solid var(--linea)', padding: '16px 20px', background: 'var(--ivory)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {/* Invoice history */}
             <div>
-              <div style={{ fontSize: 12, color: '#8892B0', fontWeight: 600, marginBottom: 8 }}>Invoice History</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Invoice History</div>
               {clientFacturas.length === 0
-                ? <div style={{ fontSize: 12, color: '#8892B0' }}>No invoices</div>
+                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>No invoices</div>
                 : clientFacturas.slice(0, 5).map(f => (
-                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid #1a2f50' }}>
-                    <span style={{ color: '#FF8C00', fontFamily: 'JetBrains Mono, monospace' }}>{f.numero}</span>
-                    <span style={{ color: '#E8F0FE' }}>{formatEur(f.total)}</span>
-                    <span style={{ color: f.estado === 'collected' ? '#43E97B' : f.estado === 'overdue' ? '#FF4757' : '#8892B0' }}>{f.estado}</span>
+                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid var(--linea)' }}>
+                    <span style={{ color: 'var(--naranja-text)', fontFamily: 'JetBrains Mono, monospace' }}>{f.numero}</span>
+                    <span style={{ color: 'var(--ink)' }}>{formatEur(f.total)}</span>
+                    <span style={{ color: f.estado === 'collected' ? 'var(--verde-text)' : f.estado === 'overdue' ? 'var(--rojo-text)' : 'var(--muted)' }}>{f.estado}</span>
                   </div>
                 ))
               }
             </div>
             {/* Visit history */}
             <div>
-              <div style={{ fontSize: 12, color: '#8892B0', fontWeight: 600, marginBottom: 8 }}>Visit History</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Visit History</div>
               {clientVisitas.length === 0
-                ? <div style={{ fontSize: 12, color: '#8892B0' }}>No visits</div>
+                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>No visits</div>
                 : clientVisitas.slice(0, 5).map(v => (
-                  <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid #1a2f50' }}>
-                    <span style={{ color: '#E8F0FE' }}>{formatDate(v.fecha)}</span>
-                    <span style={{ color: '#8892B0' }}>{v.venue}</span>
-                    <span style={{ color: v.estado === 'closed' ? '#43E97B' : '#38BDF8' }}>{v.estado}</span>
+                  <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid var(--linea)' }}>
+                    <span style={{ color: 'var(--ink)' }}>{formatDate(v.fecha)}</span>
+                    <span style={{ color: 'var(--muted)' }}>{v.venue}</span>
+                    <span style={{ color: v.estado === 'closed' ? 'var(--verde-text)' : 'var(--teal-accent)' }}>{v.estado}</span>
                   </div>
                 ))
               }
@@ -191,10 +191,10 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
           </div>
           <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
             {cliente.email && (
-              <a href={`mailto:${cliente.email}`} style={{ fontSize: 12, color: '#38BDF8', textDecoration: 'none' }}>{cliente.email}</a>
+              <a href={`mailto:${cliente.email}`} style={{ fontSize: 12, color: 'var(--teal-tint)', textDecoration: 'none' }}>{cliente.email}</a>
             )}
             {cliente.telefono && (
-              <span style={{ fontSize: 12, color: '#8892B0' }}>{cliente.telefono}</span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{cliente.telefono}</span>
             )}
           </div>
         </div>
@@ -235,18 +235,18 @@ export default function Clients() {
     c.vat_number?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return <div style={{ color: '#8892B0' }}>Loading...</div>;
+  if (loading) return <div style={{ color: 'var(--muted)' }}>Loading...</div>;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: '#E8F0FE', margin: 0 }}>
-          Clients <span style={{ fontSize: 14, color: '#8892B0', fontFamily: 'DM Sans, sans-serif' }}>({clientes.length})</span>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
+          Clients <span style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>({clientes.length})</span>
         </h1>
         <button onClick={() => { setEditClient(null); setShowModal(true); }} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px',
-          background: '#FF8C00', border: 'none', borderRadius: 8,
-          color: '#0A192F', fontWeight: 700, cursor: 'pointer', fontSize: 14,
+          background: 'var(--pulse)', border: 'none', borderRadius: 8,
+          color: 'var(--petrol)', fontWeight: 700, cursor: 'pointer', fontSize: 14,
         }}>
           <Plus size={16} /> New Client
         </button>
@@ -260,7 +260,7 @@ export default function Clients() {
 
       <div>
         {filtered.length === 0
-          ? <div style={{ color: '#8892B0', padding: 20 }}>No clients found</div>
+          ? <div style={{ color: 'var(--muted)', padding: 20 }}>No clients found</div>
           : filtered.map(c => (
             <ClientCard
               key={c.id} cliente={c} facturas={facturas} visitas={visitas}

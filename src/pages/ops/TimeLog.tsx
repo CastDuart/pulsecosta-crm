@@ -116,93 +116,93 @@ export default function TimeLog() {
   });
   const totalMinutes = monthJornadas.reduce((s, j) => s + (j.total_minutos || 0), 0);
 
-  if (loading) return <div style={{ color:'#8892B0' }}>Loading...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>Loading...</div>;
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'#E8F0FE',margin:0 }}>Time Log</h1>
-        <button onClick={exportExcel} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'#1a2f50',border:'none',borderRadius:8,color:'#E8F0FE',cursor:'pointer',fontSize:13 }}>
+        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>Time Log</h1>
+        <button onClick={exportExcel} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
           <Download size={14}/> Export
         </button>
       </div>
 
       {/* Clock in/out panel */}
-      <div style={{ background:'#112240',borderRadius:16,padding:'28px 32px',border:'1px solid #1a2f50',marginBottom:28,display:'flex',alignItems:'center',gap:32 }}>
+      <div style={{ background:'var(--ivory-alt)',borderRadius:16,padding:'28px 32px',border:'1px solid var(--linea)',marginBottom:28,display:'flex',alignItems:'center',gap:32 }}>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:13,color:'#8892B0',marginBottom:6 }}>Today — {new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</div>
+          <div style={{ fontSize:13,color:'var(--muted)',marginBottom:6 }}>Today — {new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</div>
           {open ? (
             <div>
               <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:4 }}>
-                <div style={{ width:8,height:8,borderRadius:'50%',background:'#43E97B',animation:'pulse 2s infinite' }}/>
-                <span style={{ fontWeight:700,color:'#43E97B',fontSize:16 }}>Active shift since {formatTime(open.entrada)}</span>
+                <div style={{ width:8,height:8,borderRadius:'50%',background:'var(--state-quiet)',animation:'pulse 2s infinite' }}/>
+                <span style={{ fontWeight:700,color:'var(--verde-text)',fontSize:16 }}>Active shift since {formatTime(open.entrada)}</span>
               </div>
               {open.lat_entrada && (
-                <div style={{ fontSize:12,color:'#8892B0',display:'flex',alignItems:'center',gap:4 }}>
+                <div style={{ fontSize:12,color:'var(--muted)',display:'flex',alignItems:'center',gap:4 }}>
                   <MapPin size={12}/> {open.lat_entrada.toFixed(4)}, {open.lng_entrada?.toFixed(4)}
                 </div>
               )}
             </div>
           ) : (
-            <div style={{ color:'#8892B0',fontSize:14 }}>No active shift</div>
+            <div style={{ color:'var(--muted)',fontSize:14 }}>No active shift</div>
           )}
-          {locError && <div style={{ marginTop:6,fontSize:11,color:'#FF8C00' }}>{locError}</div>}
+          {locError && <div style={{ marginTop:6,fontSize:11,color:'var(--naranja-text)' }}>{locError}</div>}
         </div>
 
         <div>
           {!open ? (
             <button onClick={clockIn} disabled={clocking} style={{
               display:'flex',alignItems:'center',gap:10,padding:'14px 28px',
-              borderRadius:12,border:'none',background:'rgba(67,233,123,0.15)',
-              color:'#43E97B',fontWeight:800,fontSize:16,cursor:'pointer',
+              borderRadius:12,border:'none',background:'rgba(23,129,127,0.15)',
+              color:'var(--verde-text)',fontWeight:800,fontSize:16,cursor:'pointer',
             }}>
-              <Play size={20} fill="#43E97B"/> {clocking ? 'Clocking in...' : 'Clock In'}
+              <Play size={20} fill="var(--verde-text)"/> {clocking ? 'Clocking in...' : 'Clock In'}
             </button>
           ) : (
             <button onClick={clockOut} disabled={clocking} style={{
               display:'flex',alignItems:'center',gap:10,padding:'14px 28px',
-              borderRadius:12,border:'none',background:'rgba(255,71,87,0.15)',
-              color:'#FF4757',fontWeight:800,fontSize:16,cursor:'pointer',
+              borderRadius:12,border:'none',background:'rgba(229,72,77,0.15)',
+              color:'var(--rojo-text)',fontWeight:800,fontSize:16,cursor:'pointer',
             }}>
-              <Square size={20} fill="#FF4757"/> {clocking ? 'Clocking out...' : 'Clock Out'}
+              <Square size={20} fill="var(--rojo-text)"/> {clocking ? 'Clocking out...' : 'Clock Out'}
             </button>
           )}
         </div>
 
         <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:12,color:'#8892B0',marginBottom:4 }}>This month</div>
-          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:22,fontWeight:700,color:'#38BDF8' }}>
+          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>This month</div>
+          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:22,fontWeight:700,color:'var(--teal-tint)' }}>
             {formatMinutes(totalMinutes)}
           </div>
-          <div style={{ fontSize:11,color:'#8892B0' }}>{monthJornadas.length} shifts</div>
+          <div style={{ fontSize:11,color:'var(--muted)' }}>{monthJornadas.length} shifts</div>
         </div>
       </div>
 
       {/* History table */}
-      <div style={{ background:'#112240',borderRadius:12,border:'1px solid #1a2f50',overflow:'hidden' }}>
+      <div style={{ background:'var(--ivory-alt)',borderRadius:12,border:'1px solid var(--linea)',overflow:'hidden' }}>
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
-            <tr style={{ borderBottom:'1px solid #1a2f50' }}>
+            <tr style={{ borderBottom:'1px solid var(--linea)' }}>
               {['Date', ...(isAdmin ? ['Worker'] : []), 'Clock In', 'Clock Out', 'Duration', 'Location'].map(h => (
-                <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'#8892B0',fontWeight:500,fontSize:12 }}>{h}</th>
+                <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'var(--muted)',fontWeight:500,fontSize:12 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {jornadas.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding:'24px',color:'#8892B0',textAlign:'center' }}>No records yet</td></tr>
+              <tr><td colSpan={6} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>No records yet</td></tr>
             ) : jornadas.map(j => (
-              <tr key={j.id} style={{ borderBottom:'1px solid #0A192F' }}>
-                <td style={{ padding:'10px 16px',color:'#E8F0FE' }}>{formatDate(j.fecha)}</td>
-                {isAdmin && <td style={{ padding:'10px 16px',color:'#8892B0' }}>{j.user_name}</td>}
-                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'#43E97B' }}>{formatTime(j.entrada)}</td>
-                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:j.salida?'#FF4757':'#FF8C00' }}>
-                  {j.salida ? formatTime(j.salida) : <span style={{ color:'#FF8C00' }}>Active</span>}
+              <tr key={j.id} style={{ borderBottom:'1px solid var(--linea-alta)' }}>
+                <td style={{ padding:'10px 16px',color:'var(--ink)' }}>{formatDate(j.fecha)}</td>
+                {isAdmin && <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{j.user_name}</td>}
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'var(--verde-text)' }}>{formatTime(j.entrada)}</td>
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:j.salida?'var(--rojo-text)':'var(--naranja-text)' }}>
+                  {j.salida ? formatTime(j.salida) : <span style={{ color:'var(--naranja-text)' }}>Active</span>}
                 </td>
-                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'#38BDF8' }}>
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'var(--teal-tint)' }}>
                   {j.total_minutos ? formatMinutes(j.total_minutos) : '-'}
                 </td>
-                <td style={{ padding:'10px 16px',fontSize:11,color:'#8892B0' }}>
+                <td style={{ padding:'10px 16px',fontSize:11,color:'var(--muted)' }}>
                   {j.lat_entrada ? (
                     <span style={{ display:'flex',alignItems:'center',gap:4 }}>
                       <MapPin size={11}/> {j.lat_entrada.toFixed(4)}, {j.lng_entrada?.toFixed(4)}

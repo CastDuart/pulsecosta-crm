@@ -11,15 +11,15 @@ type VisitaPrioridad = Visita['prioridad'];
 const PLANES = ['Premium Local €29/mes', 'Pro BI €59/mes', 'Hotel Analytics €129/mes', 'Hotel Elite €429/mes', 'Other'];
 const ESTADOS: VisitaEstado[] = ['pending', 'follow_up', 'closed', 'lost'];
 const ESTADO_LABEL: Record<VisitaEstado, string> = { pending:'Pending', follow_up:'Follow-up', closed:'Closed', lost:'Lost' };
-const ESTADO_COLOR: Record<VisitaEstado, string> = { pending:'#FF8C00', follow_up:'#38BDF8', closed:'#43E97B', lost:'#8892B0' };
+const ESTADO_COLOR: Record<VisitaEstado, string> = { pending:'var(--naranja-text)', follow_up:'var(--teal-accent)', closed:'var(--verde-text)', lost:'var(--muted)' };
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
-      <div style={{ background:'#112240',borderRadius:16,padding:32,width:'100%',maxWidth:620,border:'1px solid #1a2f50',maxHeight:'90vh',overflowY:'auto' }}>
+      <div style={{ background:'var(--ivory-alt)',borderRadius:16,padding:32,width:'100%',maxWidth:620,border:'1px solid var(--linea)',maxHeight:'90vh',overflowY:'auto' }}>
         <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-          <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'#E8F0FE' }}>{title}</h2>
-          <button onClick={onClose} style={{ background:'none',border:'none',color:'#8892B0',cursor:'pointer' }}><X size={20}/></button>
+          <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'var(--ink)' }}>{title}</h2>
+          <button onClick={onClose} style={{ background:'none',border:'none',color:'var(--muted)',cursor:'pointer' }}><X size={20}/></button>
         </div>
         {children}
       </div>
@@ -30,7 +30,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom:14 }}>
-      <label style={{ fontSize:12,color:'#8892B0',display:'block',marginBottom:5 }}>{label}</label>
+      <label style={{ fontSize:12,color:'var(--muted)',display:'block',marginBottom:5 }}>{label}</label>
       {children}
     </div>
   );
@@ -76,7 +76,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
   return (
     <form onSubmit={submit}>
       {/* Prospect / Company */}
-      <div style={{ fontSize:13,fontWeight:700,color:'#FF8C00',marginBottom:12,borderBottom:'1px solid #1a2f50',paddingBottom:8 }}>Prospect / Company</div>
+      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',marginBottom:12,borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Prospect / Company</div>
       <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
           <Field label="Venue / Company *"><input value={f.venue} onChange={set('venue')} required /></Field>
@@ -90,7 +90,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
       </div>
 
       {/* Visit details */}
-      <div style={{ fontSize:13,fontWeight:700,color:'#FF8C00',margin:'16px 0 12px',borderBottom:'1px solid #1a2f50',paddingBottom:8 }}>Visit Details</div>
+      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',margin:'16px 0 12px',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Visit Details</div>
       <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
         <Field label="Existing client (optional — only for upsell visits)">
           <select value={f.cliente_id} onChange={set('cliente_id')}>
@@ -129,10 +129,10 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
           <Field label="Notes"><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
         </div>
       </div>
-      {err && <div style={{ color:'#FF4757',fontSize:13,marginBottom:10 }}>{err}</div>}
+      {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}
       <div style={{ display:'flex',gap:10,justifyContent:'flex-end',marginTop:8 }}>
-        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid #1a2f50',background:'none',color:'#8892B0',cursor:'pointer' }}>Cancel</button>
-        <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'#FF8C00',color:'#0A192F',fontWeight:700,cursor:'pointer' }}>
+        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancel</button>
+        <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'var(--pulse)',color:'var(--petrol)',fontWeight:700,cursor:'pointer' }}>
           {saving ? 'Saving...' : 'Save Visit'}
         </button>
       </div>
@@ -198,19 +198,19 @@ export default function Visits() {
 
   const filtered = visitas.filter(v => filterEstado === 'all' || v.estado === filterEstado);
 
-  if (loading) return <div style={{ color:'#8892B0' }}>Loading...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>Loading...</div>;
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'#E8F0FE',margin:0 }}>
-          Visits CRM <span style={{ fontSize:14,color:'#8892B0',fontFamily:'DM Sans, sans-serif' }}>({visitas.length})</span>
+        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>
+          Visits CRM <span style={{ fontSize:14,color:'var(--muted)',fontFamily:'DM Sans, sans-serif' }}>({visitas.length})</span>
         </h1>
         <div style={{ display:'flex',gap:10 }}>
-          <button onClick={() => exportVisitasExcel(visitas)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'#1a2f50',border:'none',borderRadius:8,color:'#E8F0FE',cursor:'pointer',fontSize:13 }}>
+          <button onClick={() => exportVisitasExcel(visitas)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
             <Download size={14}/> Export
           </button>
-          <button onClick={() => { setEditVisita(null); setShowModal(true); }} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'#FF8C00',border:'none',borderRadius:8,color:'#0A192F',fontWeight:700,cursor:'pointer',fontSize:14 }}>
+          <button onClick={() => { setEditVisita(null); setShowModal(true); }} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'var(--pulse)',border:'none',borderRadius:8,color:'var(--petrol)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
             <Plus size={16}/> New Visit
           </button>
         </div>
@@ -221,8 +221,8 @@ export default function Visits() {
         {(['all', ...ESTADOS] as ('all' | VisitaEstado)[]).map(e => (
           <button key={e} onClick={() => setFilter(e)} style={{
             padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:12,fontWeight:600,
-            background: filterEstado === e ? '#FF8C00' : '#1a2f50',
-            color: filterEstado === e ? '#0A192F' : '#8892B0',
+            background: filterEstado === e ? 'var(--pulse)' : 'var(--ivory-alt)',
+            color: filterEstado === e ? 'var(--petrol)' : 'var(--muted)',
           }}>
             {e === 'all' ? 'All' : ESTADO_LABEL[e]}
             {e !== 'all' && (
@@ -236,40 +236,40 @@ export default function Visits() {
 
       <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
         {filtered.length === 0
-          ? <div style={{ color:'#8892B0',padding:20 }}>No visits found</div>
+          ? <div style={{ color:'var(--muted)',padding:20 }}>No visits found</div>
           : filtered.map(v => (
-          <div key={v.id} style={{ background:'#112240',borderRadius:12,border:'1px solid #1a2f50',padding:'16px 20px' }}>
+          <div key={v.id} style={{ background:'var(--ivory-alt)',borderRadius:12,border:'1px solid var(--linea)',padding:'16px 20px' }}>
             <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
               <div style={{ flex:1 }}>
                 <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:4 }}>
-                  <span style={{ fontWeight:700,fontSize:15,color:'#E8F0FE' }}>{v.venue}</span>
+                  <span style={{ fontWeight:700,fontSize:15,color:'var(--ink)' }}>{v.venue}</span>
                   <span style={{
                     background:`${ESTADO_COLOR[v.estado]}20`,color:ESTADO_COLOR[v.estado],
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
                   }}>{ESTADO_LABEL[v.estado]}</span>
                   <span style={{
-                    background: v.prioridad==='high'?'rgba(255,71,87,0.1)':v.prioridad==='medium'?'rgba(255,140,0,0.1)':'rgba(136,146,176,0.1)',
-                    color: v.prioridad==='high'?'#FF4757':v.prioridad==='medium'?'#FF8C00':'#8892B0',
+                    background: v.prioridad==='high'?'rgba(229,72,77,0.1)':v.prioridad==='medium'?'rgba(255,122,26,0.1)':'rgba(15,46,56,0.1)',
+                    color: v.prioridad==='high'?'var(--rojo-text)':v.prioridad==='medium'?'var(--naranja-text)':'var(--muted)',
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
                   }}>{v.prioridad}</span>
                 </div>
-                <div style={{ fontSize:12,color:'#8892B0',display:'flex',gap:16,flexWrap:'wrap' }}>
+                <div style={{ fontSize:12,color:'var(--muted)',display:'flex',gap:16,flexWrap:'wrap' }}>
                   {v.ciudad && <span>{v.ciudad}</span>}
                   {v.contacto && <span>{v.contacto}</span>}
                   {v.telefono && <span>{v.telefono}</span>}
-                  {v.plan && <span style={{ color:'#A78BFA' }}>{v.plan}</span>}
+                  {v.plan && <span style={{ color:'var(--muted)' }}>{v.plan}</span>}
                   <span>Visit: {formatDate(v.fecha)}</span>
-                  {v.propuesta_enviada && <span style={{ color:'#43E97B' }}>✓ Proposal sent</span>}
+                  {v.propuesta_enviada && <span style={{ color:'var(--verde-text)' }}>✓ Proposal sent</span>}
                   {v.fecha_seguimiento && <span>Follow-up: {formatDate(v.fecha_seguimiento)}</span>}
                 </div>
                 {v.proxima_accion && (
-                  <div style={{ marginTop:6,fontSize:12,color:'#38BDF8' }}>→ {v.proxima_accion}</div>
+                  <div style={{ marginTop:6,fontSize:12,color:'var(--teal-tint)' }}>→ {v.proxima_accion}</div>
                 )}
                 {v.notas && (
-                  <div style={{ marginTop:4,fontSize:12,color:'#8892B0',fontStyle:'italic' }}>{v.notas}</div>
+                  <div style={{ marginTop:4,fontSize:12,color:'var(--muted)',fontStyle:'italic' }}>{v.notas}</div>
                 )}
                 {v.cliente_nombre && (
-                  <div style={{ marginTop:6,fontSize:12,color:'#43E97B' }}>Client: {v.cliente_nombre}</div>
+                  <div style={{ marginTop:6,fontSize:12,color:'var(--verde-text)' }}>Client: {v.cliente_nombre}</div>
                 )}
               </div>
               <div style={{ display:'flex',gap:8,flexShrink:0,marginLeft:16 }}>
@@ -280,7 +280,7 @@ export default function Visits() {
                     style={{
                       display:'flex',alignItems:'center',gap:6,
                       padding:'7px 14px',borderRadius:8,border:'none',
-                      background:'rgba(67,233,123,0.15)',color:'#43E97B',
+                      background:'rgba(23,129,127,0.15)',color:'var(--verde-text)',
                       cursor:'pointer',fontSize:12,fontWeight:700,
                     }}
                   >
@@ -290,7 +290,7 @@ export default function Visits() {
                 )}
                 <button
                   onClick={() => { setEditVisita(v); setShowModal(true); }}
-                  style={{ padding:'7px 14px',borderRadius:8,border:'1px solid #1a2f50',background:'none',color:'#8892B0',cursor:'pointer',fontSize:12 }}
+                  style={{ padding:'7px 14px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12 }}
                 >
                   Edit
                 </button>
