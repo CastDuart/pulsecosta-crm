@@ -7,11 +7,11 @@ import PlanBadge from '../components/ui/PlanBadge';
 import StageBadge from '../components/ui/StageBadge';
 
 const ACTIVITY_ICON: Record<string, { bg: string; emoji: string }> = {
-  call:   { bg: 'rgba(56,189,248,0.15)', emoji: '📞' },
-  email:  { bg: 'rgba(255,140,0,0.15)',  emoji: '✉️' },
-  visit:  { bg: 'rgba(67,233,123,0.15)', emoji: '🚶' },
-  note:   { bg: 'rgba(167,139,250,0.15)',emoji: '📝' },
-  system: { bg: 'rgba(136,146,176,0.15)',emoji: '⚙️' },
+  call:   { bg: 'rgba(23,129,127,0.15)', emoji: '📞' },
+  email:  { bg: 'rgba(255,122,26,0.15)',  emoji: '✉️' },
+  visit:  { bg: 'rgba(23,129,127,0.15)', emoji: '🚶' },
+  note:   { bg: 'rgba(94,109,114,0.15)',emoji: '📝' },
+  system: { bg: 'rgba(15,46,56,0.15)',emoji: '⚙️' },
 };
 
 export default function AccountDetail() {

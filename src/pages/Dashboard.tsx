@@ -7,11 +7,11 @@ import PlanBadge from '../components/ui/PlanBadge';
 import NewLeadModal from '../components/ui/NewLeadModal';
 
 const ACTIVITY_ICON: Record<string, { bg: string; emoji: string }> = {
-  call:   { bg: 'rgba(56,189,248,0.15)', emoji: '📞' },
-  email:  { bg: 'rgba(255,140,0,0.15)',  emoji: '✉️' },
-  visit:  { bg: 'rgba(67,233,123,0.15)', emoji: '🚶' },
-  note:   { bg: 'rgba(167,139,250,0.15)',emoji: '📝' },
-  system: { bg: 'rgba(136,146,176,0.15)',emoji: '⚙️' },
+  call:   { bg: 'rgba(23,129,127,0.15)', emoji: '📞' },
+  email:  { bg: 'rgba(255,122,26,0.15)',  emoji: '✉️' },
+  visit:  { bg: 'rgba(23,129,127,0.15)', emoji: '🚶' },
+  note:   { bg: 'rgba(94,109,114,0.15)',emoji: '📝' },
+  system: { bg: 'rgba(15,46,56,0.15)',emoji: '⚙️' },
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
@@ -97,19 +97,19 @@ export default function Dashboard() {
         <div className="kpi-grid">
           <div className="kpi-card" style={{ borderLeftColor: 'var(--naranja)' }}>
             <div className="kpi-label">{t('dash.activeLeads')}</div>
-            <div className="kpi-value" style={{ color: 'var(--naranja)' }}>{stats.totalLeads}</div>
+            <div className="kpi-value" style={{ color: 'var(--naranja-text)' }}>{stats.totalLeads}</div>
           </div>
           <div className="kpi-card" style={{ borderLeftColor: 'var(--verde)' }}>
             <div className="kpi-label">{t('dash.activeAccounts')}</div>
-            <div className="kpi-value" style={{ color: 'var(--verde)' }}>{stats.activeAccounts}</div>
+            <div className="kpi-value" style={{ color: 'var(--verde-text)' }}>{stats.activeAccounts}</div>
           </div>
           <div className="kpi-card" style={{ borderLeftColor: 'var(--gold)' }}>
             <div className="kpi-label">{t('dash.mrr')}</div>
-            <div className="kpi-value" style={{ color: 'var(--gold)' }}>€{Number(stats.mrr).toLocaleString()}</div>
+            <div className="kpi-value" style={{ color: 'var(--amarillo-text)' }}>€{Number(stats.mrr).toLocaleString()}</div>
           </div>
           <div className="kpi-card" style={{ borderLeftColor: 'var(--rojo)' }}>
             <div className="kpi-label">{t('dash.overdue')}</div>
-            <div className="kpi-value" style={{ color: 'var(--rojo)' }}>{stats.pendingTasks}</div>
+            <div className="kpi-value" style={{ color: 'var(--rojo-text)' }}>{stats.pendingTasks}</div>
           </div>
         </div>
 
@@ -143,13 +143,13 @@ export default function Dashboard() {
                       <tr
                         key={d.id}
                         style={{
-                          borderTop: '1px solid rgba(136,146,176,0.08)',
-                          background: isToday ? 'rgba(255,140,0,0.04)' : undefined,
+                          borderTop: '1px solid rgba(15,46,56,0.08)',
+                          background: isToday ? 'rgba(255,122,26,0.04)' : undefined,
                         }}
                       >
                         <td style={{ padding: '8px 10px 8px 0', whiteSpace: 'nowrap' }}>
                           {isToday && (
-                            <span style={{ fontSize: '0.65rem', background: 'var(--naranja)', color: '#fff', borderRadius: 3, padding: '1px 5px', marginRight: 5, fontWeight: 700 }}>
+                            <span style={{ fontSize: '0.65rem', background: 'var(--naranja)', color: 'var(--ivory)', borderRadius: 3, padding: '1px 5px', marginRight: 5, fontWeight: 700 }}>
                               HOY
                             </span>
                           )}
@@ -229,7 +229,7 @@ export default function Dashboard() {
                 key={a.id}
                 style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 0', borderBottom: '1px solid rgba(136,146,176,0.06)', cursor: 'pointer',
+                  padding: '10px 0', borderBottom: '1px solid rgba(15,46,56,0.06)', cursor: 'pointer',
                 }}
                 onClick={() => navigate(`/accounts/${a.id}`)}
               >

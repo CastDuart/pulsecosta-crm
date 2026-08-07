@@ -13,10 +13,10 @@ import { Plus, X, Download, Printer, ChevronRight, Trash2 } from 'lucide-react';
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
     <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
-      <div style={{ background:'#112240',borderRadius:16,padding:32,width:'100%',maxWidth:wide?760:560,border:'1px solid #1a2f50',maxHeight:'92vh',overflowY:'auto' }}>
+      <div style={{ background:'var(--ivory-alt)',borderRadius:16,padding:32,width:'100%',maxWidth:wide?760:560,border:'1px solid var(--linea)',maxHeight:'92vh',overflowY:'auto' }}>
         <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-          <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'#E8F0FE' }}>{title}</h2>
-          <button onClick={onClose} style={{ background:'none',border:'none',color:'#8892B0',cursor:'pointer' }}><X size={20}/></button>
+          <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'var(--ink)' }}>{title}</h2>
+          <button onClick={onClose} style={{ background:'none',border:'none',color:'var(--muted)',cursor:'pointer' }}><X size={20}/></button>
         </div>
         {children}
       </div>
@@ -27,7 +27,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
 function Field({ label, children, span2 }: { label: string; children: React.ReactNode; span2?: boolean }) {
   return (
     <div style={{ marginBottom:12, ...(span2 ? { gridColumn:'span 2' } : {}) }}>
-      <label style={{ fontSize:12,color:'#8892B0',display:'block',marginBottom:5 }}>{label}</label>
+      <label style={{ fontSize:12,color:'var(--muted)',display:'block',marginBottom:5 }}>{label}</label>
       {children}
     </div>
   );
@@ -35,11 +35,11 @@ function Field({ label, children, span2 }: { label: string; children: React.Reac
 
 function StatusBadge({ estado }: { estado: string }) {
   const m: Record<string, [string,string]> = {
-    draft:['rgba(136,146,176,0.15)','#8892B0'],
-    sent:['rgba(56,189,248,0.15)','#38BDF8'],
-    collected:['rgba(67,233,123,0.15)','#43E97B'],
-    overdue:['rgba(255,71,87,0.15)','#FF4757'],
-    cancelled:['rgba(136,146,176,0.15)','#8892B0'],
+    draft:['rgba(15,46,56,0.15)','var(--muted)'],
+    sent:['rgba(23,129,127,0.15)','var(--teal-accent)'],
+    collected:['rgba(23,129,127,0.15)','var(--verde-text)'],
+    overdue:['rgba(229,72,77,0.15)','var(--rojo-text)'],
+    cancelled:['rgba(15,46,56,0.15)','var(--muted)'],
   };
   const [bg,color] = m[estado] || m.draft;
   return <span style={{ background:bg,color,borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:600 }}>{estado}</span>;
@@ -125,9 +125,9 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
   return (
     <form onSubmit={submit}>
       {/* Invoice number preview */}
-      <div style={{ background:'rgba(255,140,0,0.08)',border:'1px solid rgba(255,140,0,0.2)',borderRadius:8,padding:'10px 16px',marginBottom:20,display:'flex',justifyContent:'space-between' }}>
-        <span style={{ fontSize:13,color:'#8892B0' }}>Invoice number</span>
-        <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:'#FF8C00',fontSize:15 }}>{nextNum}</span>
+      <div style={{ background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.2)',borderRadius:8,padding:'10px 16px',marginBottom:20,display:'flex',justifyContent:'space-between' }}>
+        <span style={{ fontSize:13,color:'var(--muted)' }}>Invoice number</span>
+        <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:'var(--naranja-text)',fontSize:15 }}>{nextNum}</span>
       </div>
 
       <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
@@ -171,10 +171,10 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
 
         {/* Warning for intracomunitario */}
         {tipoIva === 'intracomunitario' && (
-          <div style={{ gridColumn:'span 2',background:'rgba(255,140,0,0.08)',border:'1px solid rgba(255,140,0,0.25)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'#FF8C00' }}>
+          <div style={{ gridColumn:'span 2',background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.25)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'var(--naranja-text)' }}>
             <strong>Reverse Charge:</strong> VAT = 0%. The client's VAT number is required. Legal note will appear on the PDF invoice.
             {cliente && !cliente.vat_number && (
-              <div style={{ marginTop:4,color:'#FF4757' }}>⚠ This client has no VAT number — add it in Clients before issuing this invoice.</div>
+              <div style={{ marginTop:4,color:'var(--rojo-text)' }}>⚠ This client has no VAT number — add it in Clients before issuing this invoice.</div>
             )}
           </div>
         )}
@@ -189,13 +189,13 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
       </div>
 
       {/* Line items */}
-      <div style={{ margin:'16px 0 8px',fontSize:13,fontWeight:700,color:'#FF8C00',borderBottom:'1px solid #1a2f50',paddingBottom:8 }}>Line Items</div>
+      <div style={{ margin:'16px 0 8px',fontSize:13,fontWeight:700,color:'var(--naranja-text)',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Line Items</div>
       <div style={{ overflowX:'auto' }}>
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
-            <tr style={{ borderBottom:'1px solid #1a2f50' }}>
+            <tr style={{ borderBottom:'1px solid var(--linea)' }}>
               {['Description','Qty','Unit Price','Amount',''].map(h => (
-                <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'#8892B0',fontWeight:500,fontSize:11 }}>{h}</th>
+                <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'var(--muted)',fontWeight:500,fontSize:11 }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -211,12 +211,12 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
                 <td style={{ padding:'4px 6px',width:100 }}>
                   <input type="number" value={l.precio_unitario} min={0} step={0.01} onChange={e => setLinea(i,'precio_unitario',Number(e.target.value))} style={{ width:100 }} />
                 </td>
-                <td style={{ padding:'4px 6px',width:90,fontFamily:'JetBrains Mono, monospace',color:'#E8F0FE',textAlign:'right' }}>
+                <td style={{ padding:'4px 6px',width:90,fontFamily:'JetBrains Mono, monospace',color:'var(--ink)',textAlign:'right' }}>
                   {formatEur(l.importe)}
                 </td>
                 <td style={{ padding:'4px 6px',width:30 }}>
                   {lineas.length > 1 && (
-                    <button type="button" onClick={() => setLineas(p => p.filter((_,j) => j !== i))} style={{ background:'none',border:'none',color:'#FF4757',cursor:'pointer',padding:2 }}>
+                    <button type="button" onClick={() => setLineas(p => p.filter((_,j) => j !== i))} style={{ background:'none',border:'none',color:'var(--rojo-text)',cursor:'pointer',padding:2 }}>
                       <Trash2 size={14}/>
                     </button>
                   )}
@@ -227,30 +227,30 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
         </table>
       </div>
       <button type="button" onClick={() => setLineas(p => [...p, { descripcion:'',cantidad:1,precio_unitario:0,importe:0 }])}
-        style={{ marginTop:8,background:'none',border:'1px dashed #1a2f50',borderRadius:8,padding:'6px 16px',color:'#8892B0',cursor:'pointer',fontSize:12 }}>
+        style={{ marginTop:8,background:'none',border:'1px dashed var(--linea)',borderRadius:8,padding:'6px 16px',color:'var(--muted)',cursor:'pointer',fontSize:12 }}>
         + Add line
       </button>
 
       {/* Totals */}
-      <div style={{ marginTop:16,borderTop:'1px solid #1a2f50',paddingTop:12 }}>
+      <div style={{ marginTop:16,borderTop:'1px solid var(--linea)',paddingTop:12 }}>
         <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontSize:13 }}>
           <div style={{ display:'flex',gap:20 }}>
-            <span style={{ color:'#8892B0' }}>Subtotal</span>
-            <span style={{ fontFamily:'JetBrains Mono, monospace',color:'#E8F0FE',minWidth:90,textAlign:'right' }}>{formatEur(subtotal)}</span>
+            <span style={{ color:'var(--muted)' }}>Subtotal</span>
+            <span style={{ fontFamily:'JetBrains Mono, monospace',color:'var(--ink)',minWidth:90,textAlign:'right' }}>{formatEur(subtotal)}</span>
           </div>
           <div style={{ display:'flex',gap:20 }}>
-            <span style={{ color: tipoIva==='normal'?'#8892B0':'#FF8C00' }}>
+            <span style={{ color: tipoIva==='normal'?'var(--muted)':'var(--naranja-text)' }}>
               {tipoIva==='normal' ? `VAT (${ivaRate}%)` : tipoIvaLabel(tipoIva)}
             </span>
-            <span style={{ fontFamily:'JetBrains Mono, monospace',color: tipoIva==='normal'?'#E8F0FE':'#FF8C00',minWidth:90,textAlign:'right' }}>{formatEur(ivaImporte)}</span>
+            <span style={{ fontFamily:'JetBrains Mono, monospace',color: tipoIva==='normal'?'var(--ink)':'var(--naranja-text)',minWidth:90,textAlign:'right' }}>{formatEur(ivaImporte)}</span>
           </div>
-          <div style={{ display:'flex',gap:20,borderTop:'1px solid #1a2f50',paddingTop:6 }}>
-            <span style={{ fontWeight:700,color:'#E8F0FE' }}>TOTAL</span>
-            <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,fontSize:16,color:'#FF8C00',minWidth:90,textAlign:'right' }}>{formatEur(total)}</span>
+          <div style={{ display:'flex',gap:20,borderTop:'1px solid var(--linea)',paddingTop:6 }}>
+            <span style={{ fontWeight:700,color:'var(--ink)' }}>TOTAL</span>
+            <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,fontSize:16,color:'var(--naranja-text)',minWidth:90,textAlign:'right' }}>{formatEur(total)}</span>
           </div>
         </div>
         {legalNote && (
-          <div style={{ marginTop:12,padding:'8px 12px',background:'rgba(255,140,0,0.05)',borderRadius:8,fontSize:11,color:'#8892B0',borderLeft:'3px solid #FF8C00' }}>
+          <div style={{ marginTop:12,padding:'8px 12px',background:'rgba(255,122,26,0.05)',borderRadius:8,fontSize:11,color:'var(--muted)',borderLeft:'3px solid var(--pulse)' }}>
             {legalNote}
           </div>
         )}
@@ -258,10 +258,10 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
 
       <Field label="Notes"><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder="Internal notes or additional info" /></Field>
 
-      {err && <div style={{ color:'#FF4757',fontSize:13,marginBottom:10 }}>{err}</div>}
+      {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}
       <div style={{ display:'flex',gap:10,justifyContent:'flex-end',marginTop:8 }}>
-        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid #1a2f50',background:'none',color:'#8892B0',cursor:'pointer' }}>Cancel</button>
-        <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'#FF8C00',color:'#0A192F',fontWeight:700,cursor:'pointer' }}>
+        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancel</button>
+        <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'var(--pulse)',color:'var(--petrol)',fontWeight:700,cursor:'pointer' }}>
           {saving ? 'Saving...' : 'Create Invoice'}
         </button>
       </div>
@@ -328,21 +328,21 @@ export default function Invoices() {
     generateInvoicePDF(selected, selectedLineas);
   }
 
-  if (loading) return <div style={{ color:'#8892B0' }}>Loading...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>Loading...</div>;
 
   const ESTADOS_FILTER: ('all' | EstadoFactura)[] = ['all','draft','sent','collected','overdue'];
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'#E8F0FE',margin:0 }}>
+        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>
           Invoices
         </h1>
         <div style={{ display:'flex',gap:10 }}>
-          <button onClick={() => exportFacturasExcel(enriched)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'#1a2f50',border:'none',borderRadius:8,color:'#E8F0FE',cursor:'pointer',fontSize:13 }}>
+          <button onClick={() => exportFacturasExcel(enriched)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
             <Download size={14}/> Export
           </button>
-          <button onClick={() => setShowModal(true)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'#FF8C00',border:'none',borderRadius:8,color:'#0A192F',fontWeight:700,cursor:'pointer',fontSize:14 }}>
+          <button onClick={() => setShowModal(true)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'var(--pulse)',border:'none',borderRadius:8,color:'var(--petrol)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
             <Plus size={16}/> New Invoice
           </button>
         </div>
@@ -350,13 +350,13 @@ export default function Invoices() {
 
       {/* Summary cards */}
       <div style={{ display:'flex',gap:16,marginBottom:24 }}>
-        <div style={{ background:'#112240',borderRadius:12,padding:'16px 20px',border:'1px solid #1a2f50',flex:1 }}>
-          <div style={{ fontSize:12,color:'#8892B0',marginBottom:4 }}>Collected</div>
-          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'#43E97B' }}>{formatEur(collected)}</div>
+        <div style={{ background:'var(--ivory-alt)',borderRadius:12,padding:'16px 20px',border:'1px solid var(--linea)',flex:1 }}>
+          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>Collected</div>
+          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'var(--verde-text)' }}>{formatEur(collected)}</div>
         </div>
-        <div style={{ background:'#112240',borderRadius:12,padding:'16px 20px',border:'1px solid #1a2f50',flex:1 }}>
-          <div style={{ fontSize:12,color:'#8892B0',marginBottom:4 }}>Outstanding</div>
-          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'#FF8C00' }}>{formatEur(outstanding)}</div>
+        <div style={{ background:'var(--ivory-alt)',borderRadius:12,padding:'16px 20px',border:'1px solid var(--linea)',flex:1 }}>
+          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>Outstanding</div>
+          <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'var(--naranja-text)' }}>{formatEur(outstanding)}</div>
         </div>
       </div>
 
@@ -365,8 +365,8 @@ export default function Invoices() {
         {ESTADOS_FILTER.map(e => (
           <button key={e} onClick={() => setFilter(e)} style={{
             padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:12,fontWeight:600,
-            background: filterEstado===e?'#FF8C00':'#1a2f50',
-            color: filterEstado===e?'#0A192F':'#8892B0',
+            background: filterEstado===e?'var(--pulse)':'var(--ivory-alt)',
+            color: filterEstado===e?'var(--petrol)':'var(--muted)',
           }}>
             {e==='all'?'All':e.charAt(0).toUpperCase()+e.slice(1)}
           </button>
@@ -374,34 +374,34 @@ export default function Invoices() {
       </div>
 
       {/* Invoice table */}
-      <div style={{ background:'#112240',borderRadius:12,border:'1px solid #1a2f50',overflow:'hidden' }}>
+      <div style={{ background:'var(--ivory-alt)',borderRadius:12,border:'1px solid var(--linea)',overflow:'hidden' }}>
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
-            <tr style={{ borderBottom:'1px solid #1a2f50' }}>
+            <tr style={{ borderBottom:'1px solid var(--linea)' }}>
               {['Number','Client','VAT Type','Date','Due','Total','Status',''].map(h => (
-                <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'#8892B0',fontWeight:500,fontSize:12 }}>{h}</th>
+                <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'var(--muted)',fontWeight:500,fontSize:12 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={8} style={{ padding:'24px',color:'#8892B0',textAlign:'center' }}>No invoices found</td></tr>
+              <tr><td colSpan={8} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>No invoices found</td></tr>
             ) : filtered.map(f => (
-              <tr key={f.id} style={{ borderBottom:'1px solid #0A192F',cursor:'pointer' }} onClick={() => openDetail(f)}>
-                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontSize:12,color:'#FF8C00' }}>{f.numero}</td>
-                <td style={{ padding:'10px 16px',color:'#E8F0FE',fontWeight:500 }}>{f.cliente_nombre}</td>
+              <tr key={f.id} style={{ borderBottom:'1px solid var(--linea-alta)',cursor:'pointer' }} onClick={() => openDetail(f)}>
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontSize:12,color:'var(--naranja-text)' }}>{f.numero}</td>
+                <td style={{ padding:'10px 16px',color:'var(--ink)',fontWeight:500 }}>{f.cliente_nombre}</td>
                 <td style={{ padding:'10px 16px' }}>
-                  {f.tipo_iva === 'intracomunitario' && <span style={{ fontSize:11,color:'#FF8C00',background:'rgba(255,140,0,0.1)',padding:'2px 8px',borderRadius:20 }}>Reverse Charge</span>}
-                  {f.tipo_iva === 'exento' && <span style={{ fontSize:11,color:'#8892B0' }}>Exempt</span>}
-                  {f.tipo_iva === 'normal' && <span style={{ fontSize:11,color:'#8892B0' }}>{f.iva_rate}% VAT</span>}
+                  {f.tipo_iva === 'intracomunitario' && <span style={{ fontSize:11,color:'var(--naranja-text)',background:'rgba(255,122,26,0.1)',padding:'2px 8px',borderRadius:20 }}>Reverse Charge</span>}
+                  {f.tipo_iva === 'exento' && <span style={{ fontSize:11,color:'var(--muted)' }}>Exempt</span>}
+                  {f.tipo_iva === 'normal' && <span style={{ fontSize:11,color:'var(--muted)' }}>{f.iva_rate}% VAT</span>}
                 </td>
-                <td style={{ padding:'10px 16px',color:'#8892B0' }}>{formatDate(f.fecha_emision)}</td>
-                <td style={{ padding:'10px 16px',color:f.estado==='overdue'?'#FF4757':'#8892B0' }}>
+                <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{formatDate(f.fecha_emision)}</td>
+                <td style={{ padding:'10px 16px',color:f.estado==='overdue'?'var(--rojo-text)':'var(--muted)' }}>
                   {f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}
                 </td>
-                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontWeight:600,color:'#E8F0FE' }}>{formatEur(f.total)}</td>
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontWeight:600,color:'var(--ink)' }}>{formatEur(f.total)}</td>
                 <td style={{ padding:'10px 16px' }}><StatusBadge estado={f.estado} /></td>
-                <td style={{ padding:'10px 16px',color:'#8892B0' }}><ChevronRight size={14}/></td>
+                <td style={{ padding:'10px 16px',color:'var(--muted)' }}><ChevronRight size={14}/></td>
               </tr>
             ))}
           </tbody>
@@ -413,28 +413,28 @@ export default function Invoices() {
         <Modal title={`Invoice ${selected.numero}`} onClose={() => setSelected(null)} wide>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16,fontSize:13 }}>
             <div>
-              <div style={{ color:'#8892B0',fontSize:11,marginBottom:4 }}>Client</div>
-              <div style={{ color:'#E8F0FE',fontWeight:600 }}>{selected.cliente_nombre}</div>
-              {selected.vat_number && <div style={{ color:'#8892B0',fontSize:12 }}>VAT: {selected.vat_number}</div>}
+              <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>Client</div>
+              <div style={{ color:'var(--ink)',fontWeight:600 }}>{selected.cliente_nombre}</div>
+              {selected.vat_number && <div style={{ color:'var(--muted)',fontSize:12 }}>VAT: {selected.vat_number}</div>}
             </div>
             <div>
-              <div style={{ color:'#8892B0',fontSize:11,marginBottom:4 }}>Amount</div>
-              <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'#FF8C00' }}>{formatEur(selected.total)}</div>
-              <div style={{ fontSize:12,color:'#8892B0' }}>{tipoIvaLabel(selected.tipo_iva)}{selected.tipo_iva==='normal'?` (${selected.iva_rate}%)`:'= 0%'}</div>
+              <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>Amount</div>
+              <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'var(--naranja-text)' }}>{formatEur(selected.total)}</div>
+              <div style={{ fontSize:12,color:'var(--muted)' }}>{tipoIvaLabel(selected.tipo_iva)}{selected.tipo_iva==='normal'?` (${selected.iva_rate}%)`:'= 0%'}</div>
             </div>
             <div>
-              <div style={{ color:'#8892B0',fontSize:11 }}>Issued / Due</div>
-              <div style={{ color:'#E8F0FE' }}>{formatDate(selected.fecha_emision)} → {selected.fecha_vencimiento ? formatDate(selected.fecha_vencimiento) : 'No due date'}</div>
+              <div style={{ color:'var(--muted)',fontSize:11 }}>Issued / Due</div>
+              <div style={{ color:'var(--ink)' }}>{formatDate(selected.fecha_emision)} → {selected.fecha_vencimiento ? formatDate(selected.fecha_vencimiento) : 'No due date'}</div>
             </div>
             <div>
-              <div style={{ color:'#8892B0',fontSize:11 }}>Status</div>
+              <div style={{ color:'var(--muted)',fontSize:11 }}>Status</div>
               <StatusBadge estado={selected.estado} />
             </div>
           </div>
 
           {/* Legal note preview */}
           {(() => { const note = invoiceLegalNote(selected.tipo_iva); return note ? (
-            <div style={{ padding:'10px 14px',background:'rgba(255,140,0,0.06)',borderLeft:'3px solid #FF8C00',borderRadius:8,fontSize:12,color:'#8892B0',marginBottom:16 }}>
+            <div style={{ padding:'10px 14px',background:'rgba(255,122,26,0.06)',borderLeft:'3px solid var(--pulse)',borderRadius:8,fontSize:12,color:'var(--muted)',marginBottom:16 }}>
               {note}
             </div>
           ) : null; })()}
@@ -442,18 +442,18 @@ export default function Invoices() {
           {/* Line items */}
           {selectedLineas.length > 0 && (
             <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12,marginBottom:16 }}>
-              <thead><tr style={{ borderBottom:'1px solid #1a2f50' }}>
+              <thead><tr style={{ borderBottom:'1px solid var(--linea)' }}>
                 {['Description','Qty','Unit Price','Amount'].map(h => (
-                  <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'#8892B0',fontWeight:500 }}>{h}</th>
+                  <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'var(--muted)',fontWeight:500 }}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {selectedLineas.map(l => (
-                  <tr key={l.id} style={{ borderBottom:'1px solid #0A192F' }}>
-                    <td style={{ padding:'6px 8px',color:'#E8F0FE' }}>{l.descripcion}</td>
-                    <td style={{ padding:'6px 8px',color:'#8892B0' }}>{l.cantidad}</td>
-                    <td style={{ padding:'6px 8px',fontFamily:'JetBrains Mono, monospace',color:'#8892B0' }}>{formatEur(l.precio_unitario)}</td>
-                    <td style={{ padding:'6px 8px',fontFamily:'JetBrains Mono, monospace',fontWeight:600,color:'#E8F0FE' }}>{formatEur(l.importe)}</td>
+                  <tr key={l.id} style={{ borderBottom:'1px solid var(--linea-alta)' }}>
+                    <td style={{ padding:'6px 8px',color:'var(--ink)' }}>{l.descripcion}</td>
+                    <td style={{ padding:'6px 8px',color:'var(--muted)' }}>{l.cantidad}</td>
+                    <td style={{ padding:'6px 8px',fontFamily:'JetBrains Mono, monospace',color:'var(--muted)' }}>{formatEur(l.precio_unitario)}</td>
+                    <td style={{ padding:'6px 8px',fontFamily:'JetBrains Mono, monospace',fontWeight:600,color:'var(--ink)' }}>{formatEur(l.importe)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -461,23 +461,23 @@ export default function Invoices() {
           )}
 
           {/* Status transitions */}
-          <div style={{ display:'flex',gap:10,flexWrap:'wrap',borderTop:'1px solid #1a2f50',paddingTop:16 }}>
+          <div style={{ display:'flex',gap:10,flexWrap:'wrap',borderTop:'1px solid var(--linea)',paddingTop:16 }}>
             {selected.estado === 'draft' && (
-              <button onClick={() => updateEstado(selected.id,'sent')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(56,189,248,0.15)',color:'#38BDF8',cursor:'pointer',fontWeight:600 }}>
+              <button onClick={() => updateEstado(selected.id,'sent')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--teal-tint)',cursor:'pointer',fontWeight:600 }}>
                 Mark as Sent
               </button>
             )}
             {selected.estado === 'sent' && (
-              <button onClick={() => updateEstado(selected.id,'collected')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(67,233,123,0.15)',color:'#43E97B',cursor:'pointer',fontWeight:600 }}>
+              <button onClick={() => updateEstado(selected.id,'collected')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--verde-text)',cursor:'pointer',fontWeight:600 }}>
                 Mark as Collected → Auto-add to Cash
               </button>
             )}
             {(selected.estado === 'draft' || selected.estado === 'sent') && (
-              <button onClick={() => updateEstado(selected.id,'cancelled')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(136,146,176,0.1)',color:'#8892B0',cursor:'pointer' }}>
+              <button onClick={() => updateEstado(selected.id,'cancelled')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(15,46,56,0.1)',color:'var(--muted)',cursor:'pointer' }}>
                 Cancel
               </button>
             )}
-            <button onClick={printInvoice} style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 18px',borderRadius:8,border:'1px solid #1a2f50',background:'none',color:'#E8F0FE',cursor:'pointer' }}>
+            <button onClick={printInvoice} style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 18px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--ink)',cursor:'pointer' }}>
               <Printer size={14}/> Download PDF
             </button>
           </div>

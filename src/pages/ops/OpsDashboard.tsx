@@ -36,15 +36,15 @@ function filterByQ<T extends { fecha_emision?: string; fecha?: string }>(
 function StatCard({ label, value, color, icon }: { label: string; value: string; color: string; icon: React.ReactNode }) {
   return (
     <div style={{
-      background: '#112240', borderRadius: 12, padding: '20px 24px',
-      border: '1px solid #1a2f50', flex: 1, minWidth: 180,
+      background: 'var(--ivory-alt)', borderRadius: 12, padding: '20px 24px',
+      border: '1px solid var(--linea)', flex: 1, minWidth: 180,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: 12, color: '#8892B0', marginBottom: 8 }}>{label}</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>{label}</div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 22, fontWeight: 700, color }}>{value}</div>
         </div>
-        <div style={{ color: '#1a2f50', marginTop: 4 }}>{icon}</div>
+        <div style={{ color: 'var(--ink)', marginTop: 4 }}>{icon}</div>
       </div>
     </div>
   );
@@ -112,9 +112,9 @@ export default function Dashboard() {
   const outputVat   = vatFiltered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.iva_importe, 0);
   const inputVat    = filterByQ(caja, vatQ).filter(m => m.tipo === 'expense').reduce((s, m) => s + m.iva_importe, 0);
 
-  if (loading) return <div style={{ color: '#8892B0', padding: 40 }}>{t('ops.loading')}</div>;
+  if (loading) return <div style={{ color: 'var(--muted)', padding: 40 }}>{t('ops.loading')}</div>;
   if (loadError) return (
-    <div style={{ background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.3)', borderRadius: 12, padding: '20px 24px', margin: 40, color: '#FF4757', display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ background: 'rgba(229,72,77,0.08)', border: '1px solid rgba(229,72,77,0.3)', borderRadius: 12, padding: '20px 24px', margin: 40, color: 'var(--rojo-text)', display: 'flex', alignItems: 'center', gap: 10 }}>
       <AlertTriangle size={18} /> {loadError}
     </div>
   );
@@ -129,15 +129,15 @@ export default function Dashboard() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: '#E8F0FE', margin: 0 }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
           {t('ops.title')}
         </h1>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {isAdmin && (
             <button onClick={handleReset} disabled={resetting} style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(255,71,87,0.3)',
-              background: 'rgba(255,71,87,0.08)', color: '#FF4757',
+              padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(229,72,77,0.3)',
+              background: 'rgba(229,72,77,0.08)', color: 'var(--rojo-text)',
               cursor: 'pointer', fontSize: 12, fontWeight: 600,
             }}>
               <Trash2 size={13} /> {resetting ? '...' : t('ops.resetData')}
@@ -153,20 +153,20 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <StatCard label={t('ops.collected')}   value={formatEur(collected)}   color="#43E97B" icon={<TrendingUp size={28} />} />
-        <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="#FF8C00" icon={<Clock size={28} />} />
-        <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="#38BDF8" icon={<Wallet size={28} />} />
-        <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="#A78BFA" icon={<BarChart3 size={28} />} />
+        <StatCard label={t('ops.collected')}   value={formatEur(collected)}   color="var(--verde-text)" icon={<TrendingUp size={28} />} />
+        <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="var(--naranja-text)" icon={<Clock size={28} />} />
+        <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="var(--teal-accent)" icon={<Wallet size={28} />} />
+        <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="var(--muted)" icon={<BarChart3 size={28} />} />
       </div>
 
       {overdueList.length > 0 && (
         <div style={{
-          background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.3)',
+          background: 'rgba(229,72,77,0.08)', border: '1px solid rgba(229,72,77,0.3)',
           borderRadius: 12, padding: '16px 20px', marginBottom: 28,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <AlertTriangle size={16} color="#FF4757" />
-            <span style={{ color: '#FF4757', fontWeight: 700, fontSize: 14 }}>
+            <AlertTriangle size={16} color="var(--rojo-text)" />
+            <span style={{ color: 'var(--rojo-text)', fontWeight: 700, fontSize: 14 }}>
               {t('ops.overdueInvoices')} ({overdueList.length})
             </span>
           </div>
@@ -174,12 +174,12 @@ export default function Dashboard() {
             {overdueList.map(f => (
               <div key={f.id} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '8px 12px', background: 'rgba(255,71,87,0.05)', borderRadius: 8, fontSize: 13,
+                padding: '8px 12px', background: 'rgba(229,72,77,0.05)', borderRadius: 8, fontSize: 13,
               }}>
-                <span style={{ color: '#E8F0FE', fontWeight: 500 }}>{f.cliente_nombre}</span>
-                <span style={{ color: '#8892B0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{f.numero}</span>
-                <span style={{ color: '#FF8C00', fontFamily: 'JetBrains Mono, monospace' }}>{formatEur(f.total)}</span>
-                <span style={{ color: '#FF4757', fontSize: 12 }}>
+                <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{f.cliente_nombre}</span>
+                <span style={{ color: 'var(--muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{f.numero}</span>
+                <span style={{ color: 'var(--naranja-text)', fontFamily: 'JetBrains Mono, monospace' }}>{formatEur(f.total)}</span>
+                <span style={{ color: 'var(--rojo-text)', fontSize: 12 }}>
                   {f.fecha_vencimiento ? `${daysOverdue(f.fecha_vencimiento)}${t('ops.daysOverdue')}` : ''}
                 </span>
               </div>
@@ -189,9 +189,9 @@ export default function Dashboard() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
-        <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
+        <div style={{ background: 'var(--ivory-alt)', borderRadius: 12, padding: '20px 24px', border: '1px solid var(--linea)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t('ops.vatReport')}</h3>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{t('ops.vatReport')}</h3>
             <select value={vatQ} onChange={e => setVatQ(e.target.value as QFilter)} style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
               {(['all','Q1','Q2','Q3','Q4'] as QFilter[]).map(q => (
                 <option key={q} value={q}>{q === 'all' ? 'All' : q}</option>
@@ -199,59 +199,59 @@ export default function Dashboard() {
             </select>
           </div>
           {[
-            { label: t('ops.outputVat'), value: outputVat,              color: '#43E97B' },
-            { label: t('ops.inputVat'),  value: inputVat,               color: '#FF4757' },
-            { label: t('ops.netVat'),    value: outputVat - inputVat,   color: '#FF8C00' },
+            { label: t('ops.outputVat'), value: outputVat,              color: 'var(--verde-text)' },
+            { label: t('ops.inputVat'),  value: inputVat,               color: 'var(--rojo-text)' },
+            { label: t('ops.netVat'),    value: outputVat - inputVat,   color: 'var(--naranja-text)' },
           ].map(row => (
-            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1a2f50', fontSize: 13 }}>
-              <span style={{ color: '#8892B0' }}>{row.label}</span>
+            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--linea)', fontSize: 13 }}>
+              <span style={{ color: 'var(--muted)' }}>{row.label}</span>
               <span style={{ color: row.color, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>{formatEur(row.value)}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t('ops.recentCash')}</h3>
+        <div style={{ background: 'var(--ivory-alt)', borderRadius: 12, padding: '20px 24px', border: '1px solid var(--linea)' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{t('ops.recentCash')}</h3>
           {caja.slice(0, 5).map(m => (
-            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #1a2f50', fontSize: 13 }}>
+            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--linea)', fontSize: 13 }}>
               <div>
-                <div style={{ color: '#E8F0FE', fontWeight: 500 }}>{m.concepto}</div>
-                <div style={{ color: '#8892B0', fontSize: 11 }}>{formatDate(m.fecha)}</div>
+                <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{m.concepto}</div>
+                <div style={{ color: 'var(--muted)', fontSize: 11 }}>{formatDate(m.fecha)}</div>
               </div>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: m.tipo === 'income' ? '#43E97B' : '#FF4757' }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: m.tipo === 'income' ? 'var(--verde-text)' : 'var(--rojo-text)' }}>
                 {m.tipo === 'income' ? '+' : '-'}{formatEur(m.importe)}
               </span>
             </div>
           ))}
-          {caja.length === 0 && <div style={{ color: '#8892B0', fontSize: 13 }}>{t('ops.noMovements')}</div>}
+          {caja.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 13 }}>{t('ops.noMovements')}</div>}
         </div>
       </div>
 
-      <div style={{ background: '#112240', borderRadius: 12, padding: '20px 24px', border: '1px solid #1a2f50' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#E8F0FE' }}>{t('ops.latestInvoices')}</h3>
+      <div style={{ background: 'var(--ivory-alt)', borderRadius: 12, padding: '20px 24px', border: '1px solid var(--linea)' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{t('ops.latestInvoices')}</h3>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1a2f50' }}>
+              <tr style={{ borderBottom: '1px solid var(--linea)' }}>
                 {[t('ops.invoiceNumber'), t('ops.clientName'), t('ops.date'), t('ops.invoiceDue'), t('ops.total'), t('ops.status')].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: '#8892B0', fontWeight: 500 }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--muted)', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {enriched.slice(0, 8).map(f => (
-                <tr key={f.id} style={{ borderBottom: '1px solid #0A192F' }}>
-                  <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#FF8C00' }}>{f.numero}</td>
-                  <td style={{ padding: '8px 12px', color: '#E8F0FE' }}>{f.cliente_nombre}</td>
-                  <td style={{ padding: '8px 12px', color: '#8892B0' }}>{formatDate(f.fecha_emision)}</td>
-                  <td style={{ padding: '8px 12px', color: f.estado === 'overdue' ? '#FF4757' : '#8892B0' }}>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}</td>
-                  <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: '#E8F0FE' }}>{formatEur(f.total)}</td>
+                <tr key={f.id} style={{ borderBottom: '1px solid var(--linea-alta)' }}>
+                  <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--naranja-text)' }}>{f.numero}</td>
+                  <td style={{ padding: '8px 12px', color: 'var(--ink)' }}>{f.cliente_nombre}</td>
+                  <td style={{ padding: '8px 12px', color: 'var(--muted)' }}>{formatDate(f.fecha_emision)}</td>
+                  <td style={{ padding: '8px 12px', color: f.estado === 'overdue' ? 'var(--rojo-text)' : 'var(--muted)' }}>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}</td>
+                  <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: 'var(--ink)' }}>{formatEur(f.total)}</td>
                   <td style={{ padding: '8px 12px' }}><StatusBadge estado={f.estado} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {enriched.length === 0 && <div style={{ color: '#8892B0', fontSize: 13, padding: '12px 0' }}>{t('ops.noInvoices')}</div>}
+          {enriched.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 13, padding: '12px 0' }}>{t('ops.noInvoices')}</div>}
         </div>
       </div>
     </div>
@@ -259,11 +259,11 @@ export default function Dashboard() {
 }
 
 const STATUS_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
-  draft:     { bg: 'rgba(136,146,176,0.15)', color: '#8892B0', label: 'Draft' },
-  sent:      { bg: 'rgba(56,189,248,0.15)',  color: '#38BDF8', label: 'Sent' },
-  collected: { bg: 'rgba(67,233,123,0.15)',  color: '#43E97B', label: 'Collected' },
-  overdue:   { bg: 'rgba(255,71,87,0.15)',   color: '#FF4757', label: 'Overdue' },
-  cancelled: { bg: 'rgba(136,146,176,0.15)', color: '#8892B0', label: 'Cancelled' },
+  draft:     { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted)', label: 'Draft' },
+  sent:      { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Sent' },
+  collected: { bg: 'rgba(23,129,127,0.15)',  color: 'var(--verde-text)', label: 'Collected' },
+  overdue:   { bg: 'rgba(229,72,77,0.15)',   color: 'var(--rojo-text)', label: 'Overdue' },
+  cancelled: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted)', label: 'Cancelled' },
 };
 
 function StatusBadge({ estado }: { estado: string }) {
