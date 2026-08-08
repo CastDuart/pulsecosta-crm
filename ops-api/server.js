@@ -744,7 +744,7 @@ ${accountsList}
 
 Pregunta de Heidi: ${question}
 
-Responde en español de forma precisa y práctica. Si es una consulta fiscal, sé específico con las obligaciones de Estonia OÜ y las reglas UE aplicables.`;
+Responde en el mismo idioma en el que Heidi te ha preguntado (ES/EN/FI/ET/SV). Sé preciso y práctico. Si es una consulta fiscal, sé específico con las obligaciones de Estonia OÜ y las reglas UE aplicables.`;
 
     const r = await askLLM({ endpoint: 'heidi', prompt, gemini });
     res.json({ answer: r.text, provider: r.provider, model: r.model, meta: r.meta });
