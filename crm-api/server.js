@@ -5,6 +5,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { Pool } = require('pg');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { askLLM } = require('./llmClient');
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -434,10 +435,11 @@ Analiza los datos del día y genera un resumen ejecutivo en español. Sé direct
 
 Datos:\n${ctx}`;
 
-    const result = await gemini().generateContent(prompt);
+    const r = await askLLM({ endpoint: 'daily-summary', prompt, gemini });
     res.json({
-      summary: result.response.text(),
-      meta: { date, activities: activities.rows.length, visits: fieldVisits.rows.length, tasks: tasks.rows.length },
+      summary: r.text,
+      provider: r.provider, model: r.model,
+      meta: { date, activities: activities.rows.length, visits: fieldVisits.rows.length, tasks: tasks.rows.length, llm: r.meta },
     });
   } catch (err) {
     console.error('[AI daily-summary]', err.message);
@@ -484,10 +486,11 @@ Fecha: ${date}
 Estadísticas: ${JSON.stringify(stats)}
 Detalle visitas:\n${ctx}`;
 
-    const result = await gemini().generateContent(prompt);
+    const r = await askLLM({ endpoint: 'visit-analysis', prompt, gemini });
     res.json({
-      summary: result.response.text(),
-      meta: { date, total: rows.length, stats },
+      summary: r.text,
+      provider: r.provider, model: r.model,
+      meta: { date, total: rows.length, stats, llm: r.meta },
     });
   } catch (err) {
     console.error('[AI visit-analysis]', err.message);
@@ -521,8 +524,8 @@ Datos disponibles:\n${ctx}
 
 Pregunta: ${question}`;
 
-    const result = await gemini().generateContent(prompt);
-    res.json({ answer: result.response.text() });
+    const r = await askLLM({ endpoint: 'ask', prompt, gemini });
+    res.json({ answer: r.text, provider: r.provider, model: r.model, meta: r.meta });
   } catch (err) {
     console.error('[AI ask]', err.message);
     res.status(500).json({ error: err.message });
