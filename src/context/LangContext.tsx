@@ -66,7 +66,7 @@ const T: Record<Lang, Record<string, string>> = {
     'ops.nav.section': 'OPS — Finanzas', 'ops.nav.dashboard': 'Dashboard OPS',
     'ops.nav.invoices': 'Facturas', 'ops.nav.cash': 'Caja',
     'ops.nav.timelog': 'Control Horario', 'ops.nav.clients': 'Clientes OPS',
-    'ops.nav.visits': 'Visitas', 'ops.nav.ai': 'Asistente IA OPS',
+    'ops.nav.visits': 'Visitas', 'ops.nav.venues': 'Locales', 'ops.nav.ai': 'Asistente IA OPS',
   },
   en: {
     'sec.main': 'Main', 'sec.prospecting': 'Prospecting',
@@ -131,7 +131,7 @@ const T: Record<Lang, Record<string, string>> = {
     'ops.nav.section': 'OPS — Finance', 'ops.nav.dashboard': 'OPS Dashboard',
     'ops.nav.invoices': 'Invoices', 'ops.nav.cash': 'Cash',
     'ops.nav.timelog': 'Time Log', 'ops.nav.clients': 'OPS Clients',
-    'ops.nav.visits': 'Visits', 'ops.nav.ai': 'AI Assistant OPS',
+    'ops.nav.visits': 'Visits', 'ops.nav.venues': 'Venues', 'ops.nav.ai': 'AI Assistant OPS',
   },
 };
 

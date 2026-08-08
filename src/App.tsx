@@ -18,6 +18,7 @@ import Cash from './pages/ops/Cash';
 import TimeLog from './pages/ops/TimeLog';
 import OpsClients from './pages/ops/OpsClients';
 import OpsVisits from './pages/ops/OpsVisits';
+import OpsVenues from './pages/ops/OpsVenues';
 import AiAssistant from './pages/ops/AiAssistant';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route path="ops/timelog" element={<OpsRoute><TimeLog /></OpsRoute>} />
         <Route path="ops/clients" element={<OpsRoute><OpsClients /></OpsRoute>} />
         <Route path="ops/visits" element={<OpsRoute><OpsVisits /></OpsRoute>} />
+        <Route path="ops/venues" element={<OpsRoute><OpsVenues /></OpsRoute>} />
         <Route path="ops/ai" element={<OpsRoute><AiAssistant /></OpsRoute>} />
       </Route>
     </Routes>

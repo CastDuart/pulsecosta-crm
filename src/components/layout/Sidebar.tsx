@@ -80,6 +80,7 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
             <NavItem to="/ops/timelog" icon="⏱" label={t('ops.nav.timelog')} />
             <NavItem to="/ops/clients" icon="🏢" label={t('ops.nav.clients')} />
             <NavItem to="/ops/visits" icon="📍" label={t('ops.nav.visits')} />
+            <NavItem to="/ops/venues" icon="🏬" label={t('ops.nav.venues')} />
             <NavItem to="/ops/ai" icon="✦" label={t('ops.nav.ai')} />
           </>
         )}
