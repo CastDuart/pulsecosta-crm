@@ -746,6 +746,77 @@ Responde en español de forma precisa y práctica. Si es una consulta fiscal, s�
   }
 });
 
+// ── OPS: VENUES (read-only sobre public.venues) ──────────────
+// Los 1269 locales de la Costa del Sol. CRM/OPS los consumen para prospecting.
+// Filtros: zone_id, category, search, unclaimed, unvisited
+// Paginación: limit (default 50, max 500), offset
+
+app.get('/api/ops/venues/zones', auth, async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT z.id, z.name, COUNT(v.id)::int AS venue_count
+       FROM public.zones z
+       LEFT JOIN public.venues v ON v.zone_id = z.id AND v.is_active = true
+       GROUP BY z.id, z.name ORDER BY venue_count DESC`
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/ops/venues', auth, async (req, res) => {
+  try {
+    const { zone_id, category, search, unclaimed, unvisited } = req.query;
+    const limit  = Math.min(parseInt(req.query.limit)  || 50, 500);
+    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+
+    let where = 'v.is_active = true';
+    const p = [];
+    if (zone_id) { p.push(zone_id); where += ` AND v.zone_id = $${p.length}`; }
+    if (category) { p.push(category); where += ` AND v.category = $${p.length}`; }
+    if (search) { p.push(`%${search}%`); where += ` AND (v.name ILIKE $${p.length} OR v.address ILIKE $${p.length})`; }
+    if (unclaimed === 'true') where += ' AND v.owner_firebase_uid IS NULL';
+    if (unvisited === 'true') {
+      p.push(req.user.org_id || 1);
+      where += ` AND NOT EXISTS (SELECT 1 FROM ops.visitas vs WHERE vs.org_id = $${p.length} AND vs.venue ILIKE v.name)`;
+    }
+
+    const [rows, total] = await Promise.all([
+      pool.query(
+        `SELECT v.id, v.name, v.category, v.address, v.phone, v.website,
+                v.lat, v.lng, v.plan_type, v.is_verified,
+                v.owner_firebase_uid IS NOT NULL AS claimed,
+                z.name AS zone_name
+         FROM public.venues v
+         JOIN public.zones z ON z.id = v.zone_id
+         WHERE ${where}
+         ORDER BY v.name
+         LIMIT ${limit} OFFSET ${offset}`,
+        p
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS total FROM public.venues v WHERE ${where}`,
+        p
+      ),
+    ]);
+
+    res.json({ venues: rows.rows, total: total.rows[0].total, limit, offset });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/ops/venues/:id', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT v.*, z.name AS zone_name
+       FROM public.venues v
+       JOIN public.zones z ON z.id = v.zone_id
+       WHERE v.id = $1`,
+      [req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Venue no encontrado' });
+    res.json(rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/ops/health', async (_, res) => {
   const health = { status: 'ok', api: 'ok', db: 'ok', version: 'ops-api-1.0', ts: new Date().toISOString() };
