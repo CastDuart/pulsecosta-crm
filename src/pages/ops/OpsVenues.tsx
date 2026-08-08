@@ -3,6 +3,8 @@ import { apiFetch } from '../../lib/opsFetch';
 import { useLang } from '../../context/LangContext';
 import { MapPin, Phone, Globe, Search, Filter } from 'lucide-react';
 
+const LOCALE_MAP: Record<string, string> = { es: 'es-ES', en: 'en-GB', fi: 'fi-FI', et: 'et-EE', sv: 'sv-SE' };
+
 type Zone = { id: string; name: string; venue_count: number };
 type Venue = {
   id: string;
@@ -24,7 +26,7 @@ const CATEGORIES = ['bar', 'hotel', 'restaurant', 'nightclub', 'beach_club', 'we
 const PAGE_SIZE = 50;
 
 export default function OpsVenues() {
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   const [zones, setZones] = useState<Zone[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [total, setTotal] = useState(0);
@@ -61,31 +63,29 @@ export default function OpsVenues() {
 
   useEffect(() => { setPage(0); }, [zoneId, category, search, unclaimed, unvisited]);
 
-  const isES = lang === 'es';
+  const locale = LOCALE_MAP[lang] || 'es-ES';
   const L = {
-    title:      isES ? 'Locales (Costa del Sol)' : 'Venues (Costa del Sol)',
-    subtitle:   isES
-      ? `${total.toLocaleString('es-ES')} locales en el sistema — prospects para comercial`
-      : `${total.toLocaleString('en-US')} venues in system — commercial prospects`,
-    allZones:      isES ? 'Todas las zonas' : 'All zones',
-    allCategories: isES ? 'Todas las categorías' : 'All categories',
-    searchPh:      isES ? 'Buscar por nombre o dirección…' : 'Search by name or address…',
-    unclaimed:     isES ? 'Sin reclamar' : 'Unclaimed',
-    unvisited:     isES ? 'Sin visitar' : 'Not yet visited',
-    name:          isES ? 'Nombre' : 'Name',
-    category:      isES ? 'Categoría' : 'Category',
-    zone:          isES ? 'Zona' : 'Zone',
-    contact:       isES ? 'Contacto' : 'Contact',
-    status:        isES ? 'Estado' : 'Status',
-    prev:          isES ? 'Anterior' : 'Previous',
-    next:          isES ? 'Siguiente' : 'Next',
-    page:          isES ? 'Página' : 'Page',
-    of:            isES ? 'de' : 'of',
-    premium:       isES ? 'Premium' : 'Premium',
-    claimed:       isES ? 'Reclamado' : 'Claimed',
-    cold:          isES ? 'Frío' : 'Cold',
-    loading:       isES ? 'Cargando…' : 'Loading…',
-    empty:         isES ? 'Sin resultados' : 'No results',
+    title:         t('venues.title'),
+    subtitle:      `${total.toLocaleString(locale)} ${t('venues.subtitle')}`,
+    allZones:      t('filter.allZones'),
+    allCategories: t('venues.allCategories'),
+    searchPh:      t('venues.searchPh'),
+    unclaimed:     t('venues.unclaimed'),
+    unvisited:     t('venues.unvisited'),
+    name:          t('label.name'),
+    category:      t('venues.category'),
+    zone:          t('label.zone'),
+    contact:       t('label.contact'),
+    status:        t('label.status'),
+    prev:          t('venues.prev'),
+    next:          t('venues.next'),
+    page:          t('venues.page'),
+    of:            t('venues.of'),
+    premium:       t('venues.premium'),
+    claimed:       t('venues.claimed'),
+    cold:          t('venues.cold'),
+    loading:       t('common.loading'),
+    empty:         t('venues.empty'),
   };
 
   const pages = Math.ceil(total / PAGE_SIZE) || 1;

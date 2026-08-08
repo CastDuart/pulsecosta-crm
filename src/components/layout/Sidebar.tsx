@@ -86,21 +86,23 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
         )}
       </nav>
 
-      <div className="lang-install-bar">
-        <button
-          className={`btn ${lang === 'es' ? 'btn-primary' : 'btn-ghost'}`}
-          style={{ flex: 1, justifyContent: 'center', fontSize: '0.72rem', padding: '5px 0' }}
-          onClick={() => setLang('es')}
-        >
-          🇪🇸 ES
-        </button>
-        <button
-          className={`btn ${lang === 'en' ? 'btn-primary' : 'btn-ghost'}`}
-          style={{ flex: 1, justifyContent: 'center', fontSize: '0.72rem', padding: '5px 0' }}
-          onClick={() => setLang('en')}
-        >
-          🇬🇧 EN
-        </button>
+      <div className="lang-install-bar" style={{ flexWrap: 'wrap' }}>
+        {([
+          ['es', '🇪🇸'],
+          ['en', '🇬🇧'],
+          ['fi', '🇫🇮'],
+          ['et', '🇪🇪'],
+          ['sv', '🇸🇪'],
+        ] as const).map(([code, flag]) => (
+          <button
+            key={code}
+            className={`btn ${lang === code ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ flex: '1 0 32%', justifyContent: 'center', fontSize: '0.68rem', padding: '4px 0' }}
+            onClick={() => setLang(code)}
+          >
+            {flag} {code.toUpperCase()}
+          </button>
+        ))}
         <button
           className="btn btn-ghost"
           style={{ flex: 1, justifyContent: 'center', fontSize: '0.72rem', padding: '5px 0' }}
