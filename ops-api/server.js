@@ -5,6 +5,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { Pool } = require('pg');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { askLLM } = require('./llmClient');
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -745,8 +746,8 @@ Pregunta de Heidi: ${question}
 
 Responde en español de forma precisa y práctica. Si es una consulta fiscal, sé específico con las obligaciones de Estonia OÜ y las reglas UE aplicables.`;
 
-    const result = await gemini().generateContent(prompt);
-    res.json({ answer: result.response.text() });
+    const r = await askLLM({ endpoint: 'heidi', prompt, gemini });
+    res.json({ answer: r.text, provider: r.provider, model: r.model, meta: r.meta });
   } catch (err) {
     console.error('[AI ops/heidi]', err.message);
     res.status(500).json({ error: err.message });
