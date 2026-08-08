@@ -526,10 +526,11 @@ ${overdueList || 'Ninguna vencida ✓'}
 Caja por categoría:
 ${cajaSummary || 'Sin movimientos'}`;
 
-    const result = await gemini().generateContent(prompt);
+    const r = await askLLM({ endpoint: 'billing', prompt, gemini });
     res.json({
-      summary: result.response.text(),
-      meta: { dateFrom, dateTo, totalFacturado, totalCobrado, totalPendiente, totalIVA, overdueCount: overdue.rows.length },
+      summary: r.text,
+      provider: r.provider, model: r.model,
+      meta: { dateFrom, dateTo, totalFacturado, totalCobrado, totalPendiente, totalIVA, overdueCount: overdue.rows.length, llm: r.meta },
     });
   } catch (err) {
     console.error('[AI ops/billing]', err.message);
@@ -609,10 +610,11 @@ CONTEXTO FISCAL:
 - Clientes UE (escandinavos): operaciones intracomunitarias B2B (exentas con VAT number) o régimen OSS B2C
 - Registrikood: 17545241 | VAT OÜ: pendiente de confirmar`;
 
-    const result = await gemini().generateContent(prompt);
+    const r = await askLLM({ endpoint: 'accountant-report', prompt, gemini });
     res.json({
-      report: result.response.text(),
-      meta: { month, year, dateFrom, dateTo, ingresos, gastos, resultado: ingresos - gastos, ivaRep, ivaIntra, facturas: facturas.rows.length },
+      report: r.text,
+      provider: r.provider, model: r.model,
+      meta: { month, year, dateFrom, dateTo, ingresos, gastos, resultado: ingresos - gastos, ivaRep, ivaIntra, facturas: facturas.rows.length, llm: r.meta },
     });
   } catch (err) {
     console.error('[AI ops/accountant-report]', err.message);
@@ -668,10 +670,11 @@ MRR total cuentas activas: €${mrr.toFixed(2)}/mes
 Detalle contratos:
 ${contractList || 'Sin contratos en el período'}`;
 
-    const result = await gemini().generateContent(prompt);
+    const r = await askLLM({ endpoint: 'contracts-review', prompt, gemini });
     res.json({
-      summary: result.response.text(),
-      meta: { since, total: contracts.rows.length, byPlan, mrrActive: mrr },
+      summary: r.text,
+      provider: r.provider, model: r.model,
+      meta: { since, total: contracts.rows.length, byPlan, mrrActive: mrr, llm: r.meta },
     });
   } catch (err) {
     console.error('[AI ops/contracts-review]', err.message);
