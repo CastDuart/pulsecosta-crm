@@ -42,6 +42,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+type VenueSuggestion = {
+  id: string; name: string; category: string; address: string | null;
+  phone: string | null; zone_name: string;
+};
+
 function VisitaForm({ initial, clientes, onSave, onClose }: {
   initial?: Partial<Visita>; clientes: Cliente[];
   onSave: (d: Partial<Visita>) => Promise<void>; onClose: () => void;
@@ -63,9 +68,41 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
     proxima_accion: initial?.proxima_accion || '',
     notas: initial?.notas || '',
     cliente_id: initial?.cliente_id || '' as number | '',
+    venue_id: (initial as { venue_id?: string })?.venue_id || '' as string,
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+
+  // typeahead venues públicos
+  const [venueSearch, setVenueSearch] = useState('');
+  const [suggestions, setSuggestions] = useState<VenueSuggestion[]>([]);
+  const [showSug, setShowSug] = useState(false);
+
+  useEffect(() => {
+    if (venueSearch.trim().length < 2) { setSuggestions([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const r = await apiFetch<{ venues: VenueSuggestion[] }>(`/ops/venues?search=${encodeURIComponent(venueSearch)}&limit=8`);
+        setSuggestions(r.venues);
+      } catch { /* ignore */ }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [venueSearch]);
+
+  function pickVenue(v: VenueSuggestion) {
+    setF(p => ({
+      ...p,
+      venue_id: v.id,
+      venue: v.name,
+      direccion: v.address || p.direccion,
+      ciudad: v.zone_name || p.ciudad,
+      telefono: v.phone || p.telefono,
+    }));
+    setVenueSearch(''); setShowSug(false);
+  }
+  function clearVenue() {
+    setF(p => ({ ...p, venue_id: '', venue: '' }));
+  }
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setF(p => ({ ...p, [k]: e.target.value }));
@@ -73,7 +110,11 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setSaving(true); setErr('');
     try {
-      await onSave({ ...f, cliente_id: f.cliente_id === '' ? undefined : Number(f.cliente_id) });
+      await onSave({
+        ...f,
+        cliente_id: f.cliente_id === '' ? undefined : Number(f.cliente_id),
+        venue_id: f.venue_id || undefined,
+      } as Partial<Visita>);
       onClose();
     } catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
     finally { setSaving(false); }
@@ -83,6 +124,46 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
     <form onSubmit={submit}>
       {/* Prospect / Company */}
       <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',marginBottom:12,borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Prospect / Company</div>
+
+      {/* Typeahead venues públicos (Costa del Sol) */}
+      {!f.venue_id ? (
+        <div style={{ marginBottom:12, position:'relative' }}>
+          <label style={{ fontSize:12,color:'var(--muted)',display:'block',marginBottom:5 }}>
+            Buscar local en base pública (1269 Costa del Sol)
+          </label>
+          <input
+            type="text"
+            value={venueSearch}
+            onChange={e => { setVenueSearch(e.target.value); setShowSug(true); }}
+            onFocus={() => setShowSug(true)}
+            onBlur={() => setTimeout(() => setShowSug(false), 200)}
+            placeholder="Escribe 2+ letras del nombre…"
+            style={{ width:'100%', padding:'10px 12px', background:'var(--ivory)', border:'1px solid var(--linea)', borderRadius:8, color:'var(--ink)', fontSize:14 }}
+          />
+          {showSug && suggestions.length > 0 && (
+            <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--ivory-alt)', border:'1px solid var(--linea)', borderRadius:8, marginTop:4, zIndex:10, maxHeight:220, overflowY:'auto' }}>
+              {suggestions.map(v => (
+                <div key={v.id} onMouseDown={() => pickVenue(v)}
+                     style={{ padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid var(--linea)', fontSize:13 }}>
+                  <div style={{ fontWeight:600, color:'var(--ink)' }}>{v.name} <span style={{ fontSize:11, color:'var(--muted)', fontWeight:400 }}>· {v.category} · {v.zone_name}</span></div>
+                  {v.address && <div style={{ fontSize:11, color:'var(--muted)' }}>{v.address}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize:11, color:'var(--muted)', marginTop:4 }}>
+            ¿No está en la base? Deja este campo vacío y rellena manualmente abajo (prospect libre).
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginBottom:12, padding:10, background:'rgba(23,129,127,0.10)', border:'1px solid var(--teal-accent)', borderRadius:8, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div style={{ fontSize:13 }}>
+            <span style={{ color:'var(--teal-accent)', fontWeight:700 }}>Local de base pública:</span> <span style={{ color:'var(--ink)' }}>{f.venue}</span>
+          </div>
+          <button type="button" onClick={clearVenue} style={{ background:'none', border:'1px solid var(--linea)', color:'var(--muted)', padding:'4px 10px', borderRadius:6, cursor:'pointer', fontSize:12 }}>Cambiar</button>
+        </div>
+      )}
+
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
           <Field label="Venue / Company *"><input value={f.venue} onChange={set('venue')} required /></Field>

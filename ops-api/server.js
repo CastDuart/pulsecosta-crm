@@ -361,21 +361,27 @@ async function ensureVisitasTable() {
       notas              TEXT,
       cliente_id         INTEGER REFERENCES ops.clientes(id) ON DELETE SET NULL,
       factura_id         INTEGER REFERENCES ops.facturas(id) ON DELETE SET NULL,
+      venue_id           UUID    REFERENCES public.venues(id) ON DELETE SET NULL,
       created_by         INTEGER REFERENCES core.users(id),
       created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    CREATE INDEX IF NOT EXISTS visitas_org_idx    ON ops.visitas(org_id);
-    CREATE INDEX IF NOT EXISTS visitas_estado_idx ON ops.visitas(estado);
+    ALTER TABLE ops.visitas ADD COLUMN IF NOT EXISTS venue_id UUID REFERENCES public.venues(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS visitas_org_idx      ON ops.visitas(org_id);
+    CREATE INDEX IF NOT EXISTS visitas_estado_idx   ON ops.visitas(estado);
+    CREATE INDEX IF NOT EXISTS visitas_venue_id_idx ON ops.visitas(venue_id);
   `);
 }
 
 app.get('/api/ops/visitas', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT v.*, c.nombre AS cliente_nombre
+      `SELECT v.*, c.nombre AS cliente_nombre,
+              pv.name AS venue_public_name, pv.category AS venue_category,
+              pv.lat AS venue_lat, pv.lng AS venue_lng
        FROM ops.visitas v
-       LEFT JOIN ops.clientes c ON c.id = v.cliente_id
+       LEFT JOIN ops.clientes c   ON c.id  = v.cliente_id
+       LEFT JOIN public.venues pv ON pv.id = v.venue_id
        WHERE v.org_id = $1 ORDER BY v.fecha DESC, v.created_at DESC`,
       [req.user.org_id || 1]
     );
@@ -386,20 +392,21 @@ app.get('/api/ops/visitas', auth, async (req, res) => {
 app.post('/api/ops/visitas', auth, async (req, res) => {
   const { venue, ciudad, direccion, contacto, telefono, email, vat_number,
           fecha, plan, estado, prioridad, propuesta_enviada,
-          fecha_seguimiento, proxima_accion, notas, cliente_id } = req.body;
+          fecha_seguimiento, proxima_accion, notas, cliente_id, venue_id } = req.body;
   if (!venue) return res.status(400).json({ error: 'venue es obligatorio' });
   try {
     const { rows } = await pool.query(
       `INSERT INTO ops.visitas
          (org_id,venue,ciudad,direccion,contacto,telefono,email,vat_number,
           fecha,plan,estado,prioridad,propuesta_enviada,fecha_seguimiento,
-          proxima_accion,notas,cliente_id,created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+          proxima_accion,notas,cliente_id,venue_id,created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
       [req.user.org_id||1, venue, ciudad, direccion, contacto, telefono, email,
        vat_number, fecha||new Date().toISOString().split('T')[0],
        plan, estado||'pending', prioridad||'medium', propuesta_enviada||false,
-       fecha_seguimiento||null, proxima_accion, notas, cliente_id||null, req.user.id]
+       fecha_seguimiento||null, proxima_accion, notas, cliente_id||null,
+       venue_id||null, req.user.id]
     );
     res.status(201).json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -409,7 +416,7 @@ app.put('/api/ops/visitas/:id', auth, async (req, res) => {
   const allowed = ['venue','ciudad','direccion','contacto','telefono','email',
                    'vat_number','fecha','plan','estado','prioridad',
                    'propuesta_enviada','fecha_seguimiento','proxima_accion',
-                   'notas','cliente_id','factura_id'];
+                   'notas','cliente_id','factura_id','venue_id'];
   const updates = [], p = [];
   allowed.forEach(f => {
     if (req.body[f] !== undefined) { p.push(req.body[f]); updates.push(`${f}=$${p.length}`); }
@@ -777,7 +784,7 @@ app.get('/api/ops/venues', auth, async (req, res) => {
     if (unclaimed === 'true') where += ' AND v.owner_firebase_uid IS NULL';
     if (unvisited === 'true') {
       p.push(req.user.org_id || 1);
-      where += ` AND NOT EXISTS (SELECT 1 FROM ops.visitas vs WHERE vs.org_id = $${p.length} AND vs.venue ILIKE v.name)`;
+      where += ` AND NOT EXISTS (SELECT 1 FROM ops.visitas vs WHERE vs.org_id = $${p.length} AND vs.venue_id = v.id)`;
     }
 
     const [rows, total] = await Promise.all([

@@ -140,6 +140,8 @@ export interface Visita {
   prioridad: 'low' | 'medium' | 'high'; propuesta_enviada: boolean;
   fecha_seguimiento?: string; proxima_accion?: string; notas?: string;
   cliente_id?: number; cliente_nombre?: string; factura_id?: number;
+  venue_id?: string; venue_public_name?: string; venue_category?: string;
+  venue_lat?: number; venue_lng?: number;
   created_at: string;
 }
 export type TimeFilter = 'all' | 'this_month' | 'last_month' | 'this_year';
