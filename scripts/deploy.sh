@@ -73,6 +73,10 @@ if [[ $DRY -eq 0 ]]; then
   echo "=== Verificación ==="
   REMOTE_HASH=$(ssh "$VPS_HOST" "grep -oE 'index-[a-zA-Z0-9_]+\\.js' $VPS_ROOT/index.html | head -1")
   echo "Hash en producción: $REMOTE_HASH"
+
+  # No estrictamente necesario para estáticos (nginx los sirve directo),
+  # pero garantiza que si el rsync tocó estructura, nginx lo ve al momento.
+  ssh "$VPS_HOST" "docker exec nginx nginx -s reload 2>&1 | tail -1"
   if [[ "$REMOTE_HASH" != "$HASH" ]]; then
     echo "⚠️  HASH MISMATCH — algo se sirve desde otro sitio"
     exit 1
