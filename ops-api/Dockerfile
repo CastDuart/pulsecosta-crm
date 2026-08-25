@@ -4,5 +4,6 @@ COPY package.json .
 RUN npm install --production
 COPY server.js .
 COPY llmClient.js .
+COPY legalKb.js .
 EXPOSE 3011
 CMD ["node", "server.js"]
