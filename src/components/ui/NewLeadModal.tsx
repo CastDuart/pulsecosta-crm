@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLang } from '../../context/LangContext';
+import ChipSelect from './ChipSelect';
 import { ZONES } from '../../lib/zones';
 import { apiFetch } from '../../lib/api';
 import type { Lead } from '../../types';
@@ -49,40 +50,44 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
                 placeholder="Casa Paco · Tapas"
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="form-field">
-                <label className="form-label">{t('label.type')}</label>
-                <select className="form-select" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-                  <option value="local">Local / Bar / Rest.</option>
-                  <option value="hotel">Hotel</option>
-                </select>
-              </div>
-              <div className="form-field">
-                <label className="form-label">{t('label.zone')}</label>
-                <select className="form-select" value={form.zone} onChange={e => setForm({ ...form, zone: e.target.value })}>
-                  <option value="">— {t('label.zone')} —</option>
-                  {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
-                </select>
-              </div>
+            <div className="form-field">
+              <label className="form-label">{t('label.type')}</label>
+              <ChipSelect
+                value={form.type}
+                onChange={v => setForm({ ...form, type: v })}
+                options={[
+                  { value: 'local', label: 'Local / Bar / Rest.' },
+                  { value: 'hotel', label: 'Hotel' },
+                ]}
+              />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="form-field">
-                <label className="form-label">{t('label.source')}</label>
-                <select className="form-select" value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
-                  {['Google Maps', 'Instagram', 'Caminando', 'Referido', 'LinkedIn', 'Web'].map(s =>
-                    <option key={s} value={s}>{s}</option>
-                  )}
-                </select>
-              </div>
-              <div className="form-field">
-                <label className="form-label">{t('lead.phone')}</label>
-                <input
-                  className="form-input"
-                  value={form.phone}
-                  onChange={e => setForm({ ...form, phone: e.target.value })}
-                  placeholder="+34 600 000 000"
-                />
-              </div>
+            <div className="form-field">
+              <label className="form-label">{t('label.zone')}</label>
+              <ChipSelect
+                value={form.zone}
+                onChange={v => setForm({ ...form, zone: v })}
+                options={ZONES.map(z => ({ value: z, label: z }))}
+                allowEmpty
+                emptyLabel={`— ${t('label.zone')} —`}
+                searchPlaceholder={t('label.zone')}
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label">{t('label.source')}</label>
+              <ChipSelect
+                value={form.source}
+                onChange={v => setForm({ ...form, source: v })}
+                options={['Google Maps', 'Instagram', 'Caminando', 'Referido', 'LinkedIn', 'Web'].map(s => ({ value: s, label: s }))}
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label">{t('lead.phone')}</label>
+              <input
+                className="form-input"
+                value={form.phone}
+                onChange={e => setForm({ ...form, phone: e.target.value })}
+                placeholder="+34 600 000 000"
+              />
             </div>
             <div className="form-field">
               <label className="form-label">{t('label.notes')}</label>

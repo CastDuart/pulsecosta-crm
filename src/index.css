@@ -5,7 +5,7 @@
 :root {
   /* Sistema Novitum heredado */
   --ivory:        #FBF9F4;
-  --ivory-alt:    #EFEBE2;
+  --ivory-alt:    #FFF9EF;   /* papel blanco cálido (paridad con Suite) */
   --petrol:       #0F2E38;
   --petrol-deep:  #081C23;
   --petrol-card:  #163C48;
@@ -260,8 +260,11 @@ body {
   transition: all var(--transition);
   white-space: nowrap;
 }
-.btn-primary { background: var(--naranja); color: var(--petrol); }
-.btn-primary:hover { background: var(--pulse-deep); }
+/* Primario = petróleo (paridad con Suite). El naranja pasa a acento (.btn-gold). */
+.btn-primary { background: var(--petrol); color: var(--ivory); }
+.btn-primary:hover { background: var(--petrol-card); }
+.btn-gold { background: #DC7617; color: #FFF9EF; }
+.btn-gold:hover { background: var(--pulse-deep); }
 .btn-ghost {
   background: transparent;
   color: var(--gris);
@@ -517,8 +520,8 @@ tr:hover td { background: rgba(255,122,26,0.03); }
 }
 .form-input, .form-select {
   width: 100%;
-  background: rgba(15,46,56,0.08);
-  border: 1px solid rgba(15,46,56,0.15);
+  background: #FFFDF8;   /* input blanco limpio (paridad con Suite) */
+  border: 1px solid rgba(15,46,56,0.16);
   border-radius: var(--radius-sm);
   color: var(--blanco);
   font-family: var(--font-body);
@@ -530,6 +533,32 @@ tr:hover td { background: rgba(255,122,26,0.03); }
 .form-input::placeholder { color: var(--gris); }
 .form-input:focus, .form-select:focus { border-color: var(--naranja); }
 .form-select option { background: var(--azul-card); }
+
+/* ── CHIP SELECT ── cajas seleccionables que sustituyen a <select>.
+   Patrón Suite: activa = relleno de acento + borde acento + texto acento;
+   inactiva = papel + texto atenuado + borde sutil con hover.               */
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--linea-alta);
+  background: #FFFDF8;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.8rem; font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--petrol); color: var(--ink); }
+.chip.is-active {
+  background: var(--pulse-soft);
+  border-color: var(--pulse);
+  color: var(--naranja-text);
+}
+.chip-search { margin-bottom: 8px; }
+.chip-empty { font-size: 0.8rem; color: var(--muted); align-self: center; }
 
 /* ── MODAL ── */
 .modal-overlay {
