@@ -10,6 +10,7 @@ import { exportFacturasExcel } from '../../lib/excel';
 import { generateInvoicePDF } from '../../lib/pdf';
 import { Plus, X, Download, Printer, ChevronRight, Trash2 } from 'lucide-react';
 import ChipSelect from '../../components/ui/ChipSelect';
+import QRCode from 'qrcode';
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
@@ -283,6 +284,64 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
   );
 }
 
+// ── Verifactu: base apagada (modo pruebas / no certificado) ──
+type VerifactuRec = {
+  huella: string; huella_anterior: string; qr_url: string; num_serie: string;
+  fecha_expedicion: string; modo: string; certificado: boolean;
+};
+function VerifactuBlock({ facturaId }: { facturaId: number }) {
+  const [rec, setRec] = useState<VerifactuRec | null>(null);
+  const [qr, setQr] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    setRec(null); setQr('');
+    apiFetch<VerifactuRec | null>(`/ops/facturas/${facturaId}/verifactu`).then(setRec).catch(() => {});
+  }, [facturaId]);
+
+  useEffect(() => {
+    if (rec?.qr_url) QRCode.toDataURL(rec.qr_url, { errorCorrectionLevel: 'M', margin: 1, width: 150 }).then(setQr).catch(() => {});
+  }, [rec]);
+
+  async function generar() {
+    setLoading(true); setErr('');
+    try { setRec(await apiFetch<VerifactuRec>(`/ops/facturas/${facturaId}/verifactu`, { method: 'POST' })); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div style={{ border:'1px solid var(--linea)', borderRadius:8, padding:'12px 14px', marginBottom:16, background:'#FFFDF8' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+        <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Verifactu</span>
+        <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:'var(--naranja-tint)', background:'rgba(255,122,26,0.12)', padding:'2px 6px', borderRadius:6 }}>modo pruebas · no activado</span>
+      </div>
+      {!rec ? (
+        <>
+          <p style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
+            Genera el registro encadenado (huella SHA-256) y el QR de cotejo de la AEAT. No es cumplimiento activo hasta el alta en la AEAT + declaración responsable.
+          </p>
+          <button type="button" onClick={generar} disabled={loading}
+            style={{ padding:'7px 14px', borderRadius:6, border:'none', background:'var(--petrol)', color:'var(--ivory)', fontWeight:700, fontSize:12, cursor:'pointer' }}>
+            {loading ? 'Generando…' : 'Generar registro Verifactu'}
+          </button>
+          {err && <p style={{ color:'var(--rojo-text)', fontSize:12, marginTop:6 }}>{err}</p>}
+        </>
+      ) : (
+        <div style={{ display:'flex', gap:16, alignItems:'flex-start', flexWrap:'wrap' }}>
+          {qr && <img src={qr} alt="QR Verifactu" width={130} height={130} style={{ border:'1px solid var(--linea)', borderRadius:6 }} />}
+          <div style={{ flex:1, minWidth:220, fontSize:11, color:'var(--muted-tint)' }}>
+            <div style={{ marginBottom:4 }}><strong>Huella:</strong> <span style={{ fontFamily:'JetBrains Mono, monospace', wordBreak:'break-all' }}>{rec.huella}</span></div>
+            <div style={{ marginBottom:4 }}><strong>Encadenada a:</strong> <span style={{ fontFamily:'JetBrains Mono, monospace' }}>{rec.huella_anterior || '(primer registro)'}</span></div>
+            <div><strong>QR:</strong> <span style={{ wordBreak:'break-all' }}>{rec.qr_url}</span></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Invoices() {
   const [facturas, setFacturas]       = useState<Factura[]>([]);
   const [clientes, setClientes]       = useState<Cliente[]>([]);
@@ -452,6 +511,11 @@ export default function Invoices() {
               {note}
             </div>
           ) : null; })()}
+
+          {/* Verifactu (solo facturas con IVA español) */}
+          {(selected.iva_jurisdiccion ?? jurisdiccionFromFactura(selected.tipo_iva, selected.iva_rate)) === 'spain' && (
+            <VerifactuBlock facturaId={selected.id} />
+          )}
 
           {/* Line items */}
           {selectedLineas.length > 0 && (

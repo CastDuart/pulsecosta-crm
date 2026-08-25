@@ -9,6 +9,7 @@ const { Pool } = require('pg');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { askLLM } = require('./llmClient');
 const { askLegalKB, detectLegal } = require('./legalKb');
+const { calcularHuella, qrUrl, fechaHoraHuso } = require('./verifactu');
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -245,6 +246,77 @@ app.put('/api/ops/facturas/:id', auth, async (req, res) => {
        WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
+  } catch (err) { srvErr(res, err); }
+});
+
+// ── OPS: VERIFACTU (base apagada; solo IVA español) ──────────
+// GET: devuelve el registro Verifactu de una factura (si existe).
+app.get('/api/ops/facturas/:id/verifactu', auth, async (req, res) => {
+  try {
+    const orgId = req.user.org_id || 1;
+    const { rows } = await pool.query(
+      `SELECT r.* FROM ops.verifactu_registros r
+       JOIN ops.facturas f ON f.id = r.factura_id
+       WHERE r.factura_id = $1 AND f.org_id = $2 ORDER BY r.id DESC LIMIT 1`,
+      [req.params.id, orgId]
+    ).catch(() => ({ rows: [] }));
+    res.json(rows[0] || null);
+  } catch (err) { srvErr(res, err); }
+});
+
+// POST: genera (una vez) el registro encadenado + QR de una factura española.
+app.post('/api/ops/facturas/:id/verifactu', auth, async (req, res) => {
+  try {
+    const orgId = req.user.org_id || 1;
+    const { rows: [f] } = await pool.query(
+      `SELECT id, numero, fecha_emision, iva_importe, total, iva_jurisdiccion
+       FROM ops.facturas WHERE id = $1 AND org_id = $2`,
+      [req.params.id, orgId]
+    );
+    if (!f) return res.status(404).json({ error: 'Factura no encontrada' });
+    if (f.iva_jurisdiccion !== 'spain')
+      return res.status(400).json({ error: 'Verifactu solo aplica a facturas con IVA español' });
+
+    // Idempotente: si ya tiene registro, lo devolvemos sin re-encadenar.
+    const existing = await pool.query(
+      `SELECT * FROM ops.verifactu_registros WHERE factura_id = $1 ORDER BY id DESC LIMIT 1`,
+      [f.id]
+    );
+    if (existing.rows.length) return res.json(existing.rows[0]);
+
+    // Huella anterior = último registro de la org (cadena).
+    const prev = await pool.query(
+      `SELECT huella FROM ops.verifactu_registros WHERE org_id = $1 ORDER BY id DESC LIMIT 1`,
+      [orgId]
+    );
+    const huellaAnterior = prev.rows[0]?.huella || '';
+
+    // NIF emisor: placeholder hasta alta en España (modo no certificado).
+    const nifEmisor = process.env.VERIFACTU_NIF || 'ESX0000000X';
+    const [yy, mm, dd] = String(f.fecha_emision).slice(0, 10).split('-');
+    const fechaExpedicion = `${dd}-${mm}-${yy}`;
+    const fechaHoraGen = fechaHoraHuso(new Date());
+    const tipoFactura = 'F1';
+
+    const { cadena, huella } = calcularHuella({
+      idEmisor: nifEmisor, numSerie: f.numero, fechaExpedicion, tipoFactura,
+      cuotaTotal: f.iva_importe, importeTotal: f.total,
+      huellaAnterior, fechaHoraGen,
+    });
+    const modo = 'no_verifactu';
+    const url = qrUrl({ modo, nif: nifEmisor, numSerie: f.numero, fecha: fechaExpedicion, importe: f.total });
+
+    const { rows: [rec] } = await pool.query(
+      `INSERT INTO ops.verifactu_registros
+         (org_id,factura_id,nif_emisor,num_serie,fecha_expedicion,tipo_factura,
+          cuota_total,importe_total,huella_anterior,huella,cadena_entrada,
+          fecha_hora_gen,modo,qr_url,certificado)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,false) RETURNING *`,
+      [orgId, f.id, nifEmisor, f.numero, fechaExpedicion, tipoFactura,
+       f.iva_importe || 0, f.total || 0, huellaAnterior, huella, cadena,
+       fechaHoraGen, modo, url]
+    );
+    res.status(201).json(rec);
   } catch (err) { srvErr(res, err); }
 });
 
