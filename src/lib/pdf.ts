@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Factura, FacturaLinea } from '../types';
-import { invoiceLegalNote, formatDate, formatEur } from './iva';
+import { invoiceLegalNoteJurisdiccion, jurisdiccionFromFactura, formatDate, formatEur } from './iva';
 
 const SELLER = {
   name:    'OmniPulse OÜ',
@@ -109,7 +109,8 @@ export function generateInvoicePDF(factura: Factura, lineas: FacturaLinea[]) {
   doc.text('Subtotal:', totalsX, finalY);
   doc.text(formatEur(factura.subtotal), 195, finalY, { align: 'right' });
 
-  const legalNote = invoiceLegalNote(factura.tipo_iva);
+  const _jur = factura.iva_jurisdiccion ?? jurisdiccionFromFactura(factura.tipo_iva, factura.iva_rate);
+  const legalNote = invoiceLegalNoteJurisdiccion(_jur, factura.iva_rate);
   if (legalNote) {
     doc.setTextColor(...orange);
     doc.text('VAT (0% – Reverse Charge):', totalsX, finalY + 6);

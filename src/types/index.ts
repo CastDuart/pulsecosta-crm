@@ -100,6 +100,7 @@ export interface Cliente {
   created_at: string;
 }
 export type TipoIva = 'normal' | 'intracomunitario' | 'exento';
+export type IvaJurisdiccion = 'estonia' | 'spain' | 'eu' | 'exento';
 export type EstadoFactura = 'draft' | 'sent' | 'collected' | 'overdue' | 'cancelled';
 export type TipoFactura = 'normal' | 'recurring';
 export type IntervaloRecurrencia = 'monthly' | 'quarterly' | null;
@@ -112,7 +113,7 @@ export interface Factura {
   cliente_nombre?: string; vat_number?: string; pais?: string;
   tipo_cliente?: string; cliente_email?: string;
   fecha_emision: string; fecha_vencimiento?: string; metodo_pago: string;
-  tipo_iva: TipoIva; iva_rate: number; subtotal: number;
+  tipo_iva: TipoIva; iva_jurisdiccion?: IvaJurisdiccion; iva_rate: number; subtotal: number;
   iva_importe: number; total: number; tipo: TipoFactura;
   intervalo_recurrencia?: IntervaloRecurrencia; estado: EstadoFactura;
   notas?: string; created_at: string; lineas?: FacturaLinea[];

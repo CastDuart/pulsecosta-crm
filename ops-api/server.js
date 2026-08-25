@@ -188,7 +188,7 @@ app.get('/api/ops/facturas/:id/lineas', auth, async (req, res) => {
 
 app.post('/api/ops/facturas', auth, async (req, res) => {
   const { cliente_id, fecha_emision, fecha_vencimiento, metodo_pago,
-          tipo_iva, iva_rate, subtotal, iva_importe, total,
+          tipo_iva, iva_jurisdiccion, iva_rate, subtotal, iva_importe, total,
           tipo, intervalo_recurrencia, notas, lineas } = req.body;
   if (!cliente_id) return res.status(400).json({ error: 'cliente_id es obligatorio' });
   const client = pool;
@@ -203,12 +203,12 @@ app.post('/api/ops/facturas', auth, async (req, res) => {
     const { rows: [factura] } = await client.query(
       `INSERT INTO ops.facturas
          (org_id,numero,cliente_id,fecha_emision,fecha_vencimiento,metodo_pago,
-          tipo_iva,iva_rate,subtotal,iva_importe,total,tipo,intervalo_recurrencia,notas)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+          tipo_iva,iva_rate,subtotal,iva_importe,total,tipo,intervalo_recurrencia,notas,iva_jurisdiccion)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
       [req.user.org_id||1, numero, cliente_id, fecha_emision,
        fecha_vencimiento||null, metodo_pago||'Transferencia',
        tipo_iva||'normal', iva_rate||0, subtotal||0, iva_importe||0, total||0,
-       tipo||'normal', intervalo_recurrencia||null, notas||null]
+       tipo||'normal', intervalo_recurrencia||null, notas||null, iva_jurisdiccion||'estonia']
     );
     if (lineas?.length) {
       for (let i = 0; i < lineas.length; i++) {
@@ -230,7 +230,7 @@ app.put('/api/ops/facturas/:id', auth, async (req, res) => {
   const VALID_ESTADOS = ['borrador','enviada','cobrada','vencida'];
   if (req.body.estado !== undefined && !VALID_ESTADOS.includes(req.body.estado))
     return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${VALID_ESTADOS.join(', ')}` });
-  const allowed = ['estado','fecha_vencimiento','metodo_pago','tipo_iva',
+  const allowed = ['estado','fecha_vencimiento','metodo_pago','tipo_iva','iva_jurisdiccion',
                    'iva_rate','subtotal','iva_importe','total','notas'];
   const updates = [], p = [];
   allowed.forEach(f => {

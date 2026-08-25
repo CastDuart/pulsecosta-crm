@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '../../lib/opsFetch';
-import type { Factura, FacturaLinea, Cliente, TipoIva, EstadoFactura, TipoFactura } from '../../types';
+import type { Factura, FacturaLinea, Cliente, TipoIva, IvaJurisdiccion, EstadoFactura, TipoFactura } from '../../types';
 import {
   formatEur, formatDate, isOverdue,
-  calcIva, calcTotal, getDefaultIvaRate,
-  tipoIvaLabel, invoiceLegalNote, IVA_RATES_NORMAL,
+  calcIva, calcTotal, tipoIvaLabel,
+  IVA_JURISDICCIONES, IVA_JURISDICCION_ORDER, jurisdiccionLabel, invoiceLegalNoteJurisdiccion, jurisdiccionFromFactura,
 } from '../../lib/iva';
 import { exportFacturasExcel } from '../../lib/excel';
 import { generateInvoicePDF } from '../../lib/pdf';
@@ -62,8 +62,10 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
   const [fechaEmision, setFechaEmision] = useState(today);
   const [fechaVenc, setFechaVenc]       = useState(due30);
   const [metodoPago, setMetodoPago]     = useState('Transferencia');
-  const [tipoIva, setTipoIva]           = useState<TipoIva>('normal');
-  const [ivaRate, setIvaRate]           = useState(22);
+  const [jurisdiccion, setJurisdiccion] = useState<IvaJurisdiccion>('estonia');
+  const [ivaRate, setIvaRate]           = useState(24);
+  const tipoIva: TipoIva = IVA_JURISDICCIONES[jurisdiccion].tipoIva;   // régimen derivado
+  const jCfg = IVA_JURISDICCIONES[jurisdiccion];
   const [tipo, setTipo]                 = useState<TipoFactura>('normal');
   const [intervalo, setIntervalo]       = useState('monthly');
   const [notas, setNotas]               = useState('');
@@ -75,17 +77,17 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
     apiFetch<{ numero: string }>('/ops/facturas/next-number').then(r => setNextNum(r.numero));
   }, []);
 
-  // When tipo_iva changes, adjust rate
+  // Al cambiar jurisdicción, ajusta la tasa a su default (24 EE / 21 ES / 0 UE / 0 exento).
   useEffect(() => {
-    setIvaRate(getDefaultIvaRate(tipoIva));
-  }, [tipoIva]);
+    setIvaRate(IVA_JURISDICCIONES[jurisdiccion].defaultRate);
+  }, [jurisdiccion]);
 
   const cliente = clientes.find(c => c.id === Number(clienteId));
 
   const subtotal = lineas.reduce((s, l) => s + l.importe, 0);
   const ivaImporte = calcIva(subtotal, ivaRate);
   const total = calcTotal(subtotal, ivaImporte);
-  const legalNote = invoiceLegalNote(tipoIva);
+  const legalNote = invoiceLegalNoteJurisdiccion(jurisdiccion, ivaRate);
 
   function setLinea(i: number, k: keyof NewLine, v: string | number) {
     setLineas(prev => {
@@ -109,6 +111,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
         fecha_vencimiento: fechaVenc || null,
         metodo_pago: metodoPago,
         tipo_iva: tipoIva,
+        iva_jurisdiccion: jurisdiccion,
         iva_rate: ivaRate,
         subtotal,
         iva_importe: ivaImporte,
@@ -169,35 +172,31 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
           </Field>
         )}
 
-        {/* IVA type — central lógica */}
-        <Field label="VAT Type" span2>
+        {/* Jurisdicción de IVA — determina régimen, tasas y nota legal */}
+        <Field label="Jurisdicción de IVA" span2>
           <ChipSelect
-            value={tipoIva}
-            onChange={v => setTipoIva(v as TipoIva)}
-            options={[
-              { value: 'normal', label: 'Normal (Estonian VAT applies)' },
-              { value: 'intracomunitario', label: 'Intra-EU B2B — Reverse Charge (Art. 44)' },
-              { value: 'exento', label: 'Exempt' },
-            ]}
+            value={jurisdiccion}
+            onChange={v => setJurisdiccion(v as IvaJurisdiccion)}
+            options={IVA_JURISDICCION_ORDER.map(j => ({ value: j, label: jurisdiccionLabel(j) }))}
           />
         </Field>
 
-        {/* Warning for intracomunitario */}
-        {tipoIva === 'intracomunitario' && (
+        {/* Aviso reverse charge (Europeo) */}
+        {jCfg.reverseCharge && (
           <div style={{ gridColumn:'span 2',background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.25)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'var(--naranja-tint)' }}>
-            <strong>Reverse Charge:</strong> VAT = 0%. The client's VAT number is required. Legal note will appear on the PDF invoice.
+            <strong>Reverse Charge (Art. 44):</strong> IVA = 0%. Se requiere el número VAT del cliente. La nota legal aparecerá en el PDF.
             {cliente && !cliente.vat_number && (
-              <div style={{ marginTop:4,color:'var(--rojo-text)' }}>⚠ This client has no VAT number — add it in Clients before issuing this invoice.</div>
+              <div style={{ marginTop:4,color:'var(--rojo-text)' }}>⚠ Este cliente no tiene VAT — añádelo en Clientes antes de emitir la factura.</div>
             )}
           </div>
         )}
 
-        {tipoIva === 'normal' && (
-          <Field label="VAT Rate (%)">
+        {jCfg.rates.length > 1 && (
+          <Field label={`Tasa de IVA ${jurisdiccion === 'spain' ? 'española' : 'estonia'} (%)`}>
             <ChipSelect
               value={String(ivaRate)}
               onChange={v => setIvaRate(Number(v))}
-              options={IVA_RATES_NORMAL.map(r => ({ value: String(r), label: `${r}%` }))}
+              options={jCfg.rates.map(r => ({ value: String(r), label: `${r}%` }))}
             />
           </Field>
         )}
@@ -435,7 +434,7 @@ export default function Invoices() {
             <div>
               <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>Amount</div>
               <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'var(--naranja-text)' }}>{formatEur(selected.total)}</div>
-              <div style={{ fontSize:12,color:'var(--muted)' }}>{tipoIvaLabel(selected.tipo_iva)}{selected.tipo_iva==='normal'?` (${selected.iva_rate}%)`:'= 0%'}</div>
+              <div style={{ fontSize:12,color:'var(--muted)' }}>{jurisdiccionLabel(selected.iva_jurisdiccion ?? jurisdiccionFromFactura(selected.tipo_iva, selected.iva_rate))}{selected.tipo_iva==='normal'?` (${selected.iva_rate}%)`:' = 0%'}</div>
             </div>
             <div>
               <div style={{ color:'var(--muted)',fontSize:11 }}>Issued / Due</div>
@@ -448,7 +447,7 @@ export default function Invoices() {
           </div>
 
           {/* Legal note preview */}
-          {(() => { const note = invoiceLegalNote(selected.tipo_iva); return note ? (
+          {(() => { const jSel = selected.iva_jurisdiccion ?? jurisdiccionFromFactura(selected.tipo_iva, selected.iva_rate); const note = invoiceLegalNoteJurisdiccion(jSel, selected.iva_rate); return note ? (
             <div style={{ padding:'10px 14px',background:'rgba(255,122,26,0.06)',borderLeft:'3px solid var(--pulse)',borderRadius:8,fontSize:12,color:'var(--muted-tint)',marginBottom:16 }}>
               {note}
             </div>
