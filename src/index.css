@@ -72,24 +72,10 @@
   --linea-alta: rgba(15,46,56,0.20);
 }
 
-/* ── SUPERFICIES OSCURAS ──
-   El sistema Novitum pide alternar claro y oscuro, asi que la sidebar y la
-   topbar se quedan en petroleo. Pero los aliases de primer plano se volvieron
-   oscuros para el resto de la app: dentro de estas dos superficies hay que
-   invertirlos otra vez o el texto desaparece.
-   El `color` va en el contenedor a proposito: en Field, .topbar-title no tenia
-   color explicito y heredaba el del body, que rompio TODA la app.             */
-.sidebar,
-.topbar {
-  color: var(--ivory);
-  --blanco: var(--ivory);
-  --gris:   var(--silver);
-  --purple: var(--silver);
-  --naranja-text: var(--pulse);   /* sobre petroleo el naranja vivo si contrasta */
-  --verde-text:   var(--teal-bright);
-  --linea:        rgba(185,190,192,0.16);  /* petroleo sobre petroleo no se ve */
-  --linea-alta:   rgba(185,190,192,0.28);
-}
+/* ── NAV CLARA (paridad Suite) ──
+   La sidebar y la topbar son superficies CLARAS (Ivory&Petróleo, como Suite).
+   No se invierte ningún alias: el texto usa los tonos oscuros por defecto sobre
+   fondo claro. (Antes eran petróleo y había que invertir todo el primer plano.) */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -104,7 +90,7 @@ body {
 /* ── SIDEBAR ── */
 .sidebar {
   width: var(--sidebar-w);
-  background: var(--azul-nav);
+  background: #F3EFE6;   /* nav clara (Suite) */
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -169,7 +155,7 @@ body {
   text-decoration: none;
 }
 .nav-item:hover { background: rgba(255,122,26,0.08); color: var(--blanco); }
-.nav-item.active { background: rgba(255,122,26,0.15); color: var(--naranja-text); }
+.nav-item.active { background: rgba(255,122,26,0.15); color: var(--naranja-text); box-shadow: inset 2px 0 0 var(--pulse); }
 .nav-item .icon { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
 .nav-badge {
   margin-left: auto;
@@ -229,7 +215,7 @@ body {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--linea);
-  background: var(--azul-nav);
+  background: var(--ivory);   /* topbar clara (Suite) */
   position: sticky;
   top: 0;
   z-index: 40;
