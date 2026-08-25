@@ -5,5 +5,6 @@ RUN npm install --production
 COPY server.js .
 COPY llmClient.js .
 COPY legalKb.js .
+COPY verifactu.js .
 EXPOSE 3011
 CMD ["node", "server.js"]
