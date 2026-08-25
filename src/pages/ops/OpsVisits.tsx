@@ -4,6 +4,7 @@ import type { Visita, Cliente } from '../../types';
 import { formatDate } from '../../lib/iva';
 import { exportVisitasExcel } from '../../lib/excel';
 import { Plus, X, Download, UserCheck } from 'lucide-react';
+import ChipSelect from '../../components/ui/ChipSelect';
 
 type VisitaEstado = Visita['estado'];
 type VisitaPrioridad = Visita['prioridad'];
@@ -180,35 +181,49 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
       <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',margin:'16px 0 12px',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Visit Details</div>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <Field label="Existing client (optional — only for upsell visits)">
-          <select value={f.cliente_id} onChange={set('cliente_id')}>
-            <option value="">— Prospect (new) —</option>
-            {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
+          <ChipSelect
+            value={String(f.cliente_id ?? '')}
+            onChange={v => setF(p => ({ ...p, cliente_id: v === '' ? '' : Number(v) }))}
+            options={clientes.map(c => ({ value: String(c.id), label: c.nombre }))}
+            allowEmpty
+            emptyLabel="— Prospect (new) —"
+            searchPlaceholder="Buscar cliente…"
+          />
         </Field>
         <Field label="Date"><input type="date" value={f.fecha} onChange={set('fecha')} /></Field>
         <Field label="Plan">
-          <select value={f.plan} onChange={set('plan')}>
-            <option value="">Select plan...</option>
-            {PLANES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
+          <ChipSelect
+            value={f.plan}
+            onChange={v => setF(p => ({ ...p, plan: v }))}
+            options={PLANES.map(p => ({ value: p, label: p }))}
+            allowEmpty
+            emptyLabel="Select plan…"
+          />
         </Field>
         <Field label="Status">
-          <select value={f.estado} onChange={set('estado')}>
-            {ESTADOS.map(e => <option key={e} value={e}>{ESTADO_LABEL[e]}</option>)}
-          </select>
+          <ChipSelect
+            value={f.estado}
+            onChange={v => setF(p => ({ ...p, estado: v as VisitaEstado }))}
+            options={ESTADOS.map(e => ({ value: e, label: ESTADO_LABEL[e] }))}
+          />
         </Field>
         <Field label="Priority">
-          <select value={f.prioridad} onChange={set('prioridad')}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
+          <ChipSelect
+            value={f.prioridad}
+            onChange={v => setF(p => ({ ...p, prioridad: v as VisitaPrioridad }))}
+            options={[
+              { value: 'low', label: 'Low' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'high', label: 'High' },
+            ]}
+          />
         </Field>
         <Field label="Proposal sent">
-          <select value={f.propuesta_enviada ? 'yes' : 'no'} onChange={e => setF(p => ({ ...p, propuesta_enviada: e.target.value === 'yes' }))}>
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
+          <ChipSelect
+            value={f.propuesta_enviada ? 'yes' : 'no'}
+            onChange={v => setF(p => ({ ...p, propuesta_enviada: v === 'yes' }))}
+            options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }]}
+          />
         </Field>
         <Field label="Follow-up date"><input type="date" value={f.fecha_seguimiento} onChange={set('fecha_seguimiento')} /></Field>
         <Field label="Next action"><input value={f.proxima_accion} onChange={set('proxima_accion')} /></Field>

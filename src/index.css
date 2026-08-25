@@ -333,8 +333,8 @@ body {
   align-items: center;
 }
 .filter-input {
-  background: var(--azul-card);
-  border: 1px solid rgba(15,46,56,0.15);
+  background: #FFFDF8;
+  border: 1px solid rgba(15,46,56,0.16);
   border-radius: var(--radius-sm);
   color: var(--blanco);
   font-family: var(--font-body);
@@ -348,8 +348,8 @@ body {
 .filter-input::placeholder { color: var(--gris); }
 .filter-input:focus { border-color: var(--naranja); }
 .filter-select {
-  background: var(--azul-card);
-  border: 1px solid rgba(15,46,56,0.15);
+  background: #FFFDF8;
+  border: 1px solid rgba(15,46,56,0.16);
   border-radius: var(--radius-sm);
   color: var(--blanco);
   font-family: var(--font-body);

@@ -16,7 +16,10 @@ set -euo pipefail
 
 REPO="$HOME/GitHub/pulsecosta-crm"
 VPS_HOST="vps-pulse"
-VPS_ROOT="/opt/pulsecosta/crm"
+# Docroot CANÓNICO que sirve nginx (montado como /var/www/crm en el contenedor).
+# NO usar el legacy /opt/pulsecosta/crm — nginx no lo mira (fix 25/08). Es root:
+# rsync via --rsync-path="sudo rsync" y los docker/tar remotos con sudo.
+VPS_ROOT="/opt/pulsecosta-platform/products/backoffice/frontend/current"
 DOMAIN="https://crm.pulsecosta.es"
 
 NO_PULL=0; NO_BUILD=0; DRY=0
@@ -56,16 +59,17 @@ HASH=$(grep -oE 'index-[a-zA-Z0-9_]+\.js' dist/index.html | head -1)
 echo "[4/6] Build hash: $HASH"
 
 STAMP=$(date +%Y%m%d-%H%M%S)
-echo "[5/6] Backup remoto pre-deploy → /root/backups/crm-root-$STAMP.tar.gz"
+PARENT=$(dirname "$VPS_ROOT"); LEAF=$(basename "$VPS_ROOT")   # .../frontend  +  current
+echo "[5/6] Backup remoto pre-deploy → /root/backups/crm-frontend-$STAMP.tar.gz"
 if [[ $DRY -eq 0 ]]; then
-  ssh "$VPS_HOST" "tar --exclude='crm/dist' -czf /root/backups/crm-root-$STAMP.tar.gz -C /opt/pulsecosta crm && ls -la /root/backups/crm-root-$STAMP.tar.gz"
+  ssh "$VPS_HOST" "sudo tar -czf /root/backups/crm-frontend-$STAMP.tar.gz -C '$PARENT' '$LEAF' && sudo ls -la /root/backups/crm-frontend-$STAMP.tar.gz"
 fi
 
-echo "[6/6] rsync dist/ → $VPS_HOST:$VPS_ROOT/ (excluyendo dist/)"
+echo "[6/6] rsync dist/ → $VPS_HOST:$VPS_ROOT/ (docroot canónico, como root)"
 if [[ $DRY -eq 1 ]]; then
-  rsync -avn --delete --exclude='dist' "$REPO/dist/" "$VPS_HOST:$VPS_ROOT/"
+  rsync -avn --delete "$REPO/dist/" "$VPS_HOST:$VPS_ROOT/" --rsync-path="sudo rsync"
 else
-  rsync -a --delete --exclude='dist' "$REPO/dist/" "$VPS_HOST:$VPS_ROOT/"
+  rsync -a --delete "$REPO/dist/" "$VPS_HOST:$VPS_ROOT/" --rsync-path="sudo rsync"
 fi
 
 if [[ $DRY -eq 0 ]]; then
@@ -74,9 +78,8 @@ if [[ $DRY -eq 0 ]]; then
   REMOTE_HASH=$(ssh "$VPS_HOST" "grep -oE 'index-[a-zA-Z0-9_]+\\.js' $VPS_ROOT/index.html | head -1")
   echo "Hash en producción: $REMOTE_HASH"
 
-  # No estrictamente necesario para estáticos (nginx los sirve directo),
-  # pero garantiza que si el rsync tocó estructura, nginx lo ve al momento.
-  ssh "$VPS_HOST" "docker exec nginx nginx -s reload 2>&1 | tail -1"
+  # Recarga nginx (refresca IP interna del upstream si cambió la estructura).
+  ssh "$VPS_HOST" "sudo docker exec nginx nginx -s reload 2>&1 | tail -1"
   if [[ "$REMOTE_HASH" != "$HASH" ]]; then
     echo "⚠️  HASH MISMATCH — algo se sirve desde otro sitio"
     exit 1
@@ -86,5 +89,5 @@ if [[ $DRY -eq 0 ]]; then
   [[ "$CODE" == "200" ]] || { echo "⚠️  HTTP no-200"; exit 1; }
   echo "✅ Deploy OK"
   echo
-  echo "Rollback: ssh $VPS_HOST 'tar xzf /root/backups/crm-root-$STAMP.tar.gz -C /opt/pulsecosta'"
+  echo "Rollback: ssh $VPS_HOST \"sudo tar xzf /root/backups/crm-frontend-$STAMP.tar.gz -C '$PARENT'\""
 fi
