@@ -9,6 +9,7 @@ import {
 import { exportFacturasExcel } from '../../lib/excel';
 import { generateInvoicePDF } from '../../lib/pdf';
 import { Plus, X, Download, Printer, ChevronRight, Trash2 } from 'lucide-react';
+import ChipSelect from '../../components/ui/ChipSelect';
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
@@ -132,41 +133,53 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
 
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <Field label="Client *" span2>
-          <select value={clienteId} onChange={e => setClienteId(e.target.value)} required>
-            <option value="">Select client...</option>
-            {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre} {c.vat_number ? `(${c.vat_number})` : ''}</option>)}
-          </select>
+          <ChipSelect
+            value={clienteId}
+            onChange={setClienteId}
+            options={clientes.map(c => ({ value: String(c.id), label: `${c.nombre}${c.vat_number ? ` (${c.vat_number})` : ''}` }))}
+            allowEmpty
+            emptyLabel="Select client…"
+            searchPlaceholder="Buscar cliente…"
+          />
         </Field>
 
         <Field label="Issue Date"><input type="date" value={fechaEmision} onChange={e => setFechaEmision(e.target.value)} /></Field>
         <Field label="Due Date"><input type="date" value={fechaVenc} onChange={e => setFechaVenc(e.target.value)} /></Field>
         <Field label="Payment Method">
-          <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}>
-            <option>Transferencia</option><option>SEPA</option><option>Stripe</option><option>Cash</option>
-          </select>
+          <ChipSelect
+            value={metodoPago}
+            onChange={setMetodoPago}
+            options={['Transferencia', 'SEPA', 'Stripe', 'Cash'].map(x => ({ value: x, label: x }))}
+          />
         </Field>
         <Field label="Type">
-          <select value={tipo} onChange={e => setTipo(e.target.value as TipoFactura)}>
-            <option value="normal">Normal</option>
-            <option value="recurring">Recurring</option>
-          </select>
+          <ChipSelect
+            value={tipo}
+            onChange={v => setTipo(v as TipoFactura)}
+            options={[{ value: 'normal', label: 'Normal' }, { value: 'recurring', label: 'Recurring' }]}
+          />
         </Field>
         {tipo === 'recurring' && (
           <Field label="Interval">
-            <select value={intervalo} onChange={e => setIntervalo(e.target.value)}>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-            </select>
+            <ChipSelect
+              value={intervalo}
+              onChange={setIntervalo}
+              options={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }]}
+            />
           </Field>
         )}
 
         {/* IVA type — central lógica */}
         <Field label="VAT Type" span2>
-          <select value={tipoIva} onChange={e => setTipoIva(e.target.value as TipoIva)}>
-            <option value="normal">Normal (Estonian VAT applies)</option>
-            <option value="intracomunitario">Intra-EU B2B — Reverse Charge (Art. 44)</option>
-            <option value="exento">Exempt</option>
-          </select>
+          <ChipSelect
+            value={tipoIva}
+            onChange={v => setTipoIva(v as TipoIva)}
+            options={[
+              { value: 'normal', label: 'Normal (Estonian VAT applies)' },
+              { value: 'intracomunitario', label: 'Intra-EU B2B — Reverse Charge (Art. 44)' },
+              { value: 'exento', label: 'Exempt' },
+            ]}
+          />
         </Field>
 
         {/* Warning for intracomunitario */}
@@ -181,9 +194,11 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
 
         {tipoIva === 'normal' && (
           <Field label="VAT Rate (%)">
-            <select value={ivaRate} onChange={e => setIvaRate(Number(e.target.value))}>
-              {IVA_RATES_NORMAL.map(r => <option key={r} value={r}>{r}%</option>)}
-            </select>
+            <ChipSelect
+              value={String(ivaRate)}
+              onChange={v => setIvaRate(Number(v))}
+              options={IVA_RATES_NORMAL.map(r => ({ value: String(r), label: `${r}%` }))}
+            />
           </Field>
         )}
       </div>

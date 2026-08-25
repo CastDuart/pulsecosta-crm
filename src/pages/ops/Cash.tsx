@@ -4,6 +4,7 @@ import type { CajaMovimiento, Cliente, Factura, TipoIva } from '../../types';
 import { formatEur, formatDate, calcIva, calcTotal, getDefaultIvaRate, IVA_RATES_NORMAL } from '../../lib/iva';
 import { exportCajaExcel } from '../../lib/excel';
 import { X, Download, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import ChipSelect from '../../components/ui/ChipSelect';
 
 const INCOME_CATS = ['Invoice','Subscription','Grant','Other'];
 const EXPENSE_CATS = ['Server','Salary','Travel','Marketing','Legal','Software','Office','Other'];
@@ -86,48 +87,64 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
         <Field label="Amount (€)"><input type="number" value={importe} onChange={e => setImporte(e.target.value)} min={0} step={0.01} required /></Field>
         <Field label="Date"><input type="date" value={fecha} onChange={e => setFecha(e.target.value)} /></Field>
         <Field label="Category">
-          <select value={categoria} onChange={e => setCategoria(e.target.value)}>
-            <option value="">Select...</option>
-            {cats.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <ChipSelect
+            value={categoria}
+            onChange={setCategoria}
+            options={cats.map(c => ({ value: c, label: c }))}
+            allowEmpty
+            emptyLabel="Select…"
+          />
         </Field>
         <Field label="VAT Type">
-          <select value={tipoIva} onChange={e => setTipoIva(e.target.value as TipoIva)}>
-            <option value="normal">Normal (with VAT)</option>
-            <option value="intracomunitario">Reverse Charge (EU B2B)</option>
-            <option value="exento">Exempt</option>
-          </select>
+          <ChipSelect
+            value={tipoIva}
+            onChange={v => setTipoIva(v as TipoIva)}
+            options={[
+              { value: 'normal', label: 'Normal (with VAT)' },
+              { value: 'intracomunitario', label: 'Reverse Charge (EU B2B)' },
+              { value: 'exento', label: 'Exempt' },
+            ]}
+          />
         </Field>
         {tipoIva === 'normal' && (
           <Field label="VAT Rate (%)">
-            <select value={ivaRate} onChange={e => setIvaRate(Number(e.target.value))}>
-              {IVA_RATES_NORMAL.map(r => <option key={r} value={r}>{r}%</option>)}
-            </select>
+            <ChipSelect
+              value={String(ivaRate)}
+              onChange={v => setIvaRate(Number(v))}
+              options={IVA_RATES_NORMAL.map(r => ({ value: String(r), label: `${r}%` }))}
+            />
           </Field>
         )}
         <Field label="Link to invoice (optional)">
-          <select value={facturaId} onChange={e => setFacturaId(e.target.value)}>
-            <option value="">None</option>
-            {facturas.filter(f => f.estado !== 'cancelled').map(f => (
-              <option key={f.id} value={f.id}>{f.numero} — {f.cliente_nombre} ({formatEur(f.total)})</option>
-            ))}
-          </select>
+          <ChipSelect
+            value={facturaId}
+            onChange={setFacturaId}
+            options={facturas.filter(f => f.estado !== 'cancelled').map(f => ({ value: String(f.id), label: `${f.numero} — ${f.cliente_nombre} (${formatEur(f.total)})` }))}
+            allowEmpty
+            emptyLabel="None"
+            searchPlaceholder="Buscar factura…"
+          />
         </Field>
         <Field label="Client (optional)">
-          <select value={clienteId} onChange={e => setClienteId(e.target.value)}>
-            <option value="">None</option>
-            {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
+          <ChipSelect
+            value={clienteId}
+            onChange={setClienteId}
+            options={clientes.map(c => ({ value: String(c.id), label: c.nombre }))}
+            allowEmpty
+            emptyLabel="None"
+            searchPlaceholder="Buscar cliente…"
+          />
         </Field>
         <div style={{ gridColumn:'span 2' }}>
           <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:12 }}>
             <input type="checkbox" id="rec" checked={recurrente} onChange={e => setRecurrente(e.target.checked)} style={{ width:'auto' }} />
             <label htmlFor="rec" style={{ fontSize:13,color:'var(--ink)',cursor:'pointer' }}>Recurring</label>
             {recurrente && (
-              <select value={intervalo} onChange={e => setIntervalo(e.target.value)} style={{ width:'auto',padding:'4px 10px' }}>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-              </select>
+              <ChipSelect
+                value={intervalo}
+                onChange={setIntervalo}
+                options={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }]}
+              />
             )}
           </div>
         </div>

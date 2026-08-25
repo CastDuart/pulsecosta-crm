@@ -3,6 +3,7 @@ import { apiFetch } from '../../lib/opsFetch';
 import type { Cliente, Factura, Visita } from '../../types';
 import { formatEur, formatDate } from '../../lib/iva';
 import { Plus, X, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import ChipSelect from '../../components/ui/ChipSelect';
 
 const PAISES = ['Estonia','Spain','Finland','Germany','France','Netherlands','Sweden','Portugal','Italy','Belgium','Austria','Other'];
 
@@ -92,15 +93,18 @@ function ClientForm({
         <Field label="Postal code"><input value={f.codigo_postal} onChange={set('codigo_postal')} /></Field>
         <Field label="City"><input value={f.ciudad} onChange={set('ciudad')} /></Field>
         <Field label="Country">
-          <select value={f.pais} onChange={set('pais')}>
-            {PAISES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
+          <ChipSelect
+            value={f.pais}
+            onChange={v => setF(p => ({ ...p, pais: v }))}
+            options={PAISES.map(p => ({ value: p, label: p }))}
+          />
         </Field>
         <Field label="Type">
-          <select value={f.tipo_cliente} onChange={set('tipo_cliente')}>
-            <option value="b2b">B2B</option>
-            <option value="b2c">B2C</option>
-          </select>
+          <ChipSelect
+            value={f.tipo_cliente}
+            onChange={v => setF(p => ({ ...p, tipo_cliente: v as 'b2b' | 'b2c' }))}
+            options={[{ value: 'b2b', label: 'B2B' }, { value: 'b2c', label: 'B2C' }]}
+          />
         </Field>
         <div style={{ gridColumn: 'span 2' }}>
           <Field label="Notes"><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
