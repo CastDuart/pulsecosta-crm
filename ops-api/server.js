@@ -8,6 +8,7 @@ const jwt     = require('jsonwebtoken');
 const { Pool } = require('pg');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { askLLM } = require('./llmClient');
+const { askLegalKB, detectLegal } = require('./legalKb');
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -713,6 +714,23 @@ app.post('/api/ai/ops/heidi', auth, async (req, res) => {
     const { question } = req.body;
     if (!question) return res.status(400).json({ error: 'question es obligatorio' });
 
+    // ── LegalKB: si la pregunta es legal/fiscal, consultar el RAG legal ──
+    const legalIntent = detectLegal(question);
+    let legal = null;
+    if (legalIntent.isLegal) {
+      try {
+        legal = await askLegalKB({ message: question, pais: legalIntent.pais, categoria: legalIntent.categoria });
+      } catch (e) {
+        console.warn('[AI ops/heidi] LegalKB no disponible:', e.message);
+        legal = { error: true };
+      }
+      // PII detectada: el KB bloquea; devolvemos su guía sin pasar por el LLM.
+      if (legal?.blocked) {
+        return res.json({ answer: legal.message, source: 'legal-kb', legal: { blocked: true, detected: legal.detected } });
+      }
+    }
+    const legalOk = !!(legal && !legal.error && !legal.blocked && !legal.degraded);
+
     const orgId = req.user.org_id || 1;
     const [clientes, facturasPending, accounts] = await Promise.all([
       pool.query(`
@@ -769,13 +787,22 @@ ${pendingList || 'Sin facturas pendientes ✓'}
 
 Cuentas CRM activas (${accounts.rows.length}):
 ${accountsList}
-
+${legalOk ? `
+CONTEXTO LEGAL AUTORITATIVO (de NOVITUM Legal KB — RAG legal, modelo local). Para CUALQUIER afirmación legal o fiscal básate SOLO en esto; cita las fuentes al final y NO inventes normativa. Si el contexto no cubre la pregunta, dilo claramente:
+${legal.response}
+Fuentes legales: ${(legal.fuentes || []).join(' | ') || '—'}
+` : ''}
 Pregunta de Heidi: ${question}
 
-Responde en el mismo idioma en el que Heidi te ha preguntado (ES/EN/FI/ET/SV). Sé preciso y práctico. Si es una consulta fiscal, sé específico con las obligaciones de Estonia OÜ y las reglas UE aplicables.`;
+Responde en el mismo idioma en el que Heidi te ha preguntado (ES/EN/FI/ET/SV). Sé preciso y práctico. Si es una consulta fiscal, sé específico con las obligaciones de Estonia OÜ y las reglas UE aplicables${legalOk ? ', apoyándote en el CONTEXTO LEGAL AUTORITATIVO y citando sus fuentes' : ''}.`;
 
     const r = await askLLM({ endpoint: 'heidi', prompt, gemini });
-    res.json({ answer: r.text, provider: r.provider, model: r.model, meta: r.meta });
+    res.json({
+      answer: r.text, provider: r.provider, model: r.model, meta: r.meta,
+      legal: legalOk
+        ? { fuentes: legal.fuentes, disclaimer: legal.disclaimer, model: legal.model, request_id: legal.request_id, service_version: legal.service_version }
+        : undefined,
+    });
   } catch (err) {
     console.error('[AI ops/heidi]', err.message);
     srvErr(res, err);
