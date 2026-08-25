@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
+const helmet  = require('helmet');
+const rateLimit = require('express-rate-limit');
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { Pool } = require('pg');
@@ -37,7 +39,13 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(helmet());
+// Detrás de nginx: confía en 1 proxy para la IP real (rate-limit por IP).
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '1mb' }));   // límite de cuerpo: evita payloads gigantes
+
+// Rate limit global (anti-abuso).
+app.use(rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false }));
 
 // ── Auth middleware (verify-only; login vive en crm-api) ────
 function auth(req, res, next) {
@@ -45,6 +53,12 @@ function auth(req, res, next) {
   if (!h?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
   try { req.user = jwt.verify(h.slice(7), JWT_SECRET); next(); }
   catch { res.status(401).json({ error: 'Token invalido' }); }
+}
+
+// Error 500 genérico: loguea el detalle en servidor, NO lo filtra al cliente.
+function srvErr(res, err) {
+  console.error('[ops-api]', err?.stack || err?.message || err);
+  res.status(500).json({ error: 'Error interno del servidor' });
 }
 
 // ── OPS: WORKERS ─────────────────────────────────────────────
@@ -62,7 +76,7 @@ app.get('/api/ops/workers', auth, async (req, res) => {
       [req.user.org_id || 1]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/ops/workers', auth, async (req, res) => {
@@ -90,7 +104,7 @@ app.post('/api/ops/workers', auth, async (req, res) => {
       [newUser.id, req.user.org_id||1, department||'operations', role||'worker']
     );
     res.status(201).json({ message: 'Worker creado ✓', user_id: newUser.id });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── OPS: CLIENTES ────────────────────────────────────────────
@@ -104,7 +118,7 @@ app.get('/api/ops/clientes', auth, async (req, res) => {
       [req.user.org_id || 1]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/ops/clientes', auth, async (req, res) => {
@@ -122,7 +136,7 @@ app.post('/api/ops/clientes', auth, async (req, res) => {
        crm_account_id||null]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.put('/api/ops/clientes/:id', auth, async (req, res) => {
@@ -141,7 +155,7 @@ app.put('/api/ops/clientes/:id', auth, async (req, res) => {
        WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── OPS: FACTURAS ────────────────────────────────────────────
@@ -155,7 +169,7 @@ app.get('/api/ops/facturas', auth, async (req, res) => {
       [req.user.org_id || 1]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.get('/api/ops/facturas/:id/lineas', auth, async (req, res) => {
@@ -168,7 +182,7 @@ app.get('/api/ops/facturas/:id/lineas', auth, async (req, res) => {
       [req.params.id, req.user.org_id || 1]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/ops/facturas', auth, async (req, res) => {
@@ -207,7 +221,7 @@ app.post('/api/ops/facturas', auth, async (req, res) => {
     }
     await client.query('COMMIT');
     res.status(201).json(factura);
-  } catch (err) { await client.query('ROLLBACK'); res.status(500).json({ error: err.message }); }
+  } catch (err) { await client.query('ROLLBACK'); srvErr(res, err); }
 });
 
 app.put('/api/ops/facturas/:id', auth, async (req, res) => {
@@ -230,7 +244,7 @@ app.put('/api/ops/facturas/:id', auth, async (req, res) => {
        WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── OPS: CAJA ────────────────────────────────────────────────
@@ -254,7 +268,7 @@ app.get('/api/ops/caja', auth, async (req, res) => {
     q += ' ORDER BY m.fecha DESC, m.created_at DESC';
     const { rows } = await pool.query(q, p);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/ops/caja', auth, async (req, res) => {
@@ -272,7 +286,7 @@ app.post('/api/ops/caja', auth, async (req, res) => {
        cliente_id||null, factura_id||null, recurrente||false, intervalo||null, notas||null]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── OPS: JORNADAS ────────────────────────────────────────────
@@ -290,7 +304,7 @@ app.get('/api/ops/jornadas', auth, async (req, res) => {
     q += ' ORDER BY j.fecha DESC, j.entrada DESC';
     const { rows } = await pool.query(q, p);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/ops/jornadas/entrada', auth, async (req, res) => {
@@ -310,7 +324,7 @@ app.post('/api/ops/jornadas/entrada', auth, async (req, res) => {
       [req.user.id, req.user.org_id||1, today, lat||null, lng||null, direccion||null]
     );
     res.status(201).json(jornada);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.put('/api/ops/jornadas/:id/salida', auth, async (req, res) => {
@@ -327,7 +341,7 @@ app.put('/api/ops/jornadas/:id/salida', auth, async (req, res) => {
     );
     if (!jornada) return res.status(404).json({ error: 'Jornada no encontrada o ya cerrada' });
     res.json(jornada);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.put('/api/ops/jornadas/:id', auth, async (req, res) => {
@@ -344,7 +358,7 @@ app.put('/api/ops/jornadas/:id', auth, async (req, res) => {
        WHERE id=$${p.length} AND user_id=${req.user.id} RETURNING *`, p
     );
     res.json(rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── OPS: VISITAS ─────────────────────────────────────────────
@@ -397,7 +411,7 @@ app.get('/api/ops/visitas', auth, async (req, res) => {
       [req.user.org_id || 1]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/ops/visitas', auth, async (req, res) => {
@@ -420,7 +434,7 @@ app.post('/api/ops/visitas', auth, async (req, res) => {
        venue_id||null, req.user.id]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.put('/api/ops/visitas/:id', auth, async (req, res) => {
@@ -441,7 +455,7 @@ app.put('/api/ops/visitas/:id', auth, async (req, res) => {
        WHERE id=$${p.length} AND org_id=${req.user.org_id||1} RETURNING *`, p
     );
     res.json(rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── OPS: FACTURAS — número siguiente (preview) ───────────────
@@ -454,7 +468,7 @@ app.get('/api/ops/facturas/next-number', auth, async (req, res) => {
       [`${year}-%`]
     );
     res.json({ numero: `${year}-${String(row.n).padStart(3,'0')}` });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── OPS: ADMIN RESET (super_admin only) ─────────────────────
@@ -466,7 +480,7 @@ app.post('/api/ops/admin/reset', auth, async (req, res) => {
       RESTART IDENTITY CASCADE
     `);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── AI: OPS (Heidi + fiscal + comercial) ─────────────────────
@@ -545,7 +559,7 @@ ${cajaSummary || 'Sin movimientos'}`;
     });
   } catch (err) {
     console.error('[AI ops/billing]', err.message);
-    res.status(500).json({ error: err.message });
+    srvErr(res, err);
   }
 });
 
@@ -629,7 +643,7 @@ CONTEXTO FISCAL:
     });
   } catch (err) {
     console.error('[AI ops/accountant-report]', err.message);
-    res.status(500).json({ error: err.message });
+    srvErr(res, err);
   }
 });
 
@@ -648,12 +662,12 @@ app.post('/api/ai/ops/contracts-review', auth, async (req, res) => {
         LEFT JOIN core.users u ON u.id = fc.sent_by
         WHERE fc.signed_at >= $1
         ORDER BY fc.signed_at DESC LIMIT 50
-      `, [since]),
+      `, [since]).catch(() => ({ rows: [] })),  // Field puede no estar desplegado
       pool.query(`
         SELECT name, plan, stage, mrr, zone FROM crm.accounts
-        WHERE org_id = 1 AND stage = 'active'
+        WHERE org_id = $1 AND stage = 'active'
         ORDER BY mrr DESC LIMIT 20
-      `, []),
+      `, [req.user.org_id || 1]),
     ]);
 
     const byPlan = contracts.rows.reduce((acc, c) => {
@@ -689,7 +703,7 @@ ${contractList || 'Sin contratos en el período'}`;
     });
   } catch (err) {
     console.error('[AI ops/contracts-review]', err.message);
-    res.status(500).json({ error: err.message });
+    srvErr(res, err);
   }
 });
 
@@ -764,7 +778,7 @@ Responde en el mismo idioma en el que Heidi te ha preguntado (ES/EN/FI/ET/SV). S
     res.json({ answer: r.text, provider: r.provider, model: r.model, meta: r.meta });
   } catch (err) {
     console.error('[AI ops/heidi]', err.message);
-    res.status(500).json({ error: err.message });
+    srvErr(res, err);
   }
 });
 
@@ -782,7 +796,7 @@ app.get('/api/ops/venues/zones', auth, async (_req, res) => {
        GROUP BY z.id, z.name ORDER BY venue_count DESC`
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.get('/api/ops/venues', auth, async (req, res) => {
@@ -822,7 +836,7 @@ app.get('/api/ops/venues', auth, async (req, res) => {
     ]);
 
     res.json({ venues: rows.rows, total: total.rows[0].total, limit, offset });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.get('/api/ops/venues/:id', auth, async (req, res) => {
@@ -836,7 +850,7 @@ app.get('/api/ops/venues/:id', auth, async (req, res) => {
     );
     if (!rows[0]) return res.status(404).json({ error: 'Venue no encontrado' });
     res.json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── HEALTH ───────────────────────────────────────────────────

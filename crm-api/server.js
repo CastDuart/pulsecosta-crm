@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
+const helmet  = require('helmet');
+const rateLimit = require('express-rate-limit');
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { Pool } = require('pg');
@@ -37,7 +39,14 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(helmet());
+// Detrás de nginx: confía en 1 proxy para la IP real (rate-limit por IP).
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '1mb' }));   // límite de cuerpo: evita payloads gigantes
+
+// Rate limit global (anti-abuso). Login tiene su propio limitador más estricto.
+app.use(rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false }));
+const loginLimiter = rateLimit({ windowMs: 15 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Demasiados intentos, prueba más tarde' } });
 
 // ── Auth middleware ──────────────────────────────────────────
 function auth(req, res, next) {
@@ -45,6 +54,12 @@ function auth(req, res, next) {
   if (!h?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
   try { req.user = jwt.verify(h.slice(7), JWT_SECRET); next(); }
   catch { res.status(401).json({ error: 'Token invalido' }); }
+}
+
+// Error 500 genérico: loguea el detalle en servidor, NO lo filtra al cliente.
+function srvErr(res, err) {
+  console.error('[crm-api]', err?.stack || err?.message || err);
+  res.status(500).json({ error: 'Error interno del servidor' });
 }
 
 // ── Migración one-time public.crm_* → crm.* ─────────────────
@@ -120,7 +135,7 @@ function isSalesRepOnly(user) {
 }
 
 // ── LOGIN ────────────────────────────────────────────────────
-app.post('/api/crm/auth/login', async (req, res) => {
+app.post('/api/crm/auth/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Faltan campos' });
   try {
@@ -167,7 +182,7 @@ app.get('/api/crm/accounts', auth, async (req, res) => {
     q += ' ORDER BY a.updated_at DESC';
     const { rows } = await pool.query(q, p);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/crm/accounts', auth, async (req, res) => {
@@ -176,7 +191,7 @@ app.post('/api/crm/accounts', auth, async (req, res) => {
   try {
     let assignedId = req.user.id;
     if (assigned_to && assigned_to !== req.user.name) {
-      const { rows: u } = await pool.query('SELECT id FROM core.users WHERE name = $1', [assigned_to]);
+      const { rows: u } = await pool.query(`SELECT u.id FROM core.users u JOIN core.user_roles r ON r.user_id=u.id AND r.org_id=$2 WHERE u.name = $1`, [assigned_to, req.user.org_id||1]);
       if (u[0]) assignedId = u[0].id;
     }
     const { rows } = await pool.query(
@@ -188,7 +203,7 @@ app.post('/api/crm/accounts', auth, async (req, res) => {
        contact_name, contact_email, contact_phone, address, notes]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.put('/api/crm/accounts/:id', auth, async (req, res) => {
@@ -199,7 +214,7 @@ app.put('/api/crm/accounts/:id', auth, async (req, res) => {
     if (req.body[f] !== undefined) { p.push(req.body[f]); updates.push(`${f}=$${p.length}`); }
   });
   if (req.body.assigned_to !== undefined) {
-    const { rows: u } = await pool.query('SELECT id FROM core.users WHERE name = $1', [req.body.assigned_to]);
+    const { rows: u } = await pool.query(`SELECT u.id FROM core.users u JOIN core.user_roles r ON r.user_id=u.id AND r.org_id=$2 WHERE u.name = $1`, [req.body.assigned_to, req.user.org_id||1]);
     if (u[0]) { p.push(u[0].id); updates.push(`assigned_to=$${p.length}`); }
   }
   if (!updates.length) return res.status(400).json({ error: 'Nada que actualizar' });
@@ -211,7 +226,7 @@ app.put('/api/crm/accounts/:id', auth, async (req, res) => {
        WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── CRM: LEADS ───────────────────────────────────────────────
@@ -231,7 +246,7 @@ app.get('/api/crm/leads', auth, async (req, res) => {
     q += ' ORDER BY l.created_at DESC';
     const { rows } = await pool.query(q, p);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/crm/leads', auth, async (req, res) => {
@@ -244,7 +259,7 @@ app.post('/api/crm/leads', auth, async (req, res) => {
        phone, email, notes, req.user.id]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.put('/api/crm/leads/:id', auth, async (req, res) => {
@@ -262,7 +277,7 @@ app.put('/api/crm/leads/:id', auth, async (req, res) => {
        WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── CRM: TASKS ───────────────────────────────────────────────
@@ -279,7 +294,7 @@ app.get('/api/crm/tasks', auth, async (req, res) => {
     q += ' ORDER BY t.done ASC, t.due_at ASC';
     const { rows } = await pool.query(q, p);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/crm/tasks', auth, async (req, res) => {
@@ -287,7 +302,7 @@ app.post('/api/crm/tasks', auth, async (req, res) => {
   try {
     let assignedId = req.user.id;
     if (assigned_to && assigned_to !== req.user.name) {
-      const { rows: u } = await pool.query('SELECT id FROM core.users WHERE name = $1', [assigned_to]);
+      const { rows: u } = await pool.query(`SELECT u.id FROM core.users u JOIN core.user_roles r ON r.user_id=u.id AND r.org_id=$2 WHERE u.name = $1`, [assigned_to, req.user.org_id||1]);
       if (u[0]) assignedId = u[0].id;
     }
     const { rows } = await pool.query(
@@ -296,7 +311,7 @@ app.post('/api/crm/tasks', auth, async (req, res) => {
       [req.user.org_id||1, title, priority||'medium', due_at, assignedId, account_id||null]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.put('/api/crm/tasks/:id', auth, async (req, res) => {
@@ -313,7 +328,7 @@ app.put('/api/crm/tasks/:id', auth, async (req, res) => {
        WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── CRM: ACTIVITIES ──────────────────────────────────────────
@@ -332,7 +347,7 @@ app.get('/api/crm/activities', auth, async (req, res) => {
     q += ' ORDER BY a.created_at DESC LIMIT 200';
     const { rows } = await pool.query(q, p);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 app.post('/api/crm/activities', auth, async (req, res) => {
@@ -344,7 +359,7 @@ app.post('/api/crm/activities', auth, async (req, res) => {
       [req.user.org_id||1, type||'note', description, account_id||null, req.user.id]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 // ── CRM: DASHBOARD ───────────────────────────────────────────
@@ -375,7 +390,7 @@ app.get('/api/crm/dashboard', auth, async (req, res) => {
       pendingTasks:   tasks.rows.filter(t => !t.done).length,
       upcomingDemos:  demos.rows,
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { srvErr(res, err); }
 });
 
 
@@ -402,7 +417,7 @@ app.post('/api/ai/crm/daily-summary', auth, async (req, res) => {
         LEFT JOIN core.users u ON u.id = v.agent_id
         WHERE DATE(v.visited_at AT TIME ZONE 'Europe/Madrid') = $1
         ORDER BY v.visited_at DESC LIMIT 50
-      `, [date]),
+      `, [date]).catch(() => ({ rows: [] })),  // Field puede no estar desplegado
       pool.query(`
         SELECT t.title, t.priority, u.name AS assigned_to, t.done
         FROM crm.tasks t
@@ -446,7 +461,7 @@ Datos:\n${ctx}`;
     });
   } catch (err) {
     console.error('[AI daily-summary]', err.message);
-    res.status(500).json({ error: err.message });
+    srvErr(res, err);
   }
 });
 
@@ -466,7 +481,8 @@ app.post('/api/ai/crm/visit-analysis', auth, async (req, res) => {
     if (agent) { p.push(agent); q += ` AND u.name ILIKE $${p.length}`; }
     q += ' ORDER BY v.visited_at DESC';
 
-    const { rows } = await pool.query(q, p);
+    // Field puede no estar desplegado -> devolver vacío en vez de 500.
+    const { rows } = await pool.query(q, p).catch(() => ({ rows: [] }));
 
     if (!rows.length) return res.json({ summary: `No hay visitas registradas para el ${date}${agent ? ` de ${agent}` : ''}.`, meta: { date, total: 0 } });
 
@@ -497,7 +513,7 @@ Detalle visitas:\n${ctx}`;
     });
   } catch (err) {
     console.error('[AI visit-analysis]', err.message);
-    res.status(500).json({ error: err.message });
+    srvErr(res, err);
   }
 });
 
@@ -531,7 +547,7 @@ Pregunta: ${question}`;
     res.json({ answer: r.text, provider: r.provider, model: r.model, meta: r.meta });
   } catch (err) {
     console.error('[AI ask]', err.message);
-    res.status(500).json({ error: err.message });
+    srvErr(res, err);
   }
 });
 
@@ -601,9 +617,10 @@ app.get('/api/crm/health', async (_, res) => {
   const health = { status: 'ok', api: 'ok', db: 'ok', disk_pct: 0, version: '2.0-omnipulse', ts: new Date().toISOString() };
   try { await pool.query('SELECT 1'); } catch { health.db = 'error'; health.status = 'degraded'; }
   try {
-    const { execSync } = require('child_process');
-    const pct = execSync("df / | tail -1 | awk '{print $5}'").toString().trim().replace('%','');
-    health.disk_pct = parseInt(pct) || 0;
+    // fs.statfsSync (Node 18.15+): sin shell en ruta de request (evita exec/latencia).
+    const { statfsSync } = require('fs');
+    const s = statfsSync('/');
+    health.disk_pct = s.blocks > 0 ? Math.round(((s.blocks - s.bfree) / s.blocks) * 100) : 0;
     if (health.disk_pct > 85) health.status = 'degraded';
   } catch { }
   res.json(health);
