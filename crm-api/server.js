@@ -203,11 +203,12 @@ app.put('/api/crm/accounts/:id', auth, async (req, res) => {
     if (u[0]) { p.push(u[0].id); updates.push(`assigned_to=$${p.length}`); }
   }
   if (!updates.length) return res.status(400).json({ error: 'Nada que actualizar' });
-  p.push(req.params.id);
+  const idParam = p.push(req.params.id);
+  const orgParam = p.push(req.user.org_id || 1);
   try {
     const { rows } = await pool.query(
       `UPDATE crm.accounts SET ${updates.join(',')},updated_at=NOW()
-       WHERE id=$${p.length} AND org_id=${req.user.org_id||1} RETURNING *`, p
+       WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -253,11 +254,12 @@ app.put('/api/crm/leads/:id', auth, async (req, res) => {
     if (req.body[f] !== undefined) { p.push(req.body[f]); updates.push(`${f}=$${p.length}`); }
   });
   if (!updates.length) return res.status(400).json({ error: 'Nada que actualizar' });
-  p.push(req.params.id);
+  const idParam = p.push(req.params.id);
+  const orgParam = p.push(req.user.org_id || 1);
   try {
     const { rows } = await pool.query(
       `UPDATE crm.leads SET ${updates.join(',')}
-       WHERE id=$${p.length} AND org_id=${req.user.org_id||1} RETURNING *`, p
+       WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -303,11 +305,12 @@ app.put('/api/crm/tasks/:id', auth, async (req, res) => {
   if (req.body.title)              { p.push(req.body.title);    updates.push(`title=$${p.length}`); }
   if (req.body.priority)           { p.push(req.body.priority); updates.push(`priority=$${p.length}`); }
   if (!updates.length) return res.status(400).json({ error: 'Nada que actualizar' });
-  p.push(req.params.id);
+  const idParam = p.push(req.params.id);
+  const orgParam = p.push(req.user.org_id || 1);
   try {
     const { rows } = await pool.query(
       `UPDATE crm.tasks SET ${updates.join(',')}
-       WHERE id=$${p.length} AND org_id=${req.user.org_id||1} RETURNING *`, p
+       WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -585,8 +588,11 @@ Responde ÚNICAMENTE con JSON válido, sin explicaciones adicionales:
     });
   } catch (err) {
     console.error('[AI pwa/moderate-image]', err.message);
-    // En caso de error de Gemini, aprobamos para no bloquear al usuario
-    res.json({ approved: true, score: 50, reason: 'error', message: 'Moderación no disponible, imagen aceptada', message_en: 'Moderation unavailable, image accepted' });
+    // Fail-CLOSED: si el moderador falla, NO auto-aprobamos (evita colar contenido
+    // sin revisar). Se retiene para revisión manual.
+    res.json({ approved: false, score: 0, reason: 'moderation_unavailable', pending_review: true,
+      message: 'Moderación no disponible; imagen pendiente de revisión manual.',
+      message_en: 'Moderation unavailable; image pending manual review.' });
   }
 });
 

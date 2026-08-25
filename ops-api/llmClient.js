@@ -45,7 +45,10 @@ async function geminiGenerate(gemini, prompt) {
  */
 async function askLLM({ endpoint, prompt, gemini }) {
   const envKey       = endpoint.toUpperCase().replace(/-/g, '_');
-  const provider     = (process.env[`LLM_${envKey}`] || 'gemini').toLowerCase();
+  // Default SEGURO: Ollama local (Spark). Evita mandar PII (clientes/NIF/deudas)
+  // a Google por defecto si falta la env. Gemini solo si LLM_<ENDPOINT>=gemini
+  // o como fallback explícito (LLM_FALLBACK=gemini).
+  const provider     = (process.env[`LLM_${envKey}`] || 'ollama').toLowerCase();
   const ollamaModel  = process.env[`OLLAMA_MODEL_${envKey}`] || 'qwen3:30b-a3b-instruct-2507-q4_K_M';
 
   if (provider === 'ollama') {

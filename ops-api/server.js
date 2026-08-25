@@ -66,6 +66,10 @@ app.get('/api/ops/workers', auth, async (req, res) => {
 });
 
 app.post('/api/ops/workers', auth, async (req, res) => {
+  // Crear usuarios + asignar roles es privilegiado: solo admins (evita escalada).
+  const ROLES_ADMIN = ['super_admin', 'ops_admin', 'admin'];
+  if (!req.user.roles?.some(r => ROLES_ADMIN.includes(r)))
+    return res.status(403).json({ error: 'Forbidden' });
   const { email, name, password, department, role } = req.body;
   if (!email || !name || !password) return res.status(400).json({ error: 'email, name y password son obligatorios' });
   try {
@@ -129,11 +133,12 @@ app.put('/api/ops/clientes/:id', auth, async (req, res) => {
     if (req.body[f] !== undefined) { p.push(req.body[f]); updates.push(`${f}=$${p.length}`); }
   });
   if (!updates.length) return res.status(400).json({ error: 'Nada que actualizar' });
-  p.push(req.params.id);
+  const idParam = p.push(req.params.id);
+  const orgParam = p.push(req.user.org_id || 1);
   try {
     const { rows } = await pool.query(
       `UPDATE ops.clientes SET ${updates.join(',')}
-       WHERE id=$${p.length} AND org_id=${req.user.org_id||1} RETURNING *`, p
+       WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -155,9 +160,12 @@ app.get('/api/ops/facturas', auth, async (req, res) => {
 
 app.get('/api/ops/facturas/:id/lineas', auth, async (req, res) => {
   try {
+    // Scope por tenant: solo líneas de facturas de la propia organización (evita IDOR).
     const { rows } = await pool.query(
-      'SELECT * FROM ops.factura_lineas WHERE factura_id = $1 ORDER BY orden',
-      [req.params.id]
+      `SELECT l.* FROM ops.factura_lineas l
+       JOIN ops.facturas f ON f.id = l.factura_id
+       WHERE l.factura_id = $1 AND f.org_id = $2 ORDER BY l.orden`,
+      [req.params.id, req.user.org_id || 1]
     );
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -203,7 +211,8 @@ app.post('/api/ops/facturas', auth, async (req, res) => {
 });
 
 app.put('/api/ops/facturas/:id', auth, async (req, res) => {
-  const VALID_ESTADOS = ['draft','sent','collected','overdue','cancelled'];
+  // Enum canónico REAL de la BD (ops.facturas.estado CHECK): español.
+  const VALID_ESTADOS = ['borrador','enviada','cobrada','vencida'];
   if (req.body.estado !== undefined && !VALID_ESTADOS.includes(req.body.estado))
     return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${VALID_ESTADOS.join(', ')}` });
   const allowed = ['estado','fecha_vencimiento','metodo_pago','tipo_iva',
@@ -213,11 +222,12 @@ app.put('/api/ops/facturas/:id', auth, async (req, res) => {
     if (req.body[f] !== undefined) { p.push(req.body[f]); updates.push(`${f}=$${p.length}`); }
   });
   if (!updates.length) return res.status(400).json({ error: 'Nada que actualizar' });
-  p.push(req.params.id);
+  const idParam = p.push(req.params.id);            // org_id/id como parámetros bind
+  const orgParam = p.push(req.user.org_id || 1);
   try {
     const { rows } = await pool.query(
       `UPDATE ops.facturas SET ${updates.join(',')}
-       WHERE id=$${p.length} AND org_id=${req.user.org_id||1} RETURNING *`, p
+       WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, p
     );
     res.json(rows[0] || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -452,7 +462,7 @@ app.post('/api/ops/admin/reset', auth, async (req, res) => {
   if (!req.user.roles?.includes('super_admin')) return res.status(403).json({ error: 'Forbidden' });
   try {
     await pool.query(`
-      TRUNCATE ops.factura_lineas, ops.facturas, ops.caja, ops.jornadas, ops.visitas, ops.clientes
+      TRUNCATE ops.factura_lineas, ops.facturas, ops.caja_movimientos, ops.jornadas, ops.visitas, ops.clientes
       RESTART IDENTITY CASCADE
     `);
     res.json({ ok: true });
@@ -489,14 +499,15 @@ app.post('/api/ai/ops/billing', auth, async (req, res) => {
         SELECT f.numero, f.total, f.fecha_vencimiento, c.nombre AS cliente, c.email AS cliente_email
         FROM ops.facturas f
         LEFT JOIN ops.clientes c ON c.id = f.cliente_id
-        WHERE f.org_id = $1 AND f.estado = 'pending' AND f.fecha_vencimiento < NOW()
+        WHERE f.org_id = $1 AND f.estado IN ('enviada','vencida') AND f.fecha_vencimiento < NOW()
         ORDER BY f.fecha_vencimiento ASC
       `, [orgId]),
     ]);
 
     const totalFacturado = facturas.rows.reduce((s, f) => s + Number(f.total), 0);
-    const totalCobrado   = facturas.rows.filter(f => f.estado === 'paid').reduce((s, f) => s + Number(f.total), 0);
-    const totalPendiente = facturas.rows.filter(f => f.estado === 'pending').reduce((s, f) => s + Number(f.total), 0);
+    const totalCobrado   = facturas.rows.filter(f => f.estado === 'cobrada').reduce((s, f) => s + Number(f.total), 0);
+    // Pendiente = emitida y aún no cobrada (enviada o vencida); excluye borradores.
+    const totalPendiente = facturas.rows.filter(f => f.estado === 'enviada' || f.estado === 'vencida').reduce((s, f) => s + Number(f.total), 0);
     const totalIVA       = facturas.rows.reduce((s, f) => s + Number(f.iva_importe), 0);
 
     const cajaSummary = caja.rows.map(r => `${r.tipo} / ${r.categoria || 'sin cat.'}: €${Number(r.total).toFixed(2)} (${r.n} movs.)`).join('\n');
@@ -693,7 +704,7 @@ app.post('/api/ai/ops/heidi', auth, async (req, res) => {
       pool.query(`
         SELECT c.nombre, c.pais, c.tipo_cliente, c.vat_number, c.email, c.contacto,
                COUNT(f.id) AS num_facturas,
-               SUM(CASE WHEN f.estado = 'pending' THEN f.total ELSE 0 END) AS deuda_pendiente
+               SUM(CASE WHEN f.estado IN ('enviada','vencida') THEN f.total ELSE 0 END) AS deuda_pendiente
         FROM ops.clientes c
         LEFT JOIN ops.facturas f ON f.cliente_id = c.id AND f.org_id = c.org_id
         WHERE c.org_id = $1 AND c.activo = true
@@ -703,7 +714,7 @@ app.post('/api/ai/ops/heidi', auth, async (req, res) => {
         SELECT f.numero, f.total, f.fecha_vencimiento, f.estado, c.nombre AS cliente, c.pais, c.email AS cliente_email
         FROM ops.facturas f
         LEFT JOIN ops.clientes c ON c.id = f.cliente_id
-        WHERE f.org_id = $1 AND f.estado IN ('pending','overdue')
+        WHERE f.org_id = $1 AND f.estado IN ('enviada','vencida')
         ORDER BY f.fecha_vencimiento ASC LIMIT 20
       `, [orgId]),
       pool.query(`

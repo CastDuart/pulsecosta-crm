@@ -1,6 +1,9 @@
 -- PulseCosta — Agentes de campo iniciales
 -- Ejecutar: psql -U pulsecosta -d pulsecosta_db -f 002_add_field_agents.sql
--- Contraseñas: Sergio → PulseSergio26 | Jota → PulseJota26
+-- NOTA SEGURIDAD: nunca poner contraseñas en claro aquí. Los hashes bcrypt de
+-- abajo corresponden a cuentas legacy (ya dadas de baja); rotar si se reactivan.
+-- Pendiente: purgar del historial git (git filter-repo) los valores en claro
+-- que estuvieron en este comentario.
 
 INSERT INTO core.users (email, password_hash, name)
 VALUES
