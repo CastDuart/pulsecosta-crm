@@ -293,8 +293,10 @@ app.post('/api/ops/facturas/:id/verifactu', auth, async (req, res) => {
 
     // NIF emisor: placeholder hasta alta en España (modo no certificado).
     const nifEmisor = process.env.VERIFACTU_NIF || 'ESX0000000X';
-    const [yy, mm, dd] = String(f.fecha_emision).slice(0, 10).split('-');
-    const fechaExpedicion = `${dd}-${mm}-${yy}`;
+    // fecha_emision puede venir como Date (driver pg) o string ISO. Normalizar a DD-MM-AAAA (UTC, sin desplazar el día).
+    const fe = new Date(f.fecha_emision);
+    const pad2 = n => String(n).padStart(2, '0');
+    const fechaExpedicion = `${pad2(fe.getUTCDate())}-${pad2(fe.getUTCMonth() + 1)}-${fe.getUTCFullYear()}`;
     const fechaHoraGen = fechaHoraHuso(new Date());
     const tipoFactura = 'F1';
 

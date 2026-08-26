@@ -33,18 +33,19 @@ function filterByQ<T extends { fecha_emision?: string; fecha?: string }>(
   return items.filter(i => map[q].includes(new Date((i.fecha_emision||i.fecha) as string).getMonth()));
 }
 
-function StatCard({ label, value, color, icon }: { label: string; value: string; color: string; icon: React.ReactNode }) {
+function StatCard({ label, value, color, accent, icon }: { label: string; value: string; color: string; accent: string; icon: React.ReactNode }) {
   return (
     <div style={{
       background: 'var(--ivory-alt)', borderRadius: 12, padding: '20px 24px',
-      border: '1px solid var(--linea)', flex: 1, minWidth: 180,
+      border: '1px solid var(--linea)', borderLeft: `3px solid ${accent}`,
+      flex: 1, minWidth: 180,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>{label}</div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 22, fontWeight: 700, color }}>{value}</div>
         </div>
-        <div style={{ color: 'var(--ink)', marginTop: 4 }}>{icon}</div>
+        <div style={{ color: accent, marginTop: 4 }}>{icon}</div>
       </div>
     </div>
   );
@@ -153,10 +154,10 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <StatCard label={t('ops.collected')}   value={formatEur(collected)}   color="var(--verde-text)" icon={<TrendingUp size={28} />} />
-        <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="var(--naranja-text)" icon={<Clock size={28} />} />
-        <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="var(--teal-accent)" icon={<Wallet size={28} />} />
-        <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="var(--muted)" icon={<BarChart3 size={28} />} />
+        <StatCard label={t('ops.collected')}   value={formatEur(collected)}   color="var(--verde-text)"   accent="var(--verde)"   icon={<TrendingUp size={28} />} />
+        <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="var(--naranja-text)" accent="var(--naranja)" icon={<Clock size={28} />} />
+        <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="var(--teal-accent)"  accent="var(--teal)"    icon={<Wallet size={28} />} />
+        <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="var(--muted)"        accent="var(--gold)"    icon={<BarChart3 size={28} />} />
       </div>
 
       {overdueList.length > 0 && (

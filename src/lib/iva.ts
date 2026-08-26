@@ -15,9 +15,9 @@ export interface IvaJurisdiccionCfg {
 }
 
 export const IVA_JURISDICCIONES: Record<IvaJurisdiccion, IvaJurisdiccionCfg> = {
-  estonia: { key: 'estonia', label: 'Estonio', rates: [0, 9, 22, 24], defaultRate: 24, tipoIva: 'normal',           reverseCharge: false },
-  spain:   { key: 'spain',   label: 'Español', rates: [0, 4, 10, 21], defaultRate: 21, tipoIva: 'normal',           reverseCharge: false },
-  eu:      { key: 'eu',      label: 'Europeo', rates: [0],            defaultRate: 0,  tipoIva: 'intracomunitario', reverseCharge: true  },
+  estonia: { key: 'estonia', label: 'Estonia', rates: [0, 9, 22, 24], defaultRate: 24, tipoIva: 'normal',           reverseCharge: false },
+  spain:   { key: 'spain',   label: 'España',  rates: [0, 4, 10, 21], defaultRate: 21, tipoIva: 'normal',           reverseCharge: false },
+  eu:      { key: 'eu',      label: 'UE',      rates: [0],            defaultRate: 0,  tipoIva: 'intracomunitario', reverseCharge: true  },
   exento:  { key: 'exento',  label: 'Exento',  rates: [0],            defaultRate: 0,  tipoIva: 'exento',           reverseCharge: false },
 };
 
