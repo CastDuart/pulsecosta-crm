@@ -58,11 +58,11 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
         <NavItem to="/pipeline" icon="⬡" label={t('nav.pipeline')} />
 
         <div className="nav-section-label">{t('sec.prospecting')}</div>
-        <NavItem to="/leads" icon="◎" label={t('nav.leads')} badge={12} badgeColor="orange" />
+        <NavItem to="/leads" icon="◎" label={t('nav.leads')} />
         <NavItem to="/accounts" icon="⬙" label={t('nav.accounts')} />
 
         <div className="nav-section-label">{t('sec.ops')}</div>
-        <NavItem to="/tasks" icon="✓" label={t('nav.tasks')} badge={5} />
+        <NavItem to="/tasks" icon="✓" label={t('nav.tasks')} />
         <NavItem to="/activities" icon="↺" label={t('nav.activities')} />
 
         <div className="nav-section-label">{t('sec.analytics')}</div>
