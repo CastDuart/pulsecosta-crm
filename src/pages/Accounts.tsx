@@ -7,6 +7,7 @@ import type { Account } from '../types';
 import PlanBadge from '../components/ui/PlanBadge';
 import StageBadge from '../components/ui/StageBadge';
 import NewAccountModal from '../components/ui/NewAccountModal';
+import { exportAccountsCsv } from '../lib/csv';
 
 export default function Accounts() {
   const { t } = useLang();
@@ -34,7 +35,7 @@ export default function Accounts() {
       <div className="topbar">
         <span className="topbar-title">{t('nav.accounts')}</span>
         <div className="topbar-actions">
-          <button className="btn btn-ghost">{t('btn.export')}</button>
+          <button className="btn btn-ghost" onClick={() => exportAccountsCsv(filtered)}>{t('btn.export')}</button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>{t('btn.newAccount')}</button>
         </div>
       </div>

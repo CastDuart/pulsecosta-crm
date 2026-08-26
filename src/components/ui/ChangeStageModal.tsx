@@ -2,24 +2,30 @@ import { useState } from 'react';
 import { useLang } from '../../context/LangContext';
 import ChipSelect from './ChipSelect';
 import { apiFetch } from '../../lib/api';
-import type { Activity } from '../../types';
+import type { Account } from '../../types';
 
-export default function NewNoteModal({ onClose, onSaved, accountId }: { onClose: () => void; onSaved?: () => void; accountId?: number }) {
+const STAGES = [
+  'new', 'attempting_contact', 'contacted', 'interested', 'demo_scheduled',
+  'proposal_sent', 'negotiation', 'onboarding_pending', 'payment_pending',
+  'active', 'at_risk', 'churned', 'lost',
+];
+
+export default function ChangeStageModal({ accountId, current, onClose, onSaved }: {
+  accountId: number; current: string; onClose: () => void; onSaved?: () => void;
+}) {
   const { t } = useLang();
-  const [form, setForm] = useState({ type: 'note', description: '' });
+  const [stage, setStage] = useState(current);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
-      await apiFetch<Activity>('/crm/activities', {
-        method: 'POST',
-        body: JSON.stringify({ type: form.type, description: form.description, account_id: accountId ?? null }),
+      await apiFetch<Account>(`/crm/accounts/${accountId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ stage }),
       });
       onSaved?.();
       onClose();
@@ -34,27 +40,16 @@ export default function NewNoteModal({ onClose, onSaved, accountId }: { onClose:
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal">
         <div className="modal-header">
-          <span className="modal-title">{t('activity.note')}</span>
+          <span className="modal-title">{t('label.stage')}</span>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && <p style={{ color: 'var(--rojo)', fontSize: '0.82rem', marginBottom: 8 }}>{error}</p>}
             <div className="form-field">
-              <label className="form-label">{t('label.type')}</label>
-              <ChipSelect value={form.type} onChange={v => set('type', v)}
-                options={[
-                  { value: 'note', label: t('activity.note') },
-                  { value: 'call', label: t('activity.call') },
-                  { value: 'email', label: t('activity.email') },
-                  { value: 'visit', label: t('activity.visit') },
-                ]} />
-            </div>
-            <div className="form-field">
-              <label className="form-label">{t('label.notes')} *</label>
-              <textarea className="form-input" required rows={4} value={form.description}
-                onChange={e => set('description', e.target.value)}
-                placeholder="Describe la actividad..." style={{ resize: 'vertical' }} />
+              <label className="form-label">{t('label.stage')}</label>
+              <ChipSelect value={stage} onChange={setStage}
+                options={STAGES.map(s => ({ value: s, label: t(`stage.${s}`) }))} />
             </div>
           </div>
           <div className="modal-footer">

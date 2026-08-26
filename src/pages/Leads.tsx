@@ -4,6 +4,7 @@ import { ZONES } from '../lib/zones';
 import { apiFetch } from '../lib/api';
 import type { Lead } from '../types';
 import NewLeadModal from '../components/ui/NewLeadModal';
+import { exportLeadsCsv } from '../lib/csv';
 
 const STATUS_BADGE: Record<string, string> = {
   new: 'badge-gray',
@@ -44,7 +45,7 @@ export default function Leads() {
       <div className="topbar">
         <span className="topbar-title">{t('nav.leads')}</span>
         <div className="topbar-actions">
-          <button className="btn btn-ghost">{t('btn.export')}</button>
+          <button className="btn btn-ghost" onClick={() => exportLeadsCsv(filtered)}>{t('btn.export')}</button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             {t('btn.newLead')}
           </button>

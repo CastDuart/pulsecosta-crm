@@ -5,6 +5,8 @@ import { apiFetch } from '../lib/api';
 import type { Account, Activity } from '../types';
 import PlanBadge from '../components/ui/PlanBadge';
 import StageBadge from '../components/ui/StageBadge';
+import NewNoteModal from '../components/ui/NewNoteModal';
+import ChangeStageModal from '../components/ui/ChangeStageModal';
 
 const ACTIVITY_ICON: Record<string, { bg: string; emoji: string }> = {
   call:   { bg: 'rgba(23,129,127,0.15)', emoji: '📞' },
@@ -22,16 +24,22 @@ export default function AccountDetail() {
   const [account, setAccount] = useState<Account | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNote, setShowNote] = useState(false);
+  const [showStage, setShowStage] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    Promise.all([
+  const reload = () => {
+    if (!id) return Promise.resolve();
+    return Promise.all([
       apiFetch<Account[]>('/crm/accounts'),
       apiFetch<Activity[]>(`/crm/activities?account_id=${id}`),
     ]).then(([accs, acts]) => {
       setAccount(accs.find(a => a.id === Number(id)) ?? null);
       setActivities(acts);
-    }).finally(() => setLoading(false));
+    });
+  };
+
+  useEffect(() => {
+    reload().finally(() => setLoading(false));
   }, [id]);
 
   if (loading) return (
@@ -59,14 +67,23 @@ export default function AccountDetail() {
           <StageBadge stage={account.stage} />
         </div>
         <div className="topbar-actions">
-          <button className="btn btn-ghost" onClick={() => alert('Cambio de estado — próximamente')}>
+          <button className="btn btn-ghost" onClick={() => setShowStage(true)}>
             ↕ {t('label.stage')}
           </button>
-          <button className="btn btn-primary" onClick={() => alert('Nueva actividad — próximamente')}>
+          <button className="btn btn-primary" onClick={() => setShowNote(true)}>
             + {t('activity.note')}
           </button>
         </div>
       </div>
+
+      {showStage && (
+        <ChangeStageModal accountId={account.id} current={account.stage}
+          onClose={() => setShowStage(false)} onSaved={reload} />
+      )}
+      {showNote && (
+        <NewNoteModal accountId={account.id}
+          onClose={() => setShowNote(false)} onSaved={() => { reload(); setTab('activity'); }} />
+      )}
 
       <div className="page-content">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
