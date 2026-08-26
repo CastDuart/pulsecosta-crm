@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLang } from '../context/LangContext';
 import { apiFetch } from '../lib/api';
 import type { Task } from '../types';
+import NewTaskModal from '../components/ui/NewTaskModal';
 
 const PRIORITY_COLOR: Record<string, string> = {
   urgent: 'var(--rojo)',
@@ -15,12 +16,11 @@ export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('pending');
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    apiFetch<Task[]>('/crm/tasks')
-      .then(setTasks)
-      .finally(() => setLoading(false));
-  }, []);
+  const load = () => apiFetch<Task[]>('/crm/tasks').then(setTasks).finally(() => setLoading(false));
+
+  useEffect(() => { load(); }, []);
 
   const toggle = async (id: number) => {
     const task = tasks.find(t => t.id === id);
@@ -51,11 +51,13 @@ export default function Tasks() {
           )}
         </span>
         <div className="topbar-actions">
-          <button className="btn btn-primary" onClick={() => alert('Nueva tarea — próximamente')}>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             + Tarea
           </button>
         </div>
       </div>
+
+      {showModal && <NewTaskModal onClose={() => setShowModal(false)} onSaved={load} />}
 
       <div className="page-content">
         <div className="filter-bar">

@@ -77,29 +77,29 @@ function ClientForm({
     <form onSubmit={submit}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label="Company / Name *"><input value={f.nombre} onChange={set('nombre')} required /></Field>
+          <Field label="Empresa / Nombre *"><input className="form-input" value={f.nombre} onChange={set('nombre')} required /></Field>
         </div>
-        <Field label="Contact person"><input value={f.contacto} onChange={set('contacto')} /></Field>
-        <Field label="VAT Number">
-          <input value={f.vat_number} onChange={set('vat_number')} placeholder="EE123456789" />
+        <Field label="Persona de contacto"><input className="form-input" value={f.contacto} onChange={set('contacto')} /></Field>
+        <Field label="NIF / VAT">
+          <input className="form-input" value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" />
         </Field>
-        <Field label="Email"><input type="email" value={f.email} onChange={set('email')} /></Field>
-        <Field label="Phone"><input value={f.telefono} onChange={set('telefono')} /></Field>
+        <Field label="Email"><input className="form-input" type="email" value={f.email} onChange={set('email')} /></Field>
+        <Field label="Teléfono"><input className="form-input" value={f.telefono} onChange={set('telefono')} /></Field>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label="Street address">
-            <input value={f.direccion} onChange={set('direccion')} placeholder="Street and number" />
+          <Field label="Dirección">
+            <input className="form-input" value={f.direccion} onChange={set('direccion')} placeholder="Calle y número" />
           </Field>
         </div>
-        <Field label="Postal code"><input value={f.codigo_postal} onChange={set('codigo_postal')} /></Field>
-        <Field label="City"><input value={f.ciudad} onChange={set('ciudad')} /></Field>
-        <Field label="Country">
+        <Field label="Código postal"><input className="form-input" value={f.codigo_postal} onChange={set('codigo_postal')} /></Field>
+        <Field label="Ciudad"><input className="form-input" value={f.ciudad} onChange={set('ciudad')} /></Field>
+        <Field label="País">
           <ChipSelect
             value={f.pais}
             onChange={v => setF(p => ({ ...p, pais: v }))}
             options={PAISES.map(p => ({ value: p, label: p }))}
           />
         </Field>
-        <Field label="Type">
+        <Field label="Tipo">
           <ChipSelect
             value={f.tipo_cliente}
             onChange={v => setF(p => ({ ...p, tipo_cliente: v as 'b2b' | 'b2c' }))}
@@ -107,14 +107,14 @@ function ClientForm({
           />
         </Field>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label="Notes"><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
+          <Field label="Notas"><textarea className="form-input" value={f.notas} onChange={set('notas')} rows={3} style={{ resize: 'vertical' }} /></Field>
         </div>
       </div>
       {err && <div style={{ color: 'var(--rojo-text)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-        <button type="button" onClick={onClose} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--linea)', background: 'none', color: 'var(--muted)', cursor: 'pointer' }}>Cancel</button>
+        <button type="button" onClick={onClose} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--linea)', background: 'none', color: 'var(--muted)', cursor: 'pointer' }}>Cancelar</button>
         <button type="submit" disabled={saving} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'var(--pulse)', color: 'var(--petrol)', fontWeight: 700, cursor: 'pointer' }}>
-          {saving ? 'Saving...' : 'Save Client'}
+          {saving ? 'Guardando...' : 'Guardar cliente'}
         </button>
       </div>
     </form>

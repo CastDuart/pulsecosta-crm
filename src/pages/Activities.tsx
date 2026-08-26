@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLang } from '../context/LangContext';
 import { apiFetch } from '../lib/api';
 import type { Activity } from '../types';
+import NewNoteModal from '../components/ui/NewNoteModal';
 
 const ACTIVITY_CONFIG: Record<string, { bg: string; emoji: string }> = {
   call:   { bg: 'rgba(23,129,127,0.15)', emoji: '📞' },
@@ -15,23 +16,24 @@ export default function Activities() {
   const { t } = useLang();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    apiFetch<Activity[]>('/crm/activities')
-      .then(setActivities)
-      .finally(() => setLoading(false));
-  }, []);
+  const load = () => apiFetch<Activity[]>('/crm/activities').then(setActivities).finally(() => setLoading(false));
+
+  useEffect(() => { load(); }, []);
 
   return (
     <>
       <div className="topbar">
         <span className="topbar-title">{t('nav.activities')}</span>
         <div className="topbar-actions">
-          <button className="btn btn-primary" onClick={() => alert('Nueva actividad — próximamente')}>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             + {t('activity.note')}
           </button>
         </div>
       </div>
+
+      {showModal && <NewNoteModal onClose={() => setShowModal(false)} onSaved={load} />}
 
       <div className="page-content">
         <div className="filter-bar">

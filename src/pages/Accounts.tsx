@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api';
 import type { Account } from '../types';
 import PlanBadge from '../components/ui/PlanBadge';
 import StageBadge from '../components/ui/StageBadge';
+import NewAccountModal from '../components/ui/NewAccountModal';
 
 export default function Accounts() {
   const { t } = useLang();
@@ -15,12 +16,11 @@ export default function Accounts() {
   const [search, setSearch] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
   const [filterZone, setFilterZone] = useState('');
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    apiFetch<Account[]>('/crm/accounts')
-      .then(setAccounts)
-      .finally(() => setLoading(false));
-  }, []);
+  const load = () => apiFetch<Account[]>('/crm/accounts').then(setAccounts).finally(() => setLoading(false));
+
+  useEffect(() => { load(); }, []);
 
   const filtered = accounts.filter(a => {
     if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -35,9 +35,11 @@ export default function Accounts() {
         <span className="topbar-title">{t('nav.accounts')}</span>
         <div className="topbar-actions">
           <button className="btn btn-ghost">{t('btn.export')}</button>
-          <button className="btn btn-primary">{t('btn.newAccount')}</button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>{t('btn.newAccount')}</button>
         </div>
       </div>
+
+      {showModal && <NewAccountModal onClose={() => setShowModal(false)} onSaved={load} />}
 
       <div className="page-content">
         <div className="filter-bar">
