@@ -370,17 +370,40 @@ app.get('/api/crm/dashboard', auth, async (req, res) => {
       pool.query('SELECT stage, mrr FROM crm.accounts WHERE org_id = $1', [orgId]),
       pool.query('SELECT stage FROM crm.leads WHERE org_id = $1', [orgId]),
       pool.query('SELECT done FROM crm.tasks WHERE org_id = $1', [orgId]),
-      // Próximas demos de PulseField (opcional — no falla si la tabla no existe)
+      // Próximas citas de PulseField: agenda planificada + demos con fecha.
+      // (field_visits no tiene scheduled_at — esa query fallaba en silencio.)
       pool.query(`
-        SELECT fv.id, fv.venue_name, fv.zone, fv.scheduled_at, fv.status,
-               fa.name AS agent_name
-        FROM public.field_visits fv
-        LEFT JOIN public.field_agents fa ON fa.id = fv.agent_id
-        WHERE fv.status = 'scheduled'
-          AND fv.scheduled_at >= NOW()
-        ORDER BY fv.scheduled_at ASC
+        SELECT * FROM (
+          SELECT 'agenda-' || fav.id AS id,
+                 fav.venue_name,
+                 fav.zone,
+                 ((fav.planned_date + fav.planned_time)::timestamp
+                    AT TIME ZONE 'Europe/Madrid') AS scheduled_at,
+                 fav.status,
+                 COALESCE(fa.name, fav.created_by_name) AS agent_name
+          FROM public.field_agenda_visits fav
+          LEFT JOIN public.field_agents fa ON fa.id = fav.created_by
+          WHERE fav.status = 'planned'
+          UNION ALL
+          SELECT 'demo-' || fd.id AS id,
+                 fv.name AS venue_name,
+                 COALESCE(fv.zone, '') AS zone,
+                 ((fd.demo_date + fd.demo_time)::timestamp
+                    AT TIME ZONE 'Europe/Madrid') AS scheduled_at,
+                 'demo' AS status,
+                 fa.name AS agent_name
+          FROM public.field_demos fd
+          JOIN public.field_venues fv ON fv.id = fd.venue_id
+          LEFT JOIN public.field_agents fa ON fa.id = fd.agent_id
+          WHERE fd.demo_date IS NOT NULL AND fd.demo_time IS NOT NULL
+        ) citas
+        WHERE citas.scheduled_at >= NOW()
+        ORDER BY citas.scheduled_at ASC
         LIMIT 5
-      `).catch(() => ({ rows: [] })),  // silencia error si tabla no existe
+      `).catch(err => {
+        console.error('[crm dashboard] citas field:', err.message);
+        return { rows: [] };
+      }),
     ]);
     const active = accounts.rows.filter(a => a.stage === 'active');
     res.json({
@@ -412,12 +435,17 @@ app.post('/api/ai/crm/daily-summary', auth, async (req, res) => {
         ORDER BY a.created_at DESC LIMIT 50
       `, [orgId, date]),
       pool.query(`
-        SELECT v.venue_name, v.status, v.notes, u.name AS agent
-        FROM field.visits v
-        LEFT JOIN core.users u ON u.id = v.agent_id
+        SELECT fv.name AS venue_name, v.status, v.notes,
+               COALESCE(fa.name, v.agent_name) AS agent
+        FROM public.field_visits v
+        JOIN public.field_venues fv ON fv.id = v.venue_id
+        LEFT JOIN public.field_agents fa ON fa.id = v.agent_id
         WHERE DATE(v.visited_at AT TIME ZONE 'Europe/Madrid') = $1
         ORDER BY v.visited_at DESC LIMIT 50
-      `, [date]).catch(() => ({ rows: [] })),  // Field puede no estar desplegado
+      `, [date]).catch(err => {
+        console.error('[AI daily-summary] field_visits:', err.message);
+        return { rows: [] };
+      }),
       pool.query(`
         SELECT t.title, t.priority, u.name AS assigned_to, t.done
         FROM crm.tasks t
@@ -472,17 +500,21 @@ app.post('/api/ai/crm/visit-analysis', auth, async (req, res) => {
     const agent = req.body.agent || null;
 
     let q = `
-      SELECT v.venue_name, v.status, v.notes, v.doc_sent, u.name AS agent, v.visited_at
-      FROM field.visits v
-      LEFT JOIN core.users u ON u.id = v.agent_id
+      SELECT fv.name AS venue_name, v.status, v.notes,
+             COALESCE(fa.name, v.agent_name) AS agent, v.visited_at
+      FROM public.field_visits v
+      JOIN public.field_venues fv ON fv.id = v.venue_id
+      LEFT JOIN public.field_agents fa ON fa.id = v.agent_id
       WHERE DATE(v.visited_at AT TIME ZONE 'Europe/Madrid') = $1
     `;
     const p = [date];
-    if (agent) { p.push(agent); q += ` AND u.name ILIKE $${p.length}`; }
+    if (agent) { p.push(agent); q += ` AND COALESCE(fa.name, v.agent_name) ILIKE $${p.length}`; }
     q += ' ORDER BY v.visited_at DESC';
 
-    // Field puede no estar desplegado -> devolver vacío en vez de 500.
-    const { rows } = await pool.query(q, p).catch(() => ({ rows: [] }));
+    const { rows } = await pool.query(q, p).catch(err => {
+      console.error('[AI visit-analysis] field_visits:', err.message);
+      return { rows: [] };
+    });
 
     if (!rows.length) return res.json({ summary: `No hay visitas registradas para el ${date}${agent ? ` de ${agent}` : ''}.`, meta: { date, total: 0 } });
 

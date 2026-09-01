@@ -730,14 +730,24 @@ app.post('/api/ai/ops/contracts-review', auth, async (req, res) => {
 
     const [contracts, accounts] = await Promise.all([
       pool.query(`
-        SELECT fc.venue_name, fc.doc_type, fc.client_name, fc.client_business,
-               fc.plan, fc.price, fc.billing, fc.signed_at, fc.client_email,
-               u.name AS agent
-        FROM field.contracts fc
-        LEFT JOIN core.users u ON u.id = fc.sent_by
-        WHERE fc.signed_at >= $1
-        ORDER BY fc.signed_at DESC LIMIT 50
-      `, [since]).catch(() => ({ rows: [] })),  // Field puede no estar desplegado
+        SELECT fv.name AS venue_name, fc.doc_type,
+               fc.contract_data->>'client_name'     AS client_name,
+               fc.contract_data->>'client_business' AS client_business,
+               fc.contract_data->>'plan'            AS plan,
+               fc.contract_data->>'price'           AS price,
+               fc.contract_data->>'billing'         AS billing,
+               fc.sent_at                           AS signed_at,
+               fc.contract_data->>'client_email'    AS client_email,
+               fa.name AS agent
+        FROM public.field_contracts fc
+        LEFT JOIN public.field_venues fv ON fv.id = fc.venue_id
+        LEFT JOIN public.field_agents fa ON fa.id = fc.agent_id
+        WHERE fc.sent_at >= $1
+        ORDER BY fc.sent_at DESC LIMIT 50
+      `, [since]).catch(err => {
+        console.error('[AI contracts-review] field_contracts:', err.message);
+        return { rows: [] };
+      }),
       pool.query(`
         SELECT name, plan, stage, mrr, zone FROM crm.accounts
         WHERE org_id = $1 AND stage = 'active'
