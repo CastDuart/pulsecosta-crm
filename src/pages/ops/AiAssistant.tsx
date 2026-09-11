@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { apiFetch } from '../../lib/opsFetch';
-import { useLang } from '../../context/LangContext';
+import { useLang, type Lang } from '../../context/LangContext';
 import { Sparkles, TrendingUp, FileText, Users, Loader2 } from 'lucide-react';
 
 type Mode = 'billing' | 'contracts' | 'accountant' | 'heidi';
@@ -67,16 +67,17 @@ function MarkdownText({ text }: { text: string }) {
   return <div style={{ lineHeight: 1.7, fontSize: '0.88rem', color: 'var(--ink)' }}>{out}</div>;
 }
 
-const MODES: { id: Mode; icon: React.ComponentType<{ size?: number }>; labelEs: string; labelEn: string; descEs: string; descEn: string }[] = [
-  { id: 'billing',    icon: TrendingUp, labelEs: 'Facturación',     labelEn: 'Billing',        descEs: 'Control de facturas, cobros y alertas de vencimiento', descEn: 'Invoice control, payments and overdue alerts' },
-  { id: 'contracts',  icon: FileText,   labelEs: 'Contratos',       labelEn: 'Contracts',      descEs: 'Revisión de contratos cerrados por agentes de campo',  descEn: 'Review of contracts closed by field agents' },
-  { id: 'accountant', icon: FileText,   labelEs: 'Informe gestor',  labelEn: 'Accountant',     descEs: 'Informe mensual para el gestor (IVA, Estonia OÜ, OSS)', descEn: 'Monthly accountant report (VAT, Estonia OÜ, OSS)' },
-  { id: 'heidi',      icon: Users,      labelEs: 'Asistente Heidi', labelEn: 'Heidi Assistant', descEs: 'Consultas sobre clientes, planes y fiscal Estonia/UE',  descEn: 'Client DB, plans and Estonia/EU fiscal queries' },
+const LOCALE_BY_LANG: Record<Lang, string> = { es: 'es-ES', en: 'en-GB', fi: 'fi-FI', et: 'et-EE' };
+
+const MODES: { id: Mode; icon: React.ComponentType<{ size?: number }>; labelKey: string; descKey: string }[] = [
+  { id: 'billing', icon: TrendingUp, labelKey: 'aiOps.mode.billing', descKey: 'aiOps.mode.billingDesc' },
+  { id: 'contracts', icon: FileText, labelKey: 'aiOps.mode.contracts', descKey: 'aiOps.mode.contractsDesc' },
+  { id: 'accountant', icon: FileText, labelKey: 'aiOps.mode.accountant', descKey: 'aiOps.mode.accountantDesc' },
+  { id: 'heidi', icon: Users, labelKey: 'aiOps.mode.heidi', descKey: 'aiOps.mode.heidiDesc' },
 ];
 
 export default function AiAssistant() {
-  const { lang } = useLang();
-  const isEs = lang === 'es';
+  const { lang, t } = useLang();
 
   const [mode, setMode]       = useState<Mode>('billing');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -100,7 +101,7 @@ export default function AiAssistant() {
       });
       setMessages(prev => [...prev, { role: 'assistant', text: res.summary }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', text: `Error: ${e instanceof Error ? e.message : 'unknown'}` }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: `${t('common.error')}: ${e instanceof Error ? e.message : t('common.unknownError')}` }]);
     } finally { setLoading(false); }
   }
 
@@ -112,7 +113,7 @@ export default function AiAssistant() {
       });
       setMessages(prev => [...prev, { role: 'assistant', text: res.summary }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', text: `Error: ${e instanceof Error ? e.message : 'unknown'}` }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: `${t('common.error')}: ${e instanceof Error ? e.message : t('common.unknownError')}` }]);
     } finally { setLoading(false); }
   }
 
@@ -124,7 +125,7 @@ export default function AiAssistant() {
       });
       setMessages(prev => [...prev, { role: 'assistant', text: res.report }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', text: `Error: ${e instanceof Error ? e.message : 'unknown'}` }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: `${t('common.error')}: ${e instanceof Error ? e.message : t('common.unknownError')}` }]);
     } finally { setLoading(false); }
   }
 
@@ -140,7 +141,7 @@ export default function AiAssistant() {
       });
       setMessages(prev => [...prev, { role: 'assistant', text: res.answer }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', text: `Error: ${e instanceof Error ? e.message : 'unknown'}` }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: `${t('common.error')}: ${e instanceof Error ? e.message : t('common.unknownError')}` }]);
     } finally { setLoading(false); }
   }
 
@@ -154,11 +155,11 @@ export default function AiAssistant() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
           <Sparkles size={22} color="var(--naranja-text)" />
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
-            {isEs ? 'Asistente IA — OPS' : 'AI Assistant — OPS'}
+            {t('aiOps.title')}
           </h1>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>
-          IA local (Spark) · Novitum Technologies OÜ
+          {t('aiOps.subtitle')}
         </p>
       </div>
 
@@ -177,11 +178,11 @@ export default function AiAssistant() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                 <Icon size={14} />
                 <span style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '0.78rem' }}>
-                  {isEs ? m.labelEs : m.labelEn}
+                  {t(m.labelKey)}
                 </span>
               </div>
               <div style={{ fontSize: '0.7rem', lineHeight: 1.3, fontFamily: 'DM Sans, sans-serif' }}>
-                {isEs ? m.descEs : m.descEn}
+                {t(m.descKey)}
               </div>
             </button>
           );
@@ -192,20 +193,20 @@ export default function AiAssistant() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
 
         {mode === 'billing' && (<>
-          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{isEs ? 'Desde' : 'From'}</label>
+          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{t('aiOps.from')}</label>
           <input type="date" value={desde} max={today} onChange={e => setDesde(e.target.value)}
             style={inputStyle} />
-          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{isEs ? 'Hasta' : 'To'}</label>
+          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{t('aiOps.to')}</label>
           <input type="date" value={hasta} max={today} onChange={e => setHasta(e.target.value)}
             style={inputStyle} />
           <button onClick={runBilling} disabled={loading} style={btnStyle}>
             {loading ? <Loader2 size={14} className="spin" /> : null}
-            {isEs ? '▶ Generar informe' : '▶ Generate report'}
+            {t('aiOps.generateReport')}
           </button>
         </>)}
 
         {mode === 'contracts' && (<>
-          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{isEs ? 'Últimos' : 'Last'}</label>
+          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{t('aiOps.last')}</label>
           {[7, 15, 30, 60, 90].map(d => (
             <button key={d} onClick={() => setDays(d)} style={{
               ...chipStyle, background: days === d ? 'rgba(255,122,26,0.15)' : 'var(--ivory-alt)',
@@ -214,16 +215,16 @@ export default function AiAssistant() {
             }}>{d}d</button>
           ))}
           <button onClick={runContracts} disabled={loading} style={{ ...btnStyle, marginLeft: 'auto' }}>
-            {isEs ? '▶ Analizar' : '▶ Analyse'}
+            {t('aiOps.analyze')}
           </button>
         </>)}
 
         {mode === 'accountant' && (<>
-          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{isEs ? 'Mes' : 'Month'}</label>
+          <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{t('books.month')}</label>
           <select value={mes} onChange={e => setMes(Number(e.target.value))} style={inputStyle}>
             {Array.from({ length: 12 }, (_, i) => (
               <option key={i + 1} value={i + 1}>
-                {new Date(2000, i, 1).toLocaleString(isEs ? 'es-ES' : 'en-US', { month: 'long' })}
+                {new Date(2000, i, 1).toLocaleString(LOCALE_BY_LANG[lang], { month: 'long' })}
               </option>
             ))}
           </select>
@@ -231,13 +232,13 @@ export default function AiAssistant() {
             {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <button onClick={runAccountant} disabled={loading} style={btnStyle}>
-            {isEs ? '▶ Generar informe gestor' : '▶ Generate accountant report'}
+            {t('aiOps.generateAccountant')}
           </button>
         </>)}
 
         {mode === 'heidi' && (
           <span style={{ color: 'var(--muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-            {isEs ? 'Escribe tu consulta abajo' : 'Type your query below'}
+            {t('aiOps.typeBelow')}
           </span>
         )}
       </div>
@@ -255,9 +256,9 @@ export default function AiAssistant() {
             <div>
               <div style={{ fontSize: 28, marginBottom: 8 }}>✦</div>
               <div style={{ fontFamily: 'Syne, sans-serif', color: 'var(--ink)', marginBottom: 4 }}>
-                {isEs ? currentMode.labelEs : currentMode.labelEn}
+                {t(currentMode.labelKey)}
               </div>
-              <div>{isEs ? currentMode.descEs : currentMode.descEn}</div>
+              <div>{t(currentMode.descKey)}</div>
             </div>
           </div>
         )}
@@ -278,7 +279,7 @@ export default function AiAssistant() {
         {loading && (
           <div style={{ color: 'var(--muted)', fontSize: '0.85rem', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            {isEs ? 'Analizando con IA local (Spark)...' : 'Analysing with local AI (Spark)...'}
+            {t('assistant.loading')}
           </div>
         )}
       </div>
@@ -288,14 +289,14 @@ export default function AiAssistant() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
           <input
             style={{ ...inputStyle, flex: 1, fontSize: '0.88rem' }}
-            placeholder={isEs ? 'Pregunta sobre clientes, facturas, fiscal Estonia/UE...' : 'Ask about clients, invoices, Estonia/EU tax...'}
+            placeholder={t('aiOps.questionPh')}
             value={question}
             onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendHeidi()}
             disabled={loading}
           />
           <button onClick={sendHeidi} disabled={loading || !question.trim()} style={btnStyle}>
-            {isEs ? 'Enviar' : 'Send'}
+            {t('assistant.send')}
           </button>
         </div>
       )}
@@ -307,7 +308,7 @@ export default function AiAssistant() {
           color: 'var(--muted)', fontSize: '0.75rem', cursor: 'pointer', padding: '4px 0',
           fontFamily: 'DM Sans, sans-serif',
         }}>
-          {isEs ? 'Limpiar conversación' : 'Clear conversation'}
+          {t('assistant.clear')}
         </button>
       )}
 
