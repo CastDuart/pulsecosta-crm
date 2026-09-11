@@ -5,6 +5,7 @@ const helmet  = require('helmet');
 const rateLimit = require('express-rate-limit');
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const { Pool } = require('pg');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { askLLM } = require('./llmClient');
@@ -47,6 +48,30 @@ app.use(express.json({ limit: '1mb' }));   // límite de cuerpo: evita payloads 
 // Rate limit global (anti-abuso). Login tiene su propio limitador más estricto.
 app.use(rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false }));
 const loginLimiter = rateLimit({ windowMs: 15 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Demasiados intentos, prueba más tarde' } });
+const campaignLimiter = rateLimit({ windowMs: 15 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Demasiados envíos de campaña, prueba más tarde' } });
+
+function smtpReady() {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SMTP_FROM);
+}
+
+function mailer() {
+  if (!smtpReady()) throw new Error('SMTP no configurado');
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: String(process.env.SMTP_PORT || '') === '465',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+}
+
+function cleanEmailList(input) {
+  const values = Array.isArray(input) ? input : [];
+  const seen = new Set();
+  return values
+    .map(v => String(v || '').trim().toLowerCase())
+    .filter(v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+    .filter(v => (seen.has(v) ? false : (seen.add(v), true)));
+}
 
 // ── Auth middleware ──────────────────────────────────────────
 function auth(req, res, next) {
@@ -360,6 +385,45 @@ app.post('/api/crm/activities', auth, async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (err) { srvErr(res, err); }
+});
+
+// ── CRM: CAMPAIGNS EMAIL ───────────────────────────────────
+app.get('/api/crm/campaigns/email/status', auth, async (_req, res) => {
+  res.json({
+    configured: smtpReady(),
+    provider: process.env.SMTP_HOST === 'smtp-relay.brevo.com' ? 'brevo' : 'smtp',
+    from: process.env.SMTP_FROM || null,
+    batchLimit: 60,
+  });
+});
+
+app.post('/api/crm/campaigns/email/send-batch', auth, campaignLimiter, async (req, res) => {
+  const recipients = cleanEmailList(req.body.recipients);
+  const subject = String(req.body.subject || '').trim();
+  const text = String(req.body.body || '').trim();
+  if (!smtpReady()) return res.status(503).json({ error: 'Brevo SMTP no configurado' });
+  if (!recipients.length) return res.status(400).json({ error: 'No hay destinatarios válidos' });
+  if (recipients.length > 60) return res.status(400).json({ error: 'Máximo 60 destinatarios por lote' });
+  if (!subject || !text) return res.status(400).json({ error: 'Asunto y mensaje son obligatorios' });
+
+  try {
+    const info = await mailer().sendMail({
+      from: process.env.SMTP_FROM,
+      to: process.env.SMTP_FROM,
+      bcc: recipients,
+      subject,
+      text,
+      replyTo: process.env.SMTP_REPLY_TO || process.env.SMTP_FROM,
+      headers: {
+        'X-PulseCosta-Campaign': 'crm-batch',
+        'X-PulseCosta-User': String(req.user.email || req.user.id),
+      },
+    });
+    res.json({ ok: true, sent: recipients.length, messageId: info.messageId || null });
+  } catch (err) {
+    console.error('[crm-api] campaign email batch failed:', err?.message || err);
+    res.status(502).json({ error: 'Brevo no pudo enviar el lote' });
+  }
 });
 
 // ── CRM: DASHBOARD ───────────────────────────────────────────

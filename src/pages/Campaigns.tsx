@@ -345,6 +345,24 @@ export default function Campaigns() {
     setStatus(t('campaign.statusBatchEmailsCopied'));
   };
 
+  const sendBatchWithBrevo = async () => {
+    if (!currentBatch.length) return;
+    if (!window.confirm(t('campaign.confirmBrevo', { count: currentBatch.length }))) return;
+    try {
+      const result = await apiFetch<{ sent: number }>('/crm/campaigns/email/send-batch', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipients: currentBatch.map(r => r.email),
+          subject,
+          body: batchTemplate(body),
+        }),
+      });
+      setStatus(t('campaign.statusBrevoSent', { count: result.sent }));
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : t('campaign.statusLoadError'));
+    }
+  };
+
   return (
     <>
       <div className="topbar">
@@ -543,10 +561,11 @@ export default function Campaigns() {
                     <button className="btn btn-ghost" onClick={() => setBatchIndex(i => Math.max(0, i - 1))} disabled={currentBatchIndex <= 0}>{t('campaign.prevBatch')}</button>
                     <button className="btn btn-ghost" onClick={() => setBatchIndex(i => Math.min(batchCount - 1, i + 1))} disabled={!batchCount || currentBatchIndex >= batchCount - 1}>{t('campaign.nextBatch')}</button>
                     <button className="btn btn-ghost" onClick={copyBatchEmails} disabled={!currentBatch.length}><Copy size={15} /> {t('campaign.copyBatchEmails')}</button>
+                    <button className="btn btn-primary" onClick={sendBatchWithBrevo} disabled={!currentBatch.length}>{t('campaign.sendBrevo')}</button>
                     {currentBatch.length ? (
-                      <a className="btn btn-primary" href={batchEmailHref()}>{t('campaign.openBatch')}</a>
+                      <a className="btn btn-ghost" href={batchEmailHref()}>{t('campaign.openBatch')}</a>
                     ) : (
-                      <button className="btn btn-primary" disabled>{t('campaign.openBatch')}</button>
+                      <button className="btn btn-ghost" disabled>{t('campaign.openBatch')}</button>
                     )}
                   </div>
                 </div>
