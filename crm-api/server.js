@@ -710,7 +710,7 @@ Responde ÚNICAMENTE con JSON válido, sin explicaciones adicionales:
 
 // ── HEALTH ───────────────────────────────────────────────────
 app.get('/api/crm/health', async (_, res) => {
-  const health = { status: 'ok', api: 'ok', db: 'ok', disk_pct: 0, version: '2.0-omnipulse', ts: new Date().toISOString() };
+  const health = { status: 'ok', api: 'ok', db: 'ok', disk_pct: 0, version: 'pulsecosta-crm-api-2.0', ts: new Date().toISOString() };
   try { await pool.query('SELECT 1'); } catch { health.db = 'error'; health.status = 'degraded'; }
   try {
     // fs.statfsSync (Node 18.15+): sin shell en ruta de request (evita exec/latencia).
