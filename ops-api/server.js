@@ -478,14 +478,37 @@ app.get('/api/ops/visitas', auth, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT v.*, c.nombre AS cliente_nombre,
               pv.name AS venue_public_name, pv.category AS venue_category,
-              pv.lat AS venue_lat, pv.lng AS venue_lng
+              pv.lat AS venue_lat, pv.lng AS venue_lng,
+              'crm' AS origen, NULL::text AS agente
        FROM ops.visitas v
        LEFT JOIN ops.clientes c   ON c.id  = v.cliente_id
        LEFT JOIN public.venues pv ON pv.id = v.venue_id
        WHERE v.org_id = $1 ORDER BY v.fecha DESC, v.created_at DESC`,
       [req.user.org_id || 1]
     );
-    res.json(rows);
+    // Visitas registradas en PulseField (solo lectura aquí): id negativo para no chocar con ops.visitas.
+    // Estados Field → CRM: interested/revisit/not_in → follow_up · visited/signed → closed · not_interested → lost
+    const field = await pool.query(
+      `SELECT -fv.id AS id, $1::int AS org_id, f.name AS venue, f.zone AS ciudad, f.address AS direccion,
+              NULLIF(f.contact_name,'') AS contacto, NULLIF(f.contact_phone,'') AS telefono, NULLIF(f.contact_email,'') AS email,
+              fv.visited_at::date AS fecha, NULL::text AS plan,
+              CASE fv.status WHEN 'interested' THEN 'follow_up' WHEN 'revisit' THEN 'follow_up' WHEN 'not_in' THEN 'follow_up'
+                             WHEN 'visited' THEN 'closed' WHEN 'signed' THEN 'closed' WHEN 'not_interested' THEN 'lost' ELSE 'pending' END AS estado,
+              CASE fv.status WHEN 'interested' THEN 'high' WHEN 'signed' THEN 'high' WHEN 'revisit' THEN 'medium' ELSE 'low' END AS prioridad,
+              false AS propuesta_enviada, NULL::date AS fecha_seguimiento,
+              CASE fv.status WHEN 'interested' THEN 'Preparar propuesta' WHEN 'revisit' THEN 'Volver a visitar' WHEN 'not_in' THEN 'Volver a pasar' WHEN 'signed' THEN 'Alta de cliente' ELSE NULL END AS proxima_accion,
+              NULLIF(fv.notes,'') AS notas, NULL::int AS cliente_id, NULL::text AS cliente_nombre, NULL::int AS factura_id,
+              f.public_venue_id AS venue_id, pv.name AS venue_public_name, pv.category AS venue_category, pv.lat AS venue_lat, pv.lng AS venue_lng,
+              fv.visited_at AS created_at, 'field' AS origen, COALESCE(fv.agent_name, a.name) AS agente
+       FROM public.field_visits fv
+       JOIN public.field_venues f ON f.id = fv.venue_id
+       LEFT JOIN public.field_agents a ON a.id = fv.agent_id
+       LEFT JOIN public.venues pv ON pv.id = f.public_venue_id
+       ORDER BY fv.visited_at DESC`,
+      [req.user.org_id || 1]
+    );
+    const all = [...rows, ...field.rows].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.created_at).localeCompare(String(a.created_at)));
+    res.json(all);
   } catch (err) { srvErr(res, err); }
 });
 

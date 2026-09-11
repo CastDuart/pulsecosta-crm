@@ -144,5 +144,7 @@ export interface Visita {
   venue_id?: string; venue_public_name?: string; venue_category?: string;
   venue_lat?: number; venue_lng?: number;
   created_at: string;
+  // 'field' = visita registrada en PulseField (solo lectura en el CRM)
+  origen?: 'crm' | 'field'; agente?: string | null;
 }
 export type TimeFilter = 'all' | 'this_month' | 'last_month' | 'this_year';

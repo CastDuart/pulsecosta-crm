@@ -354,6 +354,11 @@ export default function Visits() {
                     color: v.prioridad==='high'?'var(--rojo-tint)':v.prioridad==='medium'?'var(--naranja-tint)':'var(--muted-tint)',
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
                   }}>{v.prioridad}</span>
+                  {v.origen === 'field' && (
+                    <span title="Registrada en PulseField" style={{ background:'rgba(15,46,56,0.10)',color:'var(--muted-tint)',borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:700 }}>
+                      Field{v.agente ? ` · ${v.agente}` : ''}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize:12,color:'var(--muted)',display:'flex',gap:16,flexWrap:'wrap' }}>
                   {v.ciudad && <span>{v.ciudad}</span>}
@@ -375,7 +380,7 @@ export default function Visits() {
                 )}
               </div>
               <div style={{ display:'flex',gap:8,flexShrink:0,marginLeft:16 }}>
-                {v.estado === 'closed' && !v.cliente_id && (
+                {v.origen !== 'field' && v.estado === 'closed' && !v.cliente_id && (
                   <button
                     onClick={() => convertToClient(v)}
                     disabled={converting === v.id}
@@ -390,12 +395,12 @@ export default function Visits() {
                     {converting === v.id ? 'Converting...' : 'Convert to Client'}
                   </button>
                 )}
-                <button
+                {v.origen !== 'field' && <button
                   onClick={() => { setEditVisita(v); setShowModal(true); }}
                   style={{ padding:'7px 14px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12 }}
                 >
                   Edit
-                </button>
+                </button>}
               </div>
             </div>
           </div>
