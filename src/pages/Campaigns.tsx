@@ -411,11 +411,11 @@ export default function Campaigns() {
 
         {audience === 'venues' && (
           <section className="campaign-filters">
-            <select value={zoneFilter} onChange={e => changeZone(e.target.value)}>
+            <select aria-label={t('label.zone')} value={zoneFilter} onChange={e => changeZone(e.target.value)}>
               <option value="">{t('campaign.allZones')}</option>
               {zones.map(z => <option key={z} value={z}>{z}</option>)}
             </select>
-            <select value={categoryFilter} onChange={e => changeCategory(e.target.value)}>
+            <select aria-label={t('venues.category')} value={categoryFilter} onChange={e => changeCategory(e.target.value)}>
               <option value="">{t('campaign.allCategories')}</option>
               {categories.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}
             </select>

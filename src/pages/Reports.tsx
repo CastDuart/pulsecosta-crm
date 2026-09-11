@@ -259,7 +259,7 @@ export default function Reports() {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div style={{ flex: '1 1 200px' }}>
               <div className="form-label" style={{ marginBottom: 8 }}>{t('reports.type')}</div>
-              <select className="filter-select" style={{ width: '100%' }} value={reportType} onChange={e => setReportType(e.target.value as ReportType)}>
+              <select className="filter-select" aria-label={t('reports.type')} style={{ width: '100%' }} value={reportType} onChange={e => setReportType(e.target.value as ReportType)}>
                 {REPORT_TYPES.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
               </select>
             </div>

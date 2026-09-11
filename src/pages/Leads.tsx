@@ -23,6 +23,8 @@ export default function Leads() {
   const [selected, setSelected] = useState<Lead | null>(null);
   const [search, setSearch] = useState('');
   const [filterZone, setFilterZone] = useState('');
+  const [filterSource, setFilterSource] = useState('');
+  const [filterStage, setFilterStage] = useState('');
   const [filterAgent, setFilterAgent] = useState('');
 
   const fetchLeads = () => {
@@ -37,9 +39,13 @@ export default function Leads() {
   const filtered = leads.filter(l => {
     if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterZone && l.zone !== filterZone) return false;
+    if (filterSource && l.source !== filterSource) return false;
+    if (filterStage && l.stage !== filterStage) return false;
     if (filterAgent && l.assigned_to !== filterAgent) return false;
     return true;
   });
+  const sourceOptions = [...new Set(leads.map(l => l.source).filter(Boolean))].sort();
+  const stageOptions = [...new Set(leads.map(l => l.stage).filter(Boolean))].sort();
 
   return (
     <>
@@ -61,26 +67,27 @@ export default function Leads() {
           <input
             className="filter-input"
             placeholder={`🔍  ${t('common.search')}`}
+            aria-label={t('common.search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <select className="filter-select" value={filterZone} onChange={e => setFilterZone(e.target.value)}>
+          <select className="filter-select" aria-label={t('label.zone')} value={filterZone} onChange={e => setFilterZone(e.target.value)}>
             <option value="">{t('filter.allZones')}</option>
             {zoneOptions.map(z => <option key={z} value={z}>{z}</option>)}
           </select>
-          <select className="filter-select">
-            <option>{t('filter.allSources')}</option>
-            {['Google Maps', 'Instagram', 'Caminando', 'Referido', 'LinkedIn'].map(s =>
-              <option key={s}>{s}</option>
+          <select className="filter-select" aria-label={t('label.source')} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
+            <option value="">{t('filter.allSources')}</option>
+            {sourceOptions.map(s =>
+              <option key={s} value={s}>{s}</option>
             )}
           </select>
-          <select className="filter-select">
-            <option>{t('filter.allStatuses')}</option>
-            {['new', 'contacted', 'interested', 'converted'].map(s =>
-              <option key={s}>{t(`stage.${s}`)}</option>
+          <select className="filter-select" aria-label={t('label.status')} value={filterStage} onChange={e => setFilterStage(e.target.value)}>
+            <option value="">{t('filter.allStatuses')}</option>
+            {stageOptions.map(s =>
+              <option key={s} value={s}>{t(`stage.${s}`)}</option>
             )}
           </select>
-          <select className="filter-select" value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
+          <select className="filter-select" aria-label={t('label.agent')} value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
             <option value="">{t('filter.allAgents')}</option>
             <option>Cipry</option>
             <option>Heidi</option>

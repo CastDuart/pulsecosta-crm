@@ -16,6 +16,7 @@ export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('pending');
+  const [filterAgent, setFilterAgent] = useState('');
   const [showModal, setShowModal] = useState(false);
 
   const load = () => apiFetch<Task[]>('/crm/tasks').then(setTasks).finally(() => setLoading(false));
@@ -34,6 +35,7 @@ export default function Tasks() {
 
   const filtered = tasks
     .filter(tk => filter === 'all' ? true : filter === 'done' ? tk.done : !tk.done)
+    .filter(tk => filterAgent ? tk.assigned_to === filterAgent : true)
     .sort((a, b) => {
       const order = { urgent: 0, high: 1, medium: 2, low: 3 };
       return (order[a.priority as keyof typeof order] ?? 3) - (order[b.priority as keyof typeof order] ?? 3);
@@ -70,8 +72,8 @@ export default function Tasks() {
               {f === 'all' ? t('tasks.all') : f === 'pending' ? t('tasks.pending') : t('tasks.completed')}
             </button>
           ))}
-          <select className="filter-select">
-            <option>{t('filter.allAgents')}</option>
+          <select className="filter-select" aria-label={t('label.agent')} value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
+            <option value="">{t('filter.allAgents')}</option>
             <option>Cipry</option>
             <option>Heidi</option>
           </select>
@@ -87,6 +89,10 @@ export default function Tasks() {
                   <div
                     className={`task-check${task.done ? ' done' : ''}`}
                     onClick={() => toggle(task.id)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={task.done ? t('tasks.markPending') : t('tasks.markDone')}
+                    onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggle(task.id)}
                   >
                     {task.done && '✓'}
                   </div>

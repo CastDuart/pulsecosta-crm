@@ -17,10 +17,26 @@ export default function Activities() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [filterType, setFilterType] = useState('');
+  const [filterAgent, setFilterAgent] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState<'month' | 'week' | 'today'>('month');
 
   const load = () => apiFetch<Activity[]>('/crm/activities').then(setActivities).finally(() => setLoading(false));
 
   useEffect(() => { load(); }, []);
+
+  const periodStart = () => {
+    const d = new Date();
+    if (filterPeriod === 'today') d.setHours(0, 0, 0, 0);
+    if (filterPeriod === 'week') d.setDate(d.getDate() - 7);
+    if (filterPeriod === 'month') d.setMonth(d.getMonth() - 1);
+    return d;
+  };
+  const filtered = activities.filter(a => {
+    if (filterType && a.type !== filterType) return false;
+    if (filterAgent && a.agent !== filterAgent) return false;
+    return new Date(a.created_at) >= periodStart();
+  });
 
   return (
     <>
@@ -37,21 +53,21 @@ export default function Activities() {
 
       <div className="page-content">
         <div className="filter-bar">
-          <select className="filter-select">
-            <option>{t('activity.allTypes')}</option>
+          <select className="filter-select" aria-label={t('label.type')} value={filterType} onChange={e => setFilterType(e.target.value)}>
+            <option value="">{t('activity.allTypes')}</option>
             {['call', 'email', 'visit', 'note', 'system'].map(type => (
-              <option key={type}>{t(`activity.${type}`)}</option>
+              <option key={type} value={type}>{t(`activity.${type}`)}</option>
             ))}
           </select>
-          <select className="filter-select">
-            <option>{t('filter.allAgents')}</option>
+          <select className="filter-select" aria-label={t('label.agent')} value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
+            <option value="">{t('filter.allAgents')}</option>
             <option>Cipry</option>
             <option>Heidi</option>
           </select>
-          <select className="filter-select">
-            <option>{t('common.thisMonth')}</option>
-            <option>{t('common.thisWeek')}</option>
-            <option>{t('common.today')}</option>
+          <select className="filter-select" aria-label={t('reports.period')} value={filterPeriod} onChange={e => setFilterPeriod(e.target.value as 'month' | 'week' | 'today')}>
+            <option value="month">{t('common.thisMonth')}</option>
+            <option value="week">{t('common.thisWeek')}</option>
+            <option value="today">{t('common.today')}</option>
           </select>
         </div>
 
@@ -60,11 +76,11 @@ export default function Activities() {
             <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>{t('common.loading')}</p>
           ) : (
             <>
-              <div className="card-title">{activities.length} {t('nav.activities').toLowerCase()}</div>
-              {activities.length === 0 && (
+              <div className="card-title">{filtered.length} {t('nav.activities').toLowerCase()}</div>
+              {filtered.length === 0 && (
                 <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>{t('activity.empty')}</p>
               )}
-              {activities.map(a => {
+              {filtered.map(a => {
                 const ic = ACTIVITY_CONFIG[a.type] ?? ACTIVITY_CONFIG.system;
                 return (
                   <div className="activity-item" key={a.id}>

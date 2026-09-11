@@ -17,6 +17,7 @@ export default function Accounts() {
   const [search, setSearch] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
   const [filterZone, setFilterZone] = useState('');
+  const [filterStage, setFilterStage] = useState('');
   const [showModal, setShowModal] = useState(false);
 
   const load = () => apiFetch<Account[]>('/crm/accounts').then(setAccounts).finally(() => setLoading(false));
@@ -27,8 +28,10 @@ export default function Accounts() {
     if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterPlan && a.plan !== filterPlan) return false;
     if (filterZone && a.zone !== filterZone) return false;
+    if (filterStage && a.stage !== filterStage) return false;
     return true;
   });
+  const stageOptions = [...new Set(accounts.map(a => a.stage).filter(Boolean))].sort();
 
   return (
     <>
@@ -47,25 +50,24 @@ export default function Accounts() {
           <input
             className="filter-input"
             placeholder={`🔍  ${t('common.search')}`}
+            aria-label={t('common.search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <select className="filter-select" value={filterPlan} onChange={e => setFilterPlan(e.target.value)}>
+          <select className="filter-select" aria-label={t('label.plan')} value={filterPlan} onChange={e => setFilterPlan(e.target.value)}>
             <option value="">{t('filter.allPlans')}</option>
             <option value="premium_local">{t('plan.premium_local')}</option>
             <option value="pro_bi">{t('plan.pro_bi')}</option>
             <option value="hotel_analytics">{t('plan.hotel_analytics')}</option>
             <option value="hotel_elite">{t('plan.hotel_elite')}</option>
           </select>
-          <select className="filter-select" value={filterZone} onChange={e => setFilterZone(e.target.value)}>
+          <select className="filter-select" aria-label={t('label.zone')} value={filterZone} onChange={e => setFilterZone(e.target.value)}>
             <option value="">{t('filter.allZones')}</option>
             {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
           </select>
-          <select className="filter-select">
-            <option>{t('filter.allStatuses')}</option>
-            <option>{t('stage.active')}</option>
-            <option>{t('stage.at_risk')}</option>
-            <option>{t('stage.onboarding_pending')}</option>
+          <select className="filter-select" aria-label={t('label.status')} value={filterStage} onChange={e => setFilterStage(e.target.value)}>
+            <option value="">{t('filter.allStatuses')}</option>
+            {stageOptions.map(s => <option key={s} value={s}>{t(`stage.${s}`)}</option>)}
           </select>
         </div>
 

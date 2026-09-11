@@ -118,16 +118,17 @@ export default function OpsVenues() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={L.searchPh}
+            aria-label={L.searchPh}
             style={inputStyle(true)}
           />
         </div>
-        <select value={zoneId} onChange={e => setZoneId(e.target.value)} style={inputStyle(false)}>
+        <select aria-label={L.zone} value={zoneId} onChange={e => setZoneId(e.target.value)} style={inputStyle(false)}>
           <option value="">{L.allZones}</option>
           {zones.map(z => (
             <option key={z.id} value={z.id}>{z.name} ({z.venue_count})</option>
           ))}
         </select>
-        <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle(false)}>
+        <select aria-label={L.category} value={category} onChange={e => setCategory(e.target.value)} style={inputStyle(false)}>
           <option value="">{L.allCategories}</option>
           {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABEL[c] ?? c}</option>)}
         </select>

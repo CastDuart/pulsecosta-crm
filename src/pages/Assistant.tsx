@@ -126,6 +126,7 @@ export default function Assistant() {
           type="date"
           value={date}
           max={today}
+          aria-label={t('label.date')}
           onChange={e => setDate(e.target.value)}
           className="form-input"
           style={{ width: 'auto', fontSize: '0.8rem', padding: '5px 10px', marginLeft: 'auto' }}
