@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/opsFetch';
 import { formatEur, formatDate } from '../../lib/iva';
 import { Download, Lock, Unlock } from 'lucide-react';
@@ -41,9 +41,9 @@ export default function Books() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
-  const loadMensual = () => apiFetch<Mensual>(`/ops/libros/mensual?year=${year}&month=${month}`).then(setMensual).catch(e => setErr(String(e)));
-  const loadMayor = () => apiFetch<Mayor>(`/ops/libros/mayor?year=${year}`).then(setMayor).catch(e => setErr(String(e)));
-  useEffect(() => { setErr(''); if (tab === 'mensual') loadMensual(); else loadMayor(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab, year, month]);
+  const loadMensual = useCallback(() => apiFetch<Mensual>(`/ops/libros/mensual?year=${year}&month=${month}`).then(setMensual).catch(e => setErr(String(e))), [month, year]);
+  const loadMayor = useCallback(() => apiFetch<Mayor>(`/ops/libros/mayor?year=${year}`).then(setMayor).catch(e => setErr(String(e))), [year]);
+  useEffect(() => { setErr(''); if (tab === 'mensual') loadMensual(); else loadMayor(); }, [tab, loadMayor, loadMensual]);
 
   const cerrarMes = async () => {
     if (!mensual || !confirm(`¿Cerrar ${MESES[month - 1]} ${year}? No se podrán añadir movimientos ni facturas con fecha de ese mes.`)) return;

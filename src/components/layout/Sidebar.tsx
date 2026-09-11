@@ -60,6 +60,7 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
         <div className="nav-section-label">{t('sec.prospecting')}</div>
         <NavItem to="/leads" icon="◎" label={t('nav.leads')} />
         <NavItem to="/accounts" icon="⬙" label={t('nav.accounts')} />
+        <NavItem to="/campaigns" icon="✉" label={t('nav.campaigns')} />
 
         <div className="nav-section-label">{t('sec.ops')}</div>
         <NavItem to="/tasks" icon="✓" label={t('nav.tasks')} />

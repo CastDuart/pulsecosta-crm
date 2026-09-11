@@ -60,14 +60,14 @@ export default function Reports() {
     { key: 'billing',   label: t('report.billing') },
     { key: 'agents',    label: t('report.agents') },
   ];
-  const PERIODS: { key: Period; label: string }[] = [
+  const PERIODS: { key: Period; label: string }[] = useMemo(() => [
     { key: 'today',   label: t('reports.today') },
     { key: 'week',    label: t('reports.week') },
     { key: 'month',   label: t('reports.month') },
     { key: 'quarter', label: t('reports.quarter') },
     { key: 'year',    label: t('reports.year') },
     { key: 'all',     label: 'Todo' },
-  ];
+  ], [t]);
 
   const report: ReportData = useMemo(() => {
     const start = periodStart(period);
@@ -198,7 +198,7 @@ export default function Reports() {
         };
       }
     }
-  }, [reportType, period, accounts, leads, activities, t]);
+  }, [reportType, period, accounts, leads, activities, PERIODS, t]);
 
   const stamp = () => new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 

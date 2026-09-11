@@ -7,7 +7,7 @@
 # el rsync correcto (contenido de dist/ → /crm/ raíz, preservando dist/ excluida).
 #
 # Uso:
-#   ./scripts/deploy.sh              # git pull, install si hace falta, build, rsync
+#   ./scripts/deploy.sh              # git pull, pnpm install si hace falta, build, rsync
 #   ./scripts/deploy.sh --no-pull    # sin git pull (usar working tree actual)
 #   ./scripts/deploy.sh --no-build   # sin build (rsync del dist/ existente)
 #   ./scripts/deploy.sh --dry        # solo muestra qué haría rsync
@@ -40,22 +40,22 @@ if [[ $NO_PULL -eq 0 ]]; then
 fi
 
 if [[ $NO_BUILD -eq 0 ]]; then
-  # Solo npm install si package.json cambió (más nuevo que node_modules)
-  if [[ ! -d node_modules ]] || [[ package.json -nt node_modules/.package-lock.json ]]; then
-    echo "[2/6] npm install"
-    npm install
+  # Solo pnpm install si package.json o pnpm-lock.yaml cambiaron.
+  if [[ ! -d node_modules ]] || [[ ! -f node_modules/.modules.yaml ]] || [[ package.json -nt node_modules/.modules.yaml ]] || [[ pnpm-lock.yaml -nt node_modules/.modules.yaml ]]; then
+    echo "[2/6] pnpm install --frozen-lockfile"
+    pnpm install --frozen-lockfile
   else
-    echo "[2/6] node_modules ok — skip npm install"
+    echo "[2/6] node_modules ok — skip pnpm install"
   fi
 
-  echo "[3/6] npm run build"
-  npm run build
+  echo "[3/6] pnpm run build"
+  pnpm run build
 else
   echo "[2-3/6] --no-build → uso dist/ existente"
   [[ -f dist/index.html ]] || { echo "FATAL: no hay dist/index.html"; exit 1; }
 fi
 
-HASH=$(grep -oE 'index-[a-zA-Z0-9_]+\.js' dist/index.html | head -1)
+HASH=$(grep -oE 'index-[a-zA-Z0-9_-]+\.js' dist/index.html | head -1)
 echo "[4/6] Build hash: $HASH"
 
 STAMP=$(date +%Y%m%d-%H%M%S)
@@ -75,7 +75,7 @@ fi
 if [[ $DRY -eq 0 ]]; then
   echo
   echo "=== Verificación ==="
-  REMOTE_HASH=$(ssh "$VPS_HOST" "grep -oE 'index-[a-zA-Z0-9_]+\\.js' $VPS_ROOT/index.html | head -1")
+  REMOTE_HASH=$(ssh "$VPS_HOST" "grep -oE 'index-[a-zA-Z0-9_-]+\\.js' $VPS_ROOT/index.html | head -1")
   echo "Hash en producción: $REMOTE_HASH"
 
   # Recarga nginx (refresca IP interna del upstream si cambió la estructura).

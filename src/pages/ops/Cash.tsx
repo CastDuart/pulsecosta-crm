@@ -8,6 +8,19 @@ import ChipSelect from '../../components/ui/ChipSelect';
 
 const INCOME_CATS = ['Invoice','Subscription','Grant','Other'];
 const EXPENSE_CATS = ['Server','Salary','Travel','Marketing','Legal','Software','Office','Other'];
+const CATEGORY_LABEL: Record<string, string> = {
+  Invoice: 'Factura',
+  Subscription: 'Suscripción',
+  Grant: 'Subvención',
+  Server: 'Servidor',
+  Salary: 'Salarios',
+  Travel: 'Viajes',
+  Marketing: 'Marketing',
+  Legal: 'Legal',
+  Software: 'Software',
+  Office: 'Oficina',
+  Other: 'Otro',
+};
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -90,7 +103,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
           <ChipSelect
             value={categoria}
             onChange={setCategoria}
-            options={cats.map(c => ({ value: c, label: c }))}
+            options={cats.map(c => ({ value: c, label: CATEGORY_LABEL[c] ?? c }))}
             allowEmpty
             emptyLabel="Seleccionar…"
           />

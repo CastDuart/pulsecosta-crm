@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/opsFetch';
 import type { Jornada } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -30,13 +30,13 @@ export default function TimeLog() {
 
   const isAdmin = user?.role === 'super_admin';
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const j = await apiFetch<Jornada[]>('/ops/jornadas');
     setJornadas(j);
     const today = new Date().toISOString().split('T')[0];
     const todayOpen = j.find(x => x.user_id === user?.id && String(x.fecha).slice(0, 10) === today && !x.salida);
     setOpen(todayOpen || null);
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
@@ -47,7 +47,7 @@ export default function TimeLog() {
         () => setLocError('Ubicación no disponible — se fichará sin GPS'),
       );
     }
-  }, []);
+  }, [load]);
 
   async function clockIn() {
     setClocking(true);

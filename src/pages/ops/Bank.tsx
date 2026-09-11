@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/opsFetch';
 import { formatEur, formatDate } from '../../lib/iva';
@@ -25,16 +25,16 @@ export default function Bank() {
   const [form, setForm] = useState({ env: 'sandbox', client_id: '', merchant_secret: '' });
   const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
 
-  const loadEstado = () => apiFetch<Estado>('/ops/banco/estado').then(e => { setEstado(e); setForm(f => ({ ...f, env: e.env, client_id: e.client_id || '' })); });
-  const loadDatos = async () => {
+  const loadEstado = useCallback(() => apiFetch<Estado>('/ops/banco/estado').then(e => { setEstado(e); setForm(f => ({ ...f, env: e.env, client_id: e.client_id || '' })); }), []);
+  const loadDatos = useCallback(async () => {
     setBusy(true); setMsg('');
     try {
       const [c, t, f] = await Promise.all([apiFetch<Cuenta[]>('/ops/banco/cuentas'), apiFetch<Tx[]>('/ops/banco/transacciones'), apiFetch<Factura[]>('/ops/facturas')]);
       setCuentas(c); setTxs(t); setPendientes(f.filter(x => ['enviada', 'vencida'].includes(x.estado)));
     } catch (e) { setMsg(String(e)); } finally { setBusy(false); }
-  };
-  useEffect(() => { loadEstado(); }, []);
-  useEffect(() => { if (estado?.autorizado) loadDatos(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estado?.autorizado]);
+  }, []);
+  useEffect(() => { loadEstado(); }, [loadEstado]);
+  useEffect(() => { if (estado?.autorizado) loadDatos(); }, [estado?.autorizado, loadDatos]);
   // Vuelta del consentimiento de Revolut: /ops/bank/callback?code=...
   useEffect(() => {
     const code = params.get('code'); if (!code) return;
@@ -42,8 +42,7 @@ export default function Bank() {
     apiFetch<Estado>('/ops/banco/autorizar', { method: 'POST', body: JSON.stringify({ code }) })
       .then(e => { setEstado(e); setMsg('Revolut autorizado correctamente.'); navigate('/ops/bank', { replace: true }); })
       .catch(e => setMsg(String(e))).finally(() => setBusy(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [navigate, params]);
 
   const guardar = async () => {
     setBusy(true); setMsg('');

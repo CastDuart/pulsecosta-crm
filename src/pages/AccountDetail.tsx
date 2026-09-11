@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useLang } from '../context/LangContext';
 import { apiFetch } from '../lib/api';
 import type { Account, Activity } from '../types';
@@ -27,7 +27,7 @@ export default function AccountDetail() {
   const [showNote, setShowNote] = useState(false);
   const [showStage, setShowStage] = useState(false);
 
-  const reload = () => {
+  const reload = useCallback(() => {
     if (!id) return Promise.resolve();
     return Promise.all([
       apiFetch<Account[]>('/crm/accounts'),
@@ -36,11 +36,11 @@ export default function AccountDetail() {
       setAccount(accs.find(a => a.id === Number(id)) ?? null);
       setActivities(acts);
     });
-  };
+  }, [id]);
 
   useEffect(() => {
     reload().finally(() => setLoading(false));
-  }, [id]);
+  }, [reload]);
 
   if (loading) return (
     <div className="page-content" style={{ paddingTop: 60, textAlign: 'center' }}>

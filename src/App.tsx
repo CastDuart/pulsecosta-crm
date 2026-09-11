@@ -12,6 +12,7 @@ import Tasks from './pages/Tasks';
 import Activities from './pages/Activities';
 import Reports from './pages/Reports';
 import Assistant from './pages/Assistant';
+import Campaigns from './pages/Campaigns';
 import OpsDashboard from './pages/ops/OpsDashboard';
 import Invoices from './pages/ops/Invoices';
 import Cash from './pages/ops/Cash';
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="tasks" element={<Tasks />} />
         <Route path="activities" element={<Activities />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="campaigns" element={<Campaigns />} />
         <Route path="assistant" element={<Assistant />} />
         <Route path="ops" element={<OpsRoute><OpsDashboard /></OpsRoute>} />
         <Route path="ops/invoices" element={<OpsRoute><Invoices /></OpsRoute>} />
@@ -78,6 +80,8 @@ function AppRoutes() {
         <Route path="tareas" element={<Navigate to="/tasks" replace />} />
         <Route path="actividades" element={<Navigate to="/activities" replace />} />
         <Route path="informes" element={<Navigate to="/reports" replace />} />
+        <Route path="campanas" element={<Navigate to="/campaigns" replace />} />
+        <Route path="campañas" element={<Navigate to="/campaigns" replace />} />
         <Route path="localidades" element={<Navigate to="/ops/venues" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

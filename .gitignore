@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.pnpm-store
 dist-ssr
 # dist/ NO está ignorado — se incluye en git para deploy via clone en VPS
 *.local

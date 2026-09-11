@@ -1,0 +1,7 @@
+packages:
+  - .
+  - crm-api
+  - ops-api
+
+allowBuilds:
+  core-js: true

@@ -1,8 +1,11 @@
 {
   "name": "pulsecosta-crm-api",
   "version": "1.0.0",
+  "packageManager": "pnpm@12.3.4",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "bcryptjs": "^2.4.3",
