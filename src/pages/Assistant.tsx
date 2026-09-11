@@ -27,7 +27,7 @@ function MarkdownText({ text }: { text: string }) {
 }
 
 export default function Assistant() {
-  const { lang } = useLang();
+  const { t } = useLang();
   const [mode, setMode]       = useState<Mode>('summary');
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState('');
@@ -37,9 +37,9 @@ export default function Assistant() {
   const today = new Date().toISOString().split('T')[0];
 
   const labels = {
-    summary: lang === 'es' ? 'Resumen del día' : 'Daily Summary',
-    visits:  lang === 'es' ? 'Análisis de visitas' : 'Visit Analysis',
-    ask:     lang === 'es' ? 'Preguntar' : 'Ask',
+    summary: t('assistant.summary'),
+    visits:  t('assistant.visits'),
+    ask:     t('assistant.ask'),
   };
 
   async function runSummary() {
@@ -103,10 +103,10 @@ export default function Assistant() {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: 'var(--blanco)', margin: 0 }}>
-          ✦ {lang === 'es' ? 'Asistente IA' : 'AI Assistant'}
+          ✦ {t('nav.assistant')}
         </h1>
         <p style={{ color: 'var(--gris)', fontSize: '0.82rem', marginTop: 4 }}>
-          {lang === 'es' ? 'IA local (Spark) · PulseCosta CRM' : 'IA local (Spark) · PulseCosta CRM'}
+          {t('assistant.subtitle')}
         </p>
       </div>
 
@@ -140,7 +140,7 @@ export default function Assistant() {
           disabled={loading}
           onClick={mode === 'summary' ? runSummary : runVisits}
         >
-          {loading ? '⟳ Generando...' : `▶ ${lang === 'es' ? 'Generar' : 'Generate'} ${labels[mode]}`}
+          {loading ? `⟳ ${t('common.loading')}` : `▶ ${t('assistant.generate')} ${labels[mode]}`}
         </button>
       )}
 
@@ -159,9 +159,7 @@ export default function Assistant() {
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'var(--gris)', fontSize: '0.85rem', textAlign: 'center', padding: 40,
           }}>
-            {lang === 'es'
-              ? 'Selecciona un modo y genera tu primer análisis.'
-              : 'Select a mode and generate your first analysis.'}
+            {t('assistant.empty')}
           </div>
         )}
         {messages.map((msg, i) => (
@@ -181,7 +179,7 @@ export default function Assistant() {
         ))}
         {loading && (
           <div style={{ color: 'var(--gris)', fontSize: '0.85rem', padding: '12px 20px' }}>
-            ⟳ {lang === 'es' ? 'Analizando con IA local (Spark)...' : 'Analysing with local AI (Spark)...'}
+            ⟳ {t('assistant.loading')}
           </div>
         )}
       </div>
@@ -192,14 +190,14 @@ export default function Assistant() {
           <input
             className="form-input"
             style={{ flex: 1, fontSize: '0.88rem' }}
-            placeholder={lang === 'es' ? 'Pregunta algo sobre el CRM...' : 'Ask something about the CRM...'}
+            placeholder={t('assistant.questionPh')}
             value={question}
             onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendQuestion()}
             disabled={loading}
           />
           <button className="btn btn-primary" onClick={sendQuestion} disabled={loading || !question.trim()}>
-            {lang === 'es' ? 'Enviar' : 'Send'}
+            {t('assistant.send')}
           </button>
         </div>
       )}
@@ -211,7 +209,7 @@ export default function Assistant() {
           style={{ marginTop: 8, fontSize: '0.75rem', alignSelf: 'flex-start', color: 'var(--gris)' }}
           onClick={() => setMessages([])}
         >
-          {lang === 'es' ? 'Limpiar conversación' : 'Clear conversation'}
+          {t('assistant.clear')}
         </button>
       )}
     </div>

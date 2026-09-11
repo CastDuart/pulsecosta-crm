@@ -16,14 +16,14 @@ export default function Login() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!password) { setError('Introduce tu contraseña'); return; }
+    if (!password) { setError(t('login.passwordRequired')); return; }
     setLoading(true);
     setError('');
     try {
       await login(email, password);
       navigate('/');
     } catch {
-      setError('Credenciales incorrectas');
+      setError(t('login.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -40,6 +40,14 @@ export default function Login() {
           className={`btn ${lang === 'en' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setLang('en')}
         >🇬🇧 EN</button>
+        <button
+          className={`btn ${lang === 'fi' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setLang('fi')}
+        >🇫🇮 FI</button>
+        <button
+          className={`btn ${lang === 'et' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setLang('et')}
+        >🇪🇪 ET</button>
       </div>
 
       <div className="login-card">
@@ -47,7 +55,7 @@ export default function Login() {
           <span className="brand-pulse">PULSE</span>
           <span className="brand-costa" style={{ marginLeft: 8 }}>COSTA</span>
         </div>
-        <p className="login-sub">CRM · Panel Comercial</p>
+        <p className="login-sub">{t('login.subtitle')}</p>
 
         <form onSubmit={handleSubmit}>
           <div className="form-field">
@@ -62,7 +70,7 @@ export default function Login() {
             />
           </div>
           <div className="form-field">
-            <label className="form-label">{lang === 'en' ? 'Password' : 'Contraseña'}</label>
+            <label className="form-label">{t('common.password')}</label>
             <div style={{ position: 'relative' }}>
               <input
                 className="form-input"
@@ -82,7 +90,7 @@ export default function Login() {
                   color: 'var(--gris)', padding: 4, display: 'flex', alignItems: 'center',
                 }}
                 tabIndex={-1}
-                aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-label={showPwd ? t('login.hidePassword') : t('login.showPassword')}
               >
                 {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -103,7 +111,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="login-footer">Fuengirola · Marbella · Estepona · Costa del Sol</p>
+        <p className="login-footer">{t('login.footer')}</p>
       </div>
     </div>
   );

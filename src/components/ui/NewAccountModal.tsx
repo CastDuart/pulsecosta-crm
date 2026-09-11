@@ -28,7 +28,7 @@ export default function NewAccountModal({ onClose, onSaved }: { onClose: () => v
       onSaved?.();
       onClose();
     } catch (err) {
-      setError((err as Error).message ?? 'Error al guardar');
+      setError((err as Error).message ?? t('common.saveError'));
     } finally {
       setSaving(false);
     }
@@ -39,7 +39,7 @@ export default function NewAccountModal({ onClose, onSaved }: { onClose: () => v
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{t('btn.newAccount')}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -52,7 +52,7 @@ export default function NewAccountModal({ onClose, onSaved }: { onClose: () => v
             <div className="form-field">
               <label className="form-label">{t('label.type')}</label>
               <ChipSelect value={form.type} onChange={v => set('type', v)}
-                options={[{ value: 'local', label: 'Local / Bar / Rest.' }, { value: 'hotel', label: 'Hotel' }]} />
+                options={[{ value: 'local', label: t('type.local') }, { value: 'hotel', label: t('type.hotel') }]} />
             </div>
             <div className="form-field">
               <label className="form-label">{t('label.plan')}</label>
@@ -90,10 +90,10 @@ export default function NewAccountModal({ onClose, onSaved }: { onClose: () => v
             <div className="form-field">
               <label className="form-label">{t('label.contact')}</label>
               <input className="form-input" value={form.contact_name}
-                onChange={e => set('contact_name', e.target.value)} placeholder="Nombre del contacto" />
+                onChange={e => set('contact_name', e.target.value)} placeholder={t('placeholder.contactName')} />
             </div>
             <div className="form-field">
-              <label className="form-label">Email</label>
+              <label className="form-label">{t('common.email')}</label>
               <input className="form-input" type="email" value={form.contact_email}
                 onChange={e => set('contact_email', e.target.value)} placeholder="contacto@empresa.es" />
             </div>
@@ -105,13 +105,13 @@ export default function NewAccountModal({ onClose, onSaved }: { onClose: () => v
             <div className="form-field">
               <label className="form-label">{t('label.notes')}</label>
               <textarea className="form-input" rows={3} value={form.notes}
-                onChange={e => set('notes', e.target.value)} placeholder="Notas iniciales..." style={{ resize: 'vertical' }} />
+                onChange={e => set('notes', e.target.value)} placeholder={t('placeholder.initialNotes')} style={{ resize: 'vertical' }} />
             </div>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t('btn.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Guardando...' : t('btn.save')}
+              {saving ? t('common.saving') : t('btn.save')}
             </button>
           </div>
         </form>

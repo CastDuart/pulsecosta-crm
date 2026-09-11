@@ -24,7 +24,7 @@ export default function NewNoteModal({ onClose, onSaved, accountId }: { onClose:
       onSaved?.();
       onClose();
     } catch (err) {
-      setError((err as Error).message ?? 'Error al guardar');
+      setError((err as Error).message ?? t('common.saveError'));
     } finally {
       setSaving(false);
     }
@@ -35,7 +35,7 @@ export default function NewNoteModal({ onClose, onSaved, accountId }: { onClose:
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{t('activity.note')}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -54,13 +54,13 @@ export default function NewNoteModal({ onClose, onSaved, accountId }: { onClose:
               <label className="form-label">{t('label.notes')} *</label>
               <textarea className="form-input" required rows={4} value={form.description}
                 onChange={e => set('description', e.target.value)}
-                placeholder="Describe la actividad..." style={{ resize: 'vertical' }} />
+                placeholder={t('placeholder.activityDescription')} style={{ resize: 'vertical' }} />
             </div>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t('btn.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Guardando...' : t('btn.save')}
+              {saving ? t('common.saving') : t('btn.save')}
             </button>
           </div>
         </form>

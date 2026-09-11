@@ -49,7 +49,7 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
           <span className="brand-pulse">PULSE</span>
           <span className="brand-costa">COSTA</span>
         </div>
-        <div className="brand-badge">CRM Comercial</div>
+        <div className="brand-badge">{t('common.brandBadge')}</div>
       </div>
 
       <nav className="sidebar-nav">
@@ -68,7 +68,7 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
 
         <div className="nav-section-label">{t('sec.analytics')}</div>
         <NavItem to="/reports" icon="📊" label={t('nav.reports')} />
-        <NavItem to="/assistant" icon="✦" label={lang === 'es' ? 'Asistente IA' : 'AI Assistant'} />
+        <NavItem to="/assistant" icon="✦" label={t('nav.assistant')} />
 
         {user?.role === 'super_admin' && (
           <>
@@ -108,14 +108,9 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
         <button
           className="btn btn-ghost"
           style={{ flex: 1, justifyContent: 'center', fontSize: '0.72rem', padding: '5px 0' }}
-          title="Instalar app / Install app"
+          title={t('app.installTitle')}
           onClick={() =>
-            alert(
-              '📱 Instalar PulseCosta CRM\n\n' +
-              '🍎 iOS Safari → Compartir → Añadir a pantalla de inicio\n' +
-              '🤖 Android/Chrome → Menú ⋮ → Instalar app\n' +
-              '💻 Chrome desktop → Menú ⋮ → Install app'
-            )
+            alert(t('app.installInstructions'))
           }
         >
           📱
@@ -130,9 +125,9 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
             className="user-role"
             style={{ cursor: 'pointer' }}
             onClick={handleLogout}
-            title="Cerrar sesión / Sign out"
+            title={t('auth.signOut')}
           >
-            Super Admin
+            {t('role.superAdmin')}
           </div>
         </div>
       </div>

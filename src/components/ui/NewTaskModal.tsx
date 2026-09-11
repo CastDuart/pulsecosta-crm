@@ -24,7 +24,7 @@ export default function NewTaskModal({ onClose, onSaved }: { onClose: () => void
       onSaved?.();
       onClose();
     } catch (err) {
-      setError((err as Error).message ?? 'Error al guardar');
+      setError((err as Error).message ?? t('common.saveError'));
     } finally {
       setSaving(false);
     }
@@ -35,7 +35,7 @@ export default function NewTaskModal({ onClose, onSaved }: { onClose: () => void
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{t('nav.tasks')}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -43,7 +43,7 @@ export default function NewTaskModal({ onClose, onSaved }: { onClose: () => void
             <div className="form-field">
               <label className="form-label">{t('label.name')} *</label>
               <input className="form-input" required value={form.title}
-                onChange={e => set('title', e.target.value)} placeholder="Llamar a Hotel Bahía" />
+                onChange={e => set('title', e.target.value)} placeholder={t('placeholder.taskTitle')} />
             </div>
             <div className="form-field">
               <label className="form-label">{t('label.priority')}</label>
@@ -64,7 +64,7 @@ export default function NewTaskModal({ onClose, onSaved }: { onClose: () => void
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t('btn.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Guardando...' : t('btn.save')}
+              {saving ? t('common.saving') : t('btn.save')}
             </button>
           </div>
         </form>

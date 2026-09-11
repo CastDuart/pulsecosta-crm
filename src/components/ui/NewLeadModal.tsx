@@ -24,7 +24,7 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
       });
       onClose();
     } catch (err) {
-      setError((err as Error).message ?? 'Error al guardar');
+      setError((err as Error).message ?? t('common.saveError'));
     } finally {
       setSaving(false);
     }
@@ -35,7 +35,7 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{t('lead.new')}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -56,8 +56,8 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
                 value={form.type}
                 onChange={v => setForm({ ...form, type: v })}
                 options={[
-                  { value: 'local', label: 'Local / Bar / Rest.' },
-                  { value: 'hotel', label: 'Hotel' },
+                  { value: 'local', label: t('type.local') },
+                  { value: 'hotel', label: t('type.hotel') },
                 ]}
               />
             </div>
@@ -96,7 +96,7 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
                 rows={3}
                 value={form.notes}
                 onChange={e => setForm({ ...form, notes: e.target.value })}
-                placeholder="Notas iniciales..."
+                placeholder={t('placeholder.initialNotes')}
                 style={{ resize: 'vertical' }}
               />
             </div>
@@ -104,7 +104,7 @@ export default function NewLeadModal({ onClose }: { onClose: () => void }) {
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t('btn.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Guardando...' : t('btn.save')}
+              {saving ? t('common.saving') : t('btn.save')}
             </button>
           </div>
         </form>

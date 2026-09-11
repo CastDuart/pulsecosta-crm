@@ -30,7 +30,7 @@ export default function ChangeStageModal({ accountId, current, onClose, onSaved 
       onSaved?.();
       onClose();
     } catch (err) {
-      setError((err as Error).message ?? 'Error al guardar');
+      setError((err as Error).message ?? t('common.saveError'));
     } finally {
       setSaving(false);
     }
@@ -41,7 +41,7 @@ export default function ChangeStageModal({ accountId, current, onClose, onSaved 
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{t('label.stage')}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -55,7 +55,7 @@ export default function ChangeStageModal({ accountId, current, onClose, onSaved 
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t('btn.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Guardando...' : t('btn.save')}
+              {saving ? t('common.saving') : t('btn.save')}
             </button>
           </div>
         </form>

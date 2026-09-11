@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { useLang } from '../../context/LangContext';
 import Sidebar from './Sidebar';
 
 export default function AppLayout() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const { pathname } = useLocation();
+  const { t } = useLang();
 
   // En móvil el menú es un cajón: al navegar se cierra solo, o Heidi tendría
   // que cerrarlo a mano en cada salto de pantalla.
@@ -23,7 +25,7 @@ export default function AppLayout() {
       <button
         className="menu-toggle"
         onClick={() => setMenuAbierto(v => !v)}
-        aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
+        aria-label={menuAbierto ? t('common.menuClose') : t('common.menuOpen')}
         aria-expanded={menuAbierto}
         aria-controls="sidebar-principal"
       >

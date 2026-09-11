@@ -44,15 +44,15 @@ export default function AccountDetail() {
 
   if (loading) return (
     <div className="page-content" style={{ paddingTop: 60, textAlign: 'center' }}>
-      <p style={{ color: 'var(--gris)' }}>Cargando...</p>
+      <p style={{ color: 'var(--gris)' }}>{t('common.loading')}</p>
     </div>
   );
 
   if (!account) return (
     <div className="page-content" style={{ paddingTop: 60, textAlign: 'center' }}>
-      <p style={{ color: 'var(--gris)' }}>Cuenta no encontrada.</p>
+      <p style={{ color: 'var(--gris)' }}>{t('account.notFound')}</p>
       <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => navigate('/accounts')}>
-        ← Volver
+        ← {t('common.back')}
       </button>
     </div>
   );
@@ -88,7 +88,7 @@ export default function AccountDetail() {
       <div className="page-content">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
           {[
-            { label: 'MRR', value: account.mrr > 0 ? `€${account.mrr}/mes` : '—', color: 'var(--verde)' },
+            { label: 'MRR', value: account.mrr > 0 ? `€${account.mrr}/${t('account.perMonth')}` : '—', color: 'var(--verde)' },
             { label: 'Pulse Score', value: account.pulse_score ? `▲ ${account.pulse_score}` : '—', color: 'var(--verde)' },
             { label: t('label.zone'), value: account.zone ?? '—', color: 'var(--blanco)' },
             { label: t('label.agent'), value: account.assigned_to ?? '—', color: 'var(--blanco)' },
@@ -109,7 +109,7 @@ export default function AccountDetail() {
               className={`tab${tab === tabKey ? ' active' : ''}`}
               onClick={() => setTab(tabKey)}
             >
-              {tabKey === 'overview' ? 'Resumen' : tabKey === 'activity' ? t('nav.activities') : t('nav.tasks')}
+              {tabKey === 'overview' ? t('account.overview') : tabKey === 'activity' ? t('nav.activities') : t('nav.tasks')}
             </button>
           ))}
         </div>
@@ -124,21 +124,21 @@ export default function AccountDetail() {
                   <div className="detail-value">{account.contact_name ?? '—'}</div>
                 </div>
                 <div>
-                  <div className="detail-label">Email</div>
+                  <div className="detail-label">{t('common.email')}</div>
                   <div className="detail-value" style={{ fontSize: '0.82rem' }}>{account.contact_email ?? '—'}</div>
                 </div>
                 <div>
-                  <div className="detail-label">Teléfono</div>
+                  <div className="detail-label">{t('common.phone')}</div>
                   <div className="detail-value">{account.contact_phone ?? '—'}</div>
                 </div>
                 <div>
-                  <div className="detail-label">Dirección</div>
+                  <div className="detail-label">{t('label.address')}</div>
                   <div className="detail-value" style={{ fontSize: '0.82rem' }}>{account.address ?? '—'}</div>
                 </div>
               </div>
             </div>
             <div className="card">
-              <div className="card-title">Detalles del contrato</div>
+              <div className="card-title">{t('account.contractDetails')}</div>
               <div className="stat-row">
                 <span className="stat-label">{t('label.plan')}</span>
                 <span className="stat-val"><PlanBadge plan={account.plan} /></span>
@@ -146,26 +146,26 @@ export default function AccountDetail() {
               <div className="stat-row">
                 <span className="stat-label">MRR</span>
                 <span className="stat-val" style={{ color: 'var(--verde)' }}>
-                  {account.mrr > 0 ? `€${account.mrr}/mes` : '—'}
+                  {account.mrr > 0 ? `€${account.mrr}/${t('account.perMonth')}` : '—'}
                 </span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">MRR anual</span>
+                <span className="stat-label">{t('account.annualMrr')}</span>
                 <span className="stat-val" style={{ color: 'var(--gold)' }}>
-                  {account.mrr > 0 ? `€${account.mrr * 12}/año` : '—'}
+                  {account.mrr > 0 ? `€${account.mrr * 12}/${t('account.perYear')}` : '—'}
                 </span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Alta</span>
+                <span className="stat-label">{t('account.createdAt')}</span>
                 <span className="stat-val">{account.created_at?.split('T')[0]}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Última actualización</span>
+                <span className="stat-label">{t('account.updatedAt')}</span>
                 <span className="stat-val">{account.updated_at?.split('T')[0]}</span>
               </div>
               {account.notes && (
                 <div className="stat-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                  <span className="stat-label">Notas</span>
+                  <span className="stat-label">{t('label.notes')}</span>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gris)', lineHeight: 1.5 }}>{account.notes}</span>
                 </div>
               )}
@@ -177,7 +177,7 @@ export default function AccountDetail() {
           <div className="card">
             <div className="card-title">{t('nav.activities')}</div>
             {activities.length === 0 ? (
-              <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>Sin actividad registrada.</p>
+              <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>{t('account.noActivity')}</p>
             ) : (
               activities.map(a => {
                 const ic = ACTIVITY_ICON[a.type] ?? ACTIVITY_ICON.system;
@@ -199,7 +199,7 @@ export default function AccountDetail() {
           <div className="card">
             <div className="card-title">{t('nav.tasks')}</div>
             <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>
-              Las tareas asociadas a esta cuenta se gestionan desde la sección Tareas.
+              {t('account.tasksHelp')}
             </p>
           </div>
         )}
