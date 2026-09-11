@@ -78,9 +78,9 @@ export default function Bank() {
             <label style={{ fontSize: 12, color: 'var(--muted)' }}>Entorno</label>
             <select value={form.env} onChange={e => setForm({ ...form, env: e.target.value })} style={{ ...input, width: 220 }}><option value="sandbox">Sandbox (pruebas)</option><option value="production">Producción</option></select>
             <label style={{ fontSize: 12, color: 'var(--muted)' }}>Client ID</label>
-            <input value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })} placeholder="Client ID del certificado en Revolut" style={input} />
+            <input value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })} placeholder="Client ID del certificado en Revolut" style={input} autoComplete="off" name="revolut_client_id" />
             <label style={{ fontSize: 12, color: 'var(--muted)' }}>Merchant API (opcional)</label>
-            <input type="password" value={form.merchant_secret} onChange={e => setForm({ ...form, merchant_secret: e.target.value })} placeholder={estado.merchant ? 'Guardada · pega otra para sustituir' : 'sk_…'} style={input} />
+            <input type="password" value={form.merchant_secret} onChange={e => setForm({ ...form, merchant_secret: e.target.value })} placeholder={estado.merchant ? 'Guardada · pega otra para sustituir' : 'sk_…'} style={input} autoComplete="new-password" name="revolut_merchant_secret" />
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
             <button onClick={guardar} disabled={busy} style={btn()}>Guardar</button>
