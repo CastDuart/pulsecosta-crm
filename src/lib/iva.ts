@@ -1,6 +1,7 @@
 import type { TipoIva, IvaJurisdiccion } from '../types';
 
-export const IVA_RATES_NORMAL = [0, 9, 20, 22] as const;
+// Tipos de IVA disponibles en Caja: Estonia (9/13/22/24) y España (4/10/21)
+export const IVA_RATES_NORMAL = [0, 4, 9, 10, 13, 21, 22, 24] as const;
 
 // ── Jurisdicciones de IVA ──────────────────────────────────────────────
 // Novitum OÜ (Estonia) factura a clientes de ES/escandinavia. La jurisdicción

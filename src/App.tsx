@@ -21,6 +21,7 @@ import OpsVisits from './pages/ops/OpsVisits';
 import OpsVenues from './pages/ops/OpsVenues';
 import Books from './pages/ops/Books';
 import Bank from './pages/ops/Bank';
+import ErrorBoundary from './components/ErrorBoundary';
 import AiAssistant from './pages/ops/AiAssistant';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -36,6 +37,7 @@ function OpsRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
   return (
+    <ErrorBoundary>
     <Routes>
       <Route
         path="/login"
@@ -80,6 +82,7 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+      </ErrorBoundary>
   );
 }
 

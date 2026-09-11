@@ -91,7 +91,7 @@ export default function TimeLog() {
       'Clock in':    formatTime(j.entrada),
       'Clock out':   j.salida ? formatTime(j.salida) : '',
       'Hours':       j.total_minutos ? formatMinutes(j.total_minutos) : '',
-      'Location in': j.direccion_entrada || (j.lat_entrada ? `${j.lat_entrada.toFixed(4)}, ${j.lng_entrada?.toFixed(4)}` : ''),
+      'Location in': j.direccion_entrada || (j.lat_entrada ? `${Number(j.lat_entrada).toFixed(4)}, ${Number(j.lng_entrada ?? 0).toFixed(4)}` : ''),
     }));
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Time Log');
@@ -139,7 +139,7 @@ export default function TimeLog() {
               </div>
               {open.lat_entrada && (
                 <div style={{ fontSize:12,color:'var(--muted)',display:'flex',alignItems:'center',gap:4 }}>
-                  <MapPin size={12}/> {open.lat_entrada.toFixed(4)}, {open.lng_entrada?.toFixed(4)}
+                  <MapPin size={12}/> {Number(open.lat_entrada).toFixed(4)}, {Number(open.lng_entrada ?? 0).toFixed(4)}
                 </div>
               )}
             </div>
@@ -205,7 +205,7 @@ export default function TimeLog() {
                 <td style={{ padding:'10px 16px',fontSize:11,color:'var(--muted)' }}>
                   {j.lat_entrada ? (
                     <span style={{ display:'flex',alignItems:'center',gap:4 }}>
-                      <MapPin size={11}/> {j.lat_entrada.toFixed(4)}, {j.lng_entrada?.toFixed(4)}
+                      <MapPin size={11}/> {Number(j.lat_entrada).toFixed(4)}, {Number(j.lng_entrada ?? 0).toFixed(4)}
                     </span>
                   ) : '-'}
                 </td>
