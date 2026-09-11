@@ -4,6 +4,14 @@ import type { Jornada } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { Play, Square, MapPin, Download } from 'lucide-react';
 import ExcelJS from 'exceljs';
+import { useLang, type Lang } from '../../context/LangContext';
+
+const LOCALE_BY_LANG: Record<Lang, string> = {
+  es: 'es-ES',
+  en: 'en-GB',
+  fi: 'fi-FI',
+  et: 'et-EE',
+};
 
 function formatMinutes(min: number): string {
   const h = Math.floor(min / 60);
@@ -11,16 +19,17 @@ function formatMinutes(min: number): string {
   return `${h}h ${m.toString().padStart(2,'0')}m`;
 }
 
-function formatTime(ts: string): string {
-  return new Date(ts).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+function formatTime(ts: string, lang: Lang): string {
+  return new Date(ts).toLocaleTimeString(LOCALE_BY_LANG[lang], { hour:'2-digit', minute:'2-digit' });
 }
 
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('es-ES', { weekday:'short', day:'2-digit', month:'2-digit' });
+function formatDate(d: string, lang: Lang): string {
+  return new Date(d).toLocaleDateString(LOCALE_BY_LANG[lang], { weekday:'short', day:'2-digit', month:'2-digit' });
 }
 
 export default function TimeLog() {
   const { user } = useAuth();
+  const { lang, t } = useLang();
   const [jornadas, setJornadas]     = useState<Jornada[]>([]);
   const [open, setOpen]             = useState<Jornada | null>(null);
   const [loading, setLoading]       = useState(true);
@@ -44,10 +53,10 @@ export default function TimeLog() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => setLocation(pos),
-        () => setLocError('Ubicación no disponible — se fichará sin GPS'),
+        () => setLocError(t('timelog.locationUnavailable')),
       );
     }
-  }, [load]);
+  }, [load, t]);
 
   async function clockIn() {
     setClocking(true);
@@ -60,7 +69,7 @@ export default function TimeLog() {
       await apiFetch('/ops/jornadas/entrada', { method:'POST', body:JSON.stringify(body) });
       await load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error');
+      alert(e instanceof Error ? e.message : t('common.saveError'));
     } finally {
       setClocking(false);
     }
@@ -78,7 +87,7 @@ export default function TimeLog() {
       await apiFetch(`/ops/jornadas/${open.id}/salida`, { method:'PUT', body:JSON.stringify(body) });
       await load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error');
+      alert(e instanceof Error ? e.message : t('common.saveError'));
     } finally {
       setClocking(false);
     }
@@ -86,15 +95,15 @@ export default function TimeLog() {
 
   async function exportExcel() {
     const rows = jornadas.map(j => ({
-      'Fecha':             String(j.fecha).slice(0, 10),
-      'Trabajador':        j.user_name || '',
-      'Entrada':           formatTime(j.entrada),
-      'Salida':            j.salida ? formatTime(j.salida) : '',
-      'Horas':             j.total_minutos ? formatMinutes(j.total_minutos) : '',
-      'Ubicación entrada': j.direccion_entrada || (j.lat_entrada ? `${Number(j.lat_entrada).toFixed(4)}, ${Number(j.lng_entrada ?? 0).toFixed(4)}` : ''),
+      [t('ops.date')]:             String(j.fecha).slice(0, 10),
+      [t('timelog.worker')]:       j.user_name || '',
+      [t('timelog.clockIn')]:      formatTime(j.entrada, lang),
+      [t('timelog.clockOut')]:     j.salida ? formatTime(j.salida, lang) : '',
+      [t('timelog.hours')]:        j.total_minutos ? formatMinutes(j.total_minutos) : '',
+      [t('timelog.entryLocation')]: j.direccion_entrada || (j.lat_entrada ? `${Number(j.lat_entrada).toFixed(4)}, ${Number(j.lng_entrada ?? 0).toFixed(4)}` : ''),
     }));
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Control horario');
+    const ws = wb.addWorksheet(t('timelog.sheetName'));
     if (rows.length > 0) {
       ws.columns = Object.keys(rows[0]).map(key => ({ header: key, key, width: 22 }));
       ws.getRow(1).font = { bold: true };
@@ -103,7 +112,7 @@ export default function TimeLog() {
     const buf = await wb.xlsx.writeBuffer();
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a');
-    a.href = url; a.download = `ControlHorario_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.href = url; a.download = `TimeLog_${new Date().toISOString().slice(0,10)}.xlsx`;
     a.click(); URL.revokeObjectURL(url);
   }
 
@@ -116,26 +125,26 @@ export default function TimeLog() {
   });
   const totalMinutes = monthJornadas.reduce((s, j) => s + (j.total_minutos || 0), 0);
 
-  if (loading) return <div style={{ color:'var(--muted)' }}>Cargando...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>{t('common.loading')}</div>;
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>Control horario</h1>
+        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>{t('ops.nav.timelog')}</h1>
         <button onClick={exportExcel} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
-          <Download size={14}/> Exportar
+          <Download size={14}/> {t('btn.export')}
         </button>
       </div>
 
       {/* Clock in/out panel */}
       <div style={{ background:'var(--ivory-alt)',borderRadius:16,padding:'28px 32px',border:'1px solid var(--linea)',marginBottom:28,display:'flex',alignItems:'center',gap:32 }}>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:13,color:'var(--muted)',marginBottom:6 }}>Hoy — {new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</div>
+          <div style={{ fontSize:13,color:'var(--muted)',marginBottom:6 }}>{t('common.today')} — {new Date().toLocaleDateString(LOCALE_BY_LANG[lang],{weekday:'long',day:'numeric',month:'long'})}</div>
           {open ? (
             <div>
               <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:4 }}>
                 <div style={{ width:8,height:8,borderRadius:'50%',background:'var(--state-quiet)',animation:'pulse 2s infinite' }}/>
-                <span style={{ fontWeight:700,color:'var(--verde-text)',fontSize:16 }}>Jornada activa desde {formatTime(open.entrada)}</span>
+                <span style={{ fontWeight:700,color:'var(--verde-text)',fontSize:16 }}>{t('timelog.activeSince', { time: formatTime(open.entrada, lang) })}</span>
               </div>
               {open.lat_entrada && (
                 <div style={{ fontSize:12,color:'var(--muted)',display:'flex',alignItems:'center',gap:4 }}>
@@ -144,7 +153,7 @@ export default function TimeLog() {
               )}
             </div>
           ) : (
-            <div style={{ color:'var(--muted)',fontSize:14 }}>Sin jornada activa</div>
+            <div style={{ color:'var(--muted)',fontSize:14 }}>{t('timelog.noActiveShift')}</div>
           )}
           {locError && <div style={{ marginTop:6,fontSize:11,color:'var(--naranja-text)' }}>{locError}</div>}
         </div>
@@ -156,7 +165,7 @@ export default function TimeLog() {
               borderRadius:12,border:'none',background:'rgba(23,129,127,0.15)',
               color:'var(--verde-text)',fontWeight:800,fontSize:16,cursor:'pointer',
             }}>
-              <Play size={20} fill="var(--verde-text)"/> {clocking ? 'Fichando entrada...' : 'Fichar entrada'}
+              <Play size={20} fill="var(--verde-text)"/> {clocking ? t('timelog.clockingIn') : t('timelog.clockInAction')}
             </button>
           ) : (
             <button onClick={clockOut} disabled={clocking} style={{
@@ -164,17 +173,17 @@ export default function TimeLog() {
               borderRadius:12,border:'none',background:'rgba(229,72,77,0.15)',
               color:'var(--rojo-text)',fontWeight:800,fontSize:16,cursor:'pointer',
             }}>
-              <Square size={20} fill="var(--rojo-text)"/> {clocking ? 'Fichando salida...' : 'Fichar salida'}
+              <Square size={20} fill="var(--rojo-text)"/> {clocking ? t('timelog.clockingOut') : t('timelog.clockOutAction')}
             </button>
           )}
         </div>
 
         <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>Este mes</div>
+          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>{t('common.thisMonth')}</div>
           <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:22,fontWeight:700,color:'var(--teal-tint)' }}>
             {formatMinutes(totalMinutes)}
           </div>
-          <div style={{ fontSize:11,color:'var(--muted)' }}>{monthJornadas.length} jornadas</div>
+          <div style={{ fontSize:11,color:'var(--muted)' }}>{t('timelog.shiftCount', { count: monthJornadas.length })}</div>
         </div>
       </div>
 
@@ -183,21 +192,21 @@ export default function TimeLog() {
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:'1px solid var(--linea)' }}>
-              {['Fecha', ...(isAdmin ? ['Trabajador'] : []), 'Entrada', 'Salida', 'Duración', 'Ubicación'].map(h => (
+              {[t('ops.date'), ...(isAdmin ? [t('timelog.worker')] : []), t('timelog.clockIn'), t('timelog.clockOut'), t('timelog.duration'), t('timelog.location')].map(h => (
                 <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'var(--muted)',fontWeight:500,fontSize:12 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {jornadas.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>Aún no hay registros</td></tr>
+              <tr><td colSpan={6} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>{t('timelog.empty')}</td></tr>
             ) : jornadas.map(j => (
               <tr key={j.id} style={{ borderBottom:'1px solid var(--linea-alta)' }}>
-                <td style={{ padding:'10px 16px',color:'var(--ink)' }}>{formatDate(j.fecha)}</td>
+                <td style={{ padding:'10px 16px',color:'var(--ink)' }}>{formatDate(j.fecha, lang)}</td>
                 {isAdmin && <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{j.user_name}</td>}
-                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'var(--verde-text)' }}>{formatTime(j.entrada)}</td>
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'var(--verde-text)' }}>{formatTime(j.entrada, lang)}</td>
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:j.salida?'var(--rojo-text)':'var(--naranja-text)' }}>
-                  {j.salida ? formatTime(j.salida) : <span style={{ color:'var(--naranja-text)' }}>Activa</span>}
+                  {j.salida ? formatTime(j.salida, lang) : <span style={{ color:'var(--naranja-text)' }}>{t('timelog.active')}</span>}
                 </td>
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'var(--teal-tint)' }}>
                   {j.total_minutos ? formatMinutes(j.total_minutos) : '-'}
