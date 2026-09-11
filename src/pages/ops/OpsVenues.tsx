@@ -13,6 +13,9 @@ type Venue = {
   address: string | null;
   phone: string | null;
   website: string | null;
+  email: string | null;
+  instagram: string | null;
+  facebook: string | null;
   lat: number | null;
   lng: number | null;
   plan_type: string;
@@ -194,6 +197,17 @@ export default function OpsVenues() {
                           <a href={v.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal-accent)', fontSize: 11 }}>
                             {v.website.replace(/^https?:\/\//, '').split('/')[0]}
                           </a>
+                        </div>
+                      )}
+                      {v.email && (
+                        <div style={{ fontSize: 11 }}>
+                          <a href={`mailto:${v.email}`} style={{ color: 'var(--teal-accent)' }}>{v.email}</a>
+                        </div>
+                      )}
+                      {(v.instagram || v.facebook) && (
+                        <div style={{ display: 'flex', gap: 8, fontSize: 11 }}>
+                          {v.instagram && <a href={`https://www.instagram.com/${v.instagram.replace(/^@/, '')}/`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal-accent)' }}>@{v.instagram.replace(/^@/, '')}</a>}
+                          {v.facebook && <a href={v.facebook} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal-accent)' }}>Facebook</a>}
                         </div>
                       )}
                     </td>

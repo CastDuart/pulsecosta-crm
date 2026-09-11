@@ -932,9 +932,16 @@ app.get('/api/ops/venues', auth, async (req, res) => {
         `SELECT v.id, v.name, v.category, v.address, v.phone, v.website,
                 v.lat, v.lng, v.plan_type, v.is_verified,
                 v.owner_firebase_uid IS NOT NULL AS claimed,
-                z.name AS zone_name
+                z.name AS zone_name,
+                -- contacto interno: instagram de la ficha o de bases abiertas; email/facebook solo en venue_sources
+                COALESCE(NULLIF(v.instagram,''), vs.instagram) AS instagram,
+                vs.email, vs.facebook
          FROM public.venues v
          JOIN public.zones z ON z.id = v.zone_id
+         LEFT JOIN LATERAL (
+           SELECT max(s.instagram) AS instagram, max(s.email) AS email, max(s.facebook) AS facebook
+           FROM public.venue_sources s WHERE s.venue_id = v.id AND s.tier = 'auto'
+         ) vs ON true
          WHERE ${where}
          ORDER BY v.name
          LIMIT ${limit} OFFSET ${offset}`,
