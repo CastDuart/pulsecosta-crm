@@ -192,6 +192,7 @@ app.post('/api/ops/facturas', auth, async (req, res) => {
           tipo_iva, iva_jurisdiccion, iva_rate, subtotal, iva_importe, total,
           tipo, intervalo_recurrencia, notas, lineas } = req.body;
   if (!cliente_id) return res.status(400).json({ error: 'cliente_id es obligatorio' });
+  if (await mesCerrado(req.user.org_id || 1, fecha_emision)) return res.status(409).json({ error: 'Ese mes está cerrado en Libros; no se pueden emitir facturas con esa fecha' });
   const client = pool;
   try {
     const { rows: [cli] } = await client.query(
@@ -350,6 +351,7 @@ app.post('/api/ops/caja', auth, async (req, res) => {
   const { tipo, concepto, importe, tipo_iva, iva_rate, iva_importe,
           fecha, categoria, cliente_id, factura_id, recurrente, intervalo, notas } = req.body;
   if (!tipo || !concepto) return res.status(400).json({ error: 'tipo y concepto son obligatorios' });
+  if (await mesCerrado(req.user.org_id || 1, fecha)) return res.status(409).json({ error: 'Ese mes está cerrado en Libros; reábrelo antes de añadir movimientos' });
   try {
     const { rows } = await pool.query(
       `INSERT INTO ops.caja_movimientos
@@ -1001,8 +1003,116 @@ app.get('/api/ops/health', async (_, res) => {
   res.json(health);
 });
 
+// ── OPS: LIBROS CONTABLES ────────────────────────────────────
+// Libro mensual (menor): movimientos de caja + facturas emitidas del mes, totales y cierre.
+// Libro mayor (anual): resumen por mes, por cuenta (tipo/categoría), IVA por trimestre y por cliente.
+// El cierre de mes guarda la foto en ops.cierres_mensuales y bloquea altas/cambios con fecha en ese mes.
+async function ensureLibrosTable() {
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS ops.cierres_mensuales (
+      org_id INTEGER NOT NULL DEFAULT 1, year INTEGER NOT NULL, month INTEGER NOT NULL,
+      ingresos NUMERIC(12,2) NOT NULL DEFAULT 0, gastos NUMERIC(12,2) NOT NULL DEFAULT 0,
+      iva_repercutido NUMERIC(12,2) NOT NULL DEFAULT 0, iva_soportado NUMERIC(12,2) NOT NULL DEFAULT 0,
+      facturado NUMERIC(12,2) NOT NULL DEFAULT 0, saldo_inicial NUMERIC(12,2) NOT NULL DEFAULT 0, saldo_final NUMERIC(12,2) NOT NULL DEFAULT 0,
+      n_movimientos INTEGER NOT NULL DEFAULT 0, n_facturas INTEGER NOT NULL DEFAULT 0,
+      notas TEXT, cerrado_por INTEGER, cerrado_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (org_id, year, month))`);
+  } catch (e) { console.error('[libros] ensure table:', e.message); }
+}
+async function mesCerrado(orgId, fecha) {
+  if (!fecha) return false;
+  const d = new Date(fecha); if (isNaN(d)) return false;
+  const { rows } = await pool.query('SELECT 1 FROM ops.cierres_mensuales WHERE org_id=$1 AND year=$2 AND month=$3', [orgId, d.getUTCFullYear(), d.getUTCMonth() + 1]);
+  return rows.length > 0;
+}
+function periodo(req) {
+  const now = new Date();
+  const year = parseInt(req.query.year) || now.getFullYear();
+  const month = Math.min(12, Math.max(1, parseInt(req.query.month) || (now.getMonth() + 1)));
+  const desde = `${year}-${String(month).padStart(2, '0')}-01`;
+  const hasta = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10); // último día
+  return { year, month, desde, hasta };
+}
+async function totalesMes(orgId, year, month, desde, hasta) {
+  const [caja, fact, prev] = await Promise.all([
+    pool.query(`SELECT COALESCE(SUM(importe) FILTER (WHERE tipo='ingreso'),0) ingresos, COALESCE(SUM(importe) FILTER (WHERE tipo='gasto'),0) gastos,
+                       COALESCE(SUM(iva_importe) FILTER (WHERE tipo='gasto'),0) iva_soportado, COUNT(*) n
+                FROM ops.caja_movimientos WHERE org_id=$1 AND fecha BETWEEN $2 AND $3`, [orgId, desde, hasta]),
+    pool.query(`SELECT COALESCE(SUM(total),0) facturado, COALESCE(SUM(iva_importe),0) iva_repercutido, COUNT(*) n,
+                       COALESCE(SUM(total) FILTER (WHERE estado IN ('enviada','vencida')),0) pendiente_cobro
+                FROM ops.facturas WHERE org_id=$1 AND fecha_emision BETWEEN $2 AND $3 AND estado <> 'anulada'`, [orgId, desde, hasta]),
+    pool.query(`SELECT COALESCE(SUM(CASE WHEN tipo='ingreso' THEN importe ELSE -importe END),0) saldo FROM ops.caja_movimientos WHERE org_id=$1 AND fecha < $2`, [orgId, desde]),
+  ]);
+  const c = caja.rows[0], f = fact.rows[0]; const saldo_inicial = Number(prev.rows[0].saldo);
+  const ingresos = Number(c.ingresos), gastos = Number(c.gastos);
+  return { year, month, desde, hasta, ingresos, gastos, resultado: ingresos - gastos, iva_soportado: Number(c.iva_soportado), n_movimientos: Number(c.n),
+           facturado: Number(f.facturado), iva_repercutido: Number(f.iva_repercutido), n_facturas: Number(f.n), pendiente_cobro: Number(f.pendiente_cobro),
+           iva_a_ingresar: Number(f.iva_repercutido) - Number(c.iva_soportado), saldo_inicial, saldo_final: saldo_inicial + ingresos - gastos };
+}
+app.get('/api/ops/libros/mensual', auth, async (req, res) => {
+  try {
+    const orgId = req.user.org_id || 1; const { year, month, desde, hasta } = periodo(req);
+    const [tot, movs, facts, cierre] = await Promise.all([
+      totalesMes(orgId, year, month, desde, hasta),
+      pool.query(`SELECT m.*, c.nombre AS cliente_nombre, f.numero AS factura_numero FROM ops.caja_movimientos m
+                  LEFT JOIN ops.clientes c ON c.id=m.cliente_id LEFT JOIN ops.facturas f ON f.id=m.factura_id
+                  WHERE m.org_id=$1 AND m.fecha BETWEEN $2 AND $3 ORDER BY m.fecha, m.created_at`, [orgId, desde, hasta]),
+      pool.query(`SELECT f.id, f.numero, f.fecha_emision, f.fecha_vencimiento, f.estado, f.subtotal, f.iva_importe, f.total, f.iva_rate, f.tipo_iva, c.nombre AS cliente_nombre
+                  FROM ops.facturas f LEFT JOIN ops.clientes c ON c.id=f.cliente_id
+                  WHERE f.org_id=$1 AND f.fecha_emision BETWEEN $2 AND $3 ORDER BY f.numero`, [orgId, desde, hasta]),
+      pool.query('SELECT * FROM ops.cierres_mensuales WHERE org_id=$1 AND year=$2 AND month=$3', [orgId, year, month]),
+    ]);
+    // saldo acumulado por movimiento
+    let saldo = tot.saldo_inicial;
+    const movimientos = movs.rows.map(m => { saldo += m.tipo === 'ingreso' ? Number(m.importe) : -Number(m.importe); return { ...m, saldo: Math.round(saldo * 100) / 100 }; });
+    res.json({ ...tot, movimientos, facturas: facts.rows, cierre: cierre.rows[0] || null });
+  } catch (err) { srvErr(res, err); }
+});
+app.get('/api/ops/libros/mayor', auth, async (req, res) => {
+  try {
+    const orgId = req.user.org_id || 1; const year = parseInt(req.query.year) || new Date().getFullYear();
+    const meses = []; let acumulado = 0;
+    const cierres = (await pool.query('SELECT month FROM ops.cierres_mensuales WHERE org_id=$1 AND year=$2', [orgId, year])).rows.map(r => r.month);
+    for (let m = 1; m <= 12; m++) {
+      const desde = `${year}-${String(m).padStart(2, '0')}-01`, hasta = new Date(Date.UTC(year, m, 0)).toISOString().slice(0, 10);
+      const t = await totalesMes(orgId, year, m, desde, hasta); acumulado += t.resultado;
+      meses.push({ ...t, acumulado, cerrado: cierres.includes(m) });
+    }
+    const [cuentas, clientes] = await Promise.all([
+      pool.query(`SELECT tipo, COALESCE(categoria,'Sin categoría') categoria, SUM(importe) total, SUM(iva_importe) iva, COUNT(*) n
+                  FROM ops.caja_movimientos WHERE org_id=$1 AND EXTRACT(YEAR FROM fecha)=$2 GROUP BY 1,2 ORDER BY 1, total DESC`, [orgId, year]),
+      pool.query(`SELECT c.nombre cliente, COUNT(f.id) facturas, SUM(f.total) facturado, SUM(f.total) FILTER (WHERE f.estado='cobrada') cobrado, SUM(f.total) FILTER (WHERE f.estado IN ('enviada','vencida')) pendiente
+                  FROM ops.facturas f JOIN ops.clientes c ON c.id=f.cliente_id WHERE f.org_id=$1 AND EXTRACT(YEAR FROM f.fecha_emision)=$2 AND f.estado<>'anulada'
+                  GROUP BY 1 ORDER BY facturado DESC`, [orgId, year]),
+    ]);
+    const trimestres = [1, 2, 3, 4].map(q => { const ms = meses.slice((q - 1) * 3, q * 3); const rep = ms.reduce((s, x) => s + x.iva_repercutido, 0), sop = ms.reduce((s, x) => s + x.iva_soportado, 0); return { trimestre: q, iva_repercutido: rep, iva_soportado: sop, a_ingresar: rep - sop, facturado: ms.reduce((s, x) => s + x.facturado, 0) }; });
+    const totales = meses.reduce((a, x) => ({ ingresos: a.ingresos + x.ingresos, gastos: a.gastos + x.gastos, facturado: a.facturado + x.facturado, iva_repercutido: a.iva_repercutido + x.iva_repercutido, iva_soportado: a.iva_soportado + x.iva_soportado }), { ingresos: 0, gastos: 0, facturado: 0, iva_repercutido: 0, iva_soportado: 0 });
+    res.json({ year, meses, cuentas: cuentas.rows, clientes: clientes.rows, trimestres, totales: { ...totales, resultado: totales.ingresos - totales.gastos, saldo_final: meses[11]?.saldo_final ?? 0 } });
+  } catch (err) { srvErr(res, err); }
+});
+app.post('/api/ops/libros/cierre', auth, async (req, res) => {
+  try {
+    const orgId = req.user.org_id || 1; const year = parseInt(req.body.year), month = parseInt(req.body.month);
+    if (!year || !month || month < 1 || month > 12) return res.status(400).json({ error: 'year y month obligatorios' });
+    const desde = `${year}-${String(month).padStart(2, '0')}-01`, hasta = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+    if (hasta >= new Date().toISOString().slice(0, 10)) return res.status(400).json({ error: 'Solo se puede cerrar un mes ya terminado' });
+    const t = await totalesMes(orgId, year, month, desde, hasta);
+    const { rows } = await pool.query(`INSERT INTO ops.cierres_mensuales (org_id, year, month, ingresos, gastos, iva_repercutido, iva_soportado, facturado, saldo_inicial, saldo_final, n_movimientos, n_facturas, notas, cerrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (org_id, year, month) DO NOTHING RETURNING *`,
+      [orgId, year, month, t.ingresos, t.gastos, t.iva_repercutido, t.iva_soportado, t.facturado, t.saldo_inicial, t.saldo_final, t.n_movimientos, t.n_facturas, req.body.notas || null, req.user.id || null]);
+    if (!rows.length) return res.status(409).json({ error: 'Ese mes ya está cerrado' });
+    res.status(201).json(rows[0]);
+  } catch (err) { srvErr(res, err); }
+});
+app.delete('/api/ops/libros/cierre/:year/:month', auth, async (req, res) => {
+  if (!req.user.roles?.includes('super_admin')) return res.status(403).json({ error: 'Solo super_admin puede reabrir un mes' });
+  try { await pool.query('DELETE FROM ops.cierres_mensuales WHERE org_id=$1 AND year=$2 AND month=$3', [req.user.org_id || 1, req.params.year, req.params.month]); res.json({ ok: true }); }
+  catch (err) { srvErr(res, err); }
+});
+
 // ── START ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`OPS API — puerto ${PORT}`);
   await ensureVisitasTable();
+  await ensureLibrosTable();
 });

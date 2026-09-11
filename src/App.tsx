@@ -19,6 +19,7 @@ import TimeLog from './pages/ops/TimeLog';
 import OpsClients from './pages/ops/OpsClients';
 import OpsVisits from './pages/ops/OpsVisits';
 import OpsVenues from './pages/ops/OpsVenues';
+import Books from './pages/ops/Books';
 import AiAssistant from './pages/ops/AiAssistant';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -63,6 +64,8 @@ function AppRoutes() {
         <Route path="ops/clients" element={<OpsRoute><OpsClients /></OpsRoute>} />
         <Route path="ops/visits" element={<OpsRoute><OpsVisits /></OpsRoute>} />
         <Route path="ops/venues" element={<OpsRoute><OpsVenues /></OpsRoute>} />
+        <Route path="ops/books" element={<OpsRoute><Books /></OpsRoute>} />
+        <Route path="libros" element={<Navigate to="/ops/books" replace />} />
         <Route path="ops/ai" element={<OpsRoute><AiAssistant /></OpsRoute>} />
         {/* Alias en español y cualquier ruta desconocida: nunca una pantalla en blanco */}
         <Route path="cuentas" element={<Navigate to="/accounts" replace />} />
