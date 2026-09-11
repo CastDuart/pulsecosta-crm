@@ -89,6 +89,15 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
   }, [jurisdiccion]);
 
   const cliente = clientes.find(c => c.id === Number(clienteId));
+  // Al elegir cliente, la jurisdicción de IVA sale de su país (ES → España 21 %, EE → Estonia, resto UE → intracomunitario, fuera UE → exento).
+  useEffect(() => {
+    if (!cliente?.pais) return;
+    const p = cliente.pais.trim().toUpperCase();
+    const UE = ['AT','BE','BG','HR','CY','CZ','DK','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','SE'];
+    const next: IvaJurisdiccion = p === 'ES' || p === 'ESPAÑA' || p === 'SPAIN' ? 'spain' : p === 'EE' || p === 'ESTONIA' ? 'estonia' : UE.includes(p) ? 'eu' : 'exento';
+    setJurisdiccion(next);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cliente?.id]);
 
   const subtotal = lineas.reduce((s, l) => s + l.importe, 0);
   const ivaImporte = calcIva(subtotal, ivaRate);
@@ -162,6 +171,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
               { value: 'Transferencia', label: 'Transferencia' },
               { value: 'SEPA', label: 'SEPA' },
               { value: 'Stripe', label: 'Stripe' },
+              { value: 'Revolut', label: 'Revolut' },
               { value: 'Cash', label: 'Efectivo' },
             ]}
           />

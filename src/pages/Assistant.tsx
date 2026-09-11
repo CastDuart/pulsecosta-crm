@@ -106,7 +106,7 @@ export default function Assistant() {
           ✦ {lang === 'es' ? 'Asistente IA' : 'AI Assistant'}
         </h1>
         <p style={{ color: 'var(--gris)', fontSize: '0.82rem', marginTop: 4 }}>
-          {lang === 'es' ? 'Powered by Gemini 2.5 Flash · PulseCosta CRM' : 'Powered by Gemini 2.5 Flash · PulseCosta CRM'}
+          {lang === 'es' ? 'IA local (Spark) · PulseCosta CRM' : 'IA local (Spark) · PulseCosta CRM'}
         </p>
       </div>
 
