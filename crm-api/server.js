@@ -724,7 +724,7 @@ app.get('/api/crm/health', async (_, res) => {
 
 // ── START ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`OmniPulse API v2.0 — puerto ${PORT}`);
+  console.log(`PulseCosta CRM API — puerto ${PORT}`);
   // migrateIfNeeded() DESACTIVADA a propósito (07/08/2026).
   //
   // Copiaba public.crm_* → crm.* en cada arranque del contenedor. Se apaga por

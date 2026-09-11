@@ -738,7 +738,7 @@ CONTEXTO FISCAL:
 - OÜ Estonia: 0% impuesto de sociedades hasta distribución de dividendos
 - Clientes españoles: IVA 21% repercutido
 - Clientes UE (escandinavos): operaciones intracomunitarias B2B (exentas con VAT number) o régimen OSS B2C
-- Registrikood: 17545241 | VAT OÜ: pendiente de confirmar`;
+- Registrikood: 17545241 | VAT: EE103018821`;
 
     const r = await askLLM({ endpoint: 'accountant-report', prompt, gemini });
     res.json({

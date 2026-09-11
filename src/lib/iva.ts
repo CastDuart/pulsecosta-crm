@@ -38,7 +38,7 @@ export function jurisdiccionFromFactura(tipoIva: TipoIva, ivaRate: number): IvaJ
 export function invoiceLegalNoteJurisdiccion(j: IvaJurisdiccion, rate: number): string | null {
   switch (j) {
     case 'eu':
-      return 'Reverse charge – VAT exempt under Art. 44 EU VAT Directive 2006/112/EC. The recipient is liable for VAT declaration and payment in their country.';
+      return 'Reverse charge. No Spanish VAT charged under the B2B place-of-supply rule: Art. 44 Directive 2006/112/EC and, where applicable in Spain, Arts. 69.One.1 and 84.One.2 of Law 37/1992. The recipient must self-account for VAT in its Member State.';
     case 'exento':
       return 'VAT exempt under applicable provisions.';
     case 'spain':
@@ -72,7 +72,7 @@ export function tipoIvaLabel(tipo: TipoIva): string {
 export function invoiceLegalNote(tipo: TipoIva): string | null {
   switch (tipo) {
     case 'intracomunitario':
-      return 'Reverse charge – VAT exempt under Art. 44 EU VAT Directive 2006/112/EC. The recipient is liable for VAT declaration and payment in their country.';
+      return 'Reverse charge. No Spanish VAT charged under the B2B place-of-supply rule: Art. 44 Directive 2006/112/EC and, where applicable in Spain, Arts. 69.One.1 and 84.One.2 of Law 37/1992. The recipient must self-account for VAT in its Member State.';
     case 'exento':
       return 'VAT exempt under applicable provisions.';
     default:
