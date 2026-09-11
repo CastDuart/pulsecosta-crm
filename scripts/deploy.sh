@@ -15,7 +15,7 @@
 set -euo pipefail
 
 REPO="$HOME/GitHub/pulsecosta-crm"
-VPS_HOST="vps-pulse"
+VPS_HOST="${VPS_HOST:-vps-pulse}"
 # Docroot CANÓNICO que sirve nginx (montado como /var/www/crm en el contenedor).
 # NO usar el legacy /opt/pulsecosta/crm — nginx no lo mira (fix 25/08). Es root:
 # rsync via --rsync-path="sudo rsync" y los docker/tar remotos con sudo.
