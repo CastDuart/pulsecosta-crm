@@ -561,11 +561,12 @@ app.put('/api/ops/visitas/:id', auth, async (req, res) => {
 // ── OPS: FACTURAS — número siguiente (preview) ───────────────
 app.get('/api/ops/facturas/next-number', auth, async (req, res) => {
   try {
+    // Misma fuente que ops.next_invoice_number(): el contador anual (las facturas borradas no reutilizan número)
     const year = new Date().getFullYear();
     const { rows: [row] } = await pool.query(
-      `SELECT COALESCE(MAX(CAST(SPLIT_PART(numero,'-',2) AS INTEGER)),0)+1 AS n
-       FROM ops.facturas WHERE numero LIKE $1`,
-      [`${year}-%`]
+      `SELECT GREATEST(COALESCE((SELECT counter FROM ops.invoice_counter WHERE year=$1),0),
+                       COALESCE((SELECT MAX(CAST(SPLIT_PART(numero,'-',2) AS INTEGER)) FROM ops.facturas WHERE numero LIKE $2),0)) + 1 AS n`,
+      [year, `${year}-%`]
     );
     res.json({ numero: `${year}-${String(row.n).padStart(3,'0')}` });
   } catch (err) { srvErr(res, err); }
