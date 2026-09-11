@@ -548,6 +548,19 @@ export default function Invoices() {
             </table>
           )}
 
+          {/* Enlace de pago Revolut (Merchant API): se genera una vez y se guarda en la factura */}
+          {selected.estado !== 'anulada' && selected.estado !== 'cobrada' && (
+            <div style={{ display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginBottom:12,fontSize:12 }}>
+              {selected.enlace_pago
+                ? <><span style={{ color:'var(--muted)' }}>Enlace de pago:</span><a href={selected.enlace_pago} target="_blank" rel="noopener" style={{ color:'var(--teal-tint)',wordBreak:'break-all' }}>{selected.enlace_pago}</a>
+                    <button onClick={() => navigator.clipboard.writeText(selected.enlace_pago!)} style={{ padding:'4px 10px',borderRadius:6,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:11 }}>Copiar</button></>
+                : <button onClick={async () => { try { const r = await apiFetch<{ url: string }>(`/ops/facturas/${selected.id}/enlace-pago`, { method:'POST' }); setSelected({ ...selected, enlace_pago: r.url }); await load(); } catch (e) { alert(String(e)); } }}
+                    style={{ padding:'6px 14px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12 }}>
+                    🏦 Generar enlace de pago (Revolut)
+                  </button>}
+            </div>
+          )}
+
           {/* Transiciones de estado */}
           <div style={{ display:'flex',gap:10,flexWrap:'wrap',borderTop:'1px solid var(--linea)',paddingTop:16 }}>
             {selected.estado === 'borrador' && (

@@ -117,6 +117,7 @@ export interface Factura {
   iva_importe: number; total: number; tipo: TipoFactura;
   intervalo_recurrencia?: IntervaloRecurrencia; estado: EstadoFactura;
   notas?: string; created_at: string; lineas?: FacturaLinea[];
+  enlace_pago?: string | null;
 }
 export type TipoMovimiento = 'ingreso' | 'gasto';
 export interface CajaMovimiento {

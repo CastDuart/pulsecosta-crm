@@ -20,6 +20,7 @@ import OpsClients from './pages/ops/OpsClients';
 import OpsVisits from './pages/ops/OpsVisits';
 import OpsVenues from './pages/ops/OpsVenues';
 import Books from './pages/ops/Books';
+import Bank from './pages/ops/Bank';
 import AiAssistant from './pages/ops/AiAssistant';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,9 @@ function AppRoutes() {
         <Route path="ops/visits" element={<OpsRoute><OpsVisits /></OpsRoute>} />
         <Route path="ops/venues" element={<OpsRoute><OpsVenues /></OpsRoute>} />
         <Route path="ops/books" element={<OpsRoute><Books /></OpsRoute>} />
+        <Route path="ops/bank" element={<OpsRoute><Bank /></OpsRoute>} />
+        <Route path="ops/bank/callback" element={<OpsRoute><Bank /></OpsRoute>} />
+        <Route path="banco" element={<Navigate to="/ops/bank" replace />} />
         <Route path="libros" element={<Navigate to="/ops/books" replace />} />
         <Route path="ops/ai" element={<OpsRoute><AiAssistant /></OpsRoute>} />
         {/* Alias en español y cualquier ruta desconocida: nunca una pantalla en blanco */}

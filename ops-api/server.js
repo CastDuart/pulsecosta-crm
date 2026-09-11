@@ -1110,9 +1110,13 @@ app.delete('/api/ops/libros/cierre/:year/:month', auth, async (req, res) => {
   catch (err) { srvErr(res, err); }
 });
 
+// ── OPS: BANCO (Revolut) ─────────────────────────────────────
+const revolut = require('./revolut')(app, pool, auth);
+
 // ── START ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`OPS API — puerto ${PORT}`);
   await ensureVisitasTable();
   await ensureLibrosTable();
+  try { await revolut.ensureTables(); } catch (e) { console.error('[revolut] ensure tables:', e.message); }
 });

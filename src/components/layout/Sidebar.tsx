@@ -78,6 +78,7 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
             <NavItem to="/ops/invoices" icon="🧾" label={t('ops.nav.invoices')} />
             <NavItem to="/ops/cash" icon="💰" label={t('ops.nav.cash')} />
             <NavItem to="/ops/books" icon="📚" label={t('ops.nav.books')} />
+            <NavItem to="/ops/bank" icon="🏦" label={t('ops.nav.bank')} />
             <NavItem to="/ops/timelog" icon="⏱" label={t('ops.nav.timelog')} />
             <NavItem to="/ops/clients" icon="🏢" label={t('ops.nav.clients')} />
             <NavItem to="/ops/visits" icon="📍" label={t('ops.nav.visits')} />
