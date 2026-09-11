@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLang } from '../context/LangContext';
+import { useLang, type Lang } from '../context/LangContext';
 import { apiFetch } from '../lib/api';
 import type { Account, Activity, Task } from '../types';
 import PlanBadge from '../components/ui/PlanBadge';
@@ -38,15 +38,17 @@ interface UpcomingDemo {
   status: string;
 }
 
-const DEMO_STATUS: Record<string, { label: string; color: string }> = {
-  scheduled:  { label: 'Agendada',   color: 'var(--teal)' },
-  completed:  { label: 'Completada', color: 'var(--verde)' },
-  cancelled:  { label: 'Cancelada',  color: 'var(--rojo)' },
-  no_show:    { label: 'No-show',    color: 'var(--gris)' },
+const LOCALE_BY_LANG: Record<Lang, string> = { es: 'es-ES', en: 'en-GB', fi: 'fi-FI', et: 'et-EE' };
+
+const DEMO_STATUS: Record<string, { key: string; color: string }> = {
+  scheduled:  { key: 'demo.status.scheduled', color: 'var(--teal)' },
+  completed:  { key: 'demo.status.completed', color: 'var(--verde)' },
+  cancelled:  { key: 'demo.status.cancelled', color: 'var(--rojo)' },
+  no_show:    { key: 'demo.status.no_show', color: 'var(--gris)' },
 };
 
 export default function Dashboard() {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [stats, setStats] = useState<DashStats>({ mrr: 0, activeAccounts: 0, totalLeads: 0, pendingTasks: 0 });
@@ -56,7 +58,7 @@ export default function Dashboard() {
   const [upcomingDemos, setUpcomingDemos] = useState<UpcomingDemo[]>([]);
 
   useEffect(() => {
-    const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const today = new Date().toLocaleDateString(LOCALE_BY_LANG[lang], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     document.title = `Dashboard — ${today}`;
     Promise.all([
       apiFetch<DashStats>('/crm/dashboard'),
@@ -75,9 +77,9 @@ export default function Dashboard() {
           .slice(0, 4)
       );
     }).catch(() => {});
-  }, []);
+  }, [lang]);
 
-  const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const today = new Date().toLocaleDateString(LOCALE_BY_LANG[lang], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <>
@@ -116,28 +118,28 @@ export default function Dashboard() {
         {upcomingDemos.length > 0 && (
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div className="card-title">
-              🗓️ Demos próximas — PulseField
+              {t('dash.upcomingDemos')}
               <span style={{ fontSize: '0.7rem', color: 'var(--gris)', fontWeight: 400, marginLeft: 8 }}>
-                {upcomingDemos.length} cita{upcomingDemos.length !== 1 ? 's' : ''} agendada{upcomingDemos.length !== 1 ? 's' : ''}
+                {t('dash.demoCount', { count: upcomingDemos.length })}
               </span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
                   <tr style={{ color: 'var(--gris)', textAlign: 'left' }}>
-                    <th style={{ padding: '6px 10px 6px 0', fontWeight: 500 }}>Fecha y hora</th>
-                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>Local</th>
-                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>Zona</th>
-                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>Comercial</th>
-                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>Estado</th>
+                    <th style={{ padding: '6px 10px 6px 0', fontWeight: 500 }}>{t('dash.dateTime')}</th>
+                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>{t('type.local')}</th>
+                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>{t('label.zone')}</th>
+                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>{t('dash.salesRep')}</th>
+                    <th style={{ padding: '6px 10px', fontWeight: 500 }}>{t('label.status')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {upcomingDemos.map((d) => {
                     const dt = new Date(d.scheduled_at);
-                    const dateStr = dt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
-                    const timeStr = dt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                    const st = DEMO_STATUS[d.status] ?? { label: d.status, color: 'var(--gris)' };
+                    const dateStr = dt.toLocaleDateString(LOCALE_BY_LANG[lang], { weekday: 'short', day: 'numeric', month: 'short' });
+                    const timeStr = dt.toLocaleTimeString(LOCALE_BY_LANG[lang], { hour: '2-digit', minute: '2-digit' });
+                    const st = DEMO_STATUS[d.status] ?? { key: d.status, color: 'var(--gris)' };
                     const isToday = dt.toDateString() === new Date().toDateString();
                     return (
                       <tr
@@ -150,7 +152,7 @@ export default function Dashboard() {
                         <td style={{ padding: '8px 10px 8px 0', whiteSpace: 'nowrap' }}>
                           {isToday && (
                             <span style={{ fontSize: '0.65rem', background: 'var(--naranja)', color: 'var(--ivory)', borderRadius: 3, padding: '1px 5px', marginRight: 5, fontWeight: 700 }}>
-                              HOY
+                              {t('common.today').toUpperCase()}
                             </span>
                           )}
                           <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--texto)' }}>{dateStr}</span>
@@ -164,7 +166,7 @@ export default function Dashboard() {
                             fontSize: '0.68rem', fontWeight: 600, borderRadius: 4,
                             padding: '2px 8px', border: `1px solid ${st.color}`, color: st.color,
                           }}>
-                            {st.label}
+                            {t(st.key)}
                           </span>
                         </td>
                       </tr>
@@ -182,7 +184,7 @@ export default function Dashboard() {
               {t('dash.recentActivity')}
               <span className="card-link" onClick={() => navigate('/activities')}>{t('common.seeAll')}</span>
             </div>
-            {activities.length === 0 && <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>Sin actividad reciente.</p>}
+            {activities.length === 0 && <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>{t('dash.noRecentActivity')}</p>}
             {activities.map(a => {
               const ic = ACTIVITY_ICON[a.type] ?? ACTIVITY_ICON.system;
               return (
@@ -205,7 +207,7 @@ export default function Dashboard() {
               {t('dash.priorityTasks')}
               <span className="card-link" onClick={() => navigate('/tasks')}>{t('common.seeAll')}</span>
             </div>
-            {tasks.length === 0 && <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>Sin tareas pendientes.</p>}
+            {tasks.length === 0 && <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>{t('dash.noPendingTasks')}</p>}
             {tasks.map(task => (
               <div className="task-item" key={task.id}>
                 <div className="task-priority" style={{ background: PRIORITY_COLOR[task.priority] }} />
@@ -247,7 +249,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-            {topAccounts.length === 0 && <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>Sin cuentas en pipeline.</p>}
+            {topAccounts.length === 0 && <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>{t('dash.noPipelineAccounts')}</p>}
           </div>
         </div>
       </div>

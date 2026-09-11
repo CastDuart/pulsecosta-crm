@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useLang } from '../context/LangContext';
+import { useLang, type Lang } from '../context/LangContext';
 import { apiFetch } from '../lib/api';
 import type { Account, Lead, Activity } from '../types';
 import { jsPDF } from 'jspdf';
@@ -13,7 +13,8 @@ type ReportSection = { title: string; headers: string[]; rows: (string | number)
 type ReportData = { title: string; subtitle: string; kpis: { label: string; value: string }[]; sections: ReportSection[] };
 
 const calcMrr = (accounts: Account[]) => accounts.filter(a => a.stage === 'active').reduce((s, a) => s + (a.mrr || 0), 0);
-const eur = (n: number) => `€${Math.round(n).toLocaleString('es-ES')}`;
+const LOCALE_BY_LANG: Record<Lang, string> = { es: 'es-ES', en: 'en-GB', fi: 'fi-FI', et: 'et-EE' };
+const eur = (n: number, lang: Lang) => `€${Math.round(n).toLocaleString(LOCALE_BY_LANG[lang])}`;
 
 // Rango [start, now] según el periodo. 'all' = sin límite.
 function periodStart(period: Period): Date | null {
@@ -36,7 +37,7 @@ function groupCount<T>(items: T[], key: (t: T) => string): [string, number][] {
 }
 
 export default function Reports() {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const [reportType, setReportType] = useState<ReportType>('executive');
   const [period, setPeriod] = useState<Period>('month');
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -66,7 +67,7 @@ export default function Reports() {
     { key: 'month',   label: t('reports.month') },
     { key: 'quarter', label: t('reports.quarter') },
     { key: 'year',    label: t('reports.year') },
-    { key: 'all',     label: 'Todo' },
+    { key: 'all',     label: t('ops.allTime') },
   ], [t]);
 
   const report: ReportData = useMemo(() => {
@@ -93,19 +94,19 @@ export default function Reports() {
           byPlan.set(a.plan, { count: cur.count + 1, mrr: cur.mrr + (a.mrr || 0) });
         });
         return {
-          title: 'Resumen ejecutivo', subtitle: periodLabel,
+          title: t('reports.exec.title'), subtitle: periodLabel,
           kpis: [
-            { label: 'MRR total', value: eur(mrr) },
-            { label: 'Cuentas activas', value: String(activeAccts) },
-            { label: 'Leads activos', value: String(leads.length) },
-            { label: 'Conversión pipeline', value: `${convRate}%` },
+            { label: t('reports.kpi.totalMrr'), value: eur(mrr, lang) },
+            { label: t('dash.activeAccounts'), value: String(activeAccts) },
+            { label: t('dash.activeLeads'), value: String(leads.length) },
+            { label: t('reports.kpi.pipelineConversion'), value: `${convRate}%` },
           ],
           sections: [
-            { title: 'MRR por plan', headers: ['Plan', 'Cuentas', 'MRR'],
-              rows: [...byPlan.entries()].map(([p, v]) => [t(`plan.${p}` as Parameters<typeof t>[0]) || p, v.count, eur(v.mrr)]) },
-            { title: 'Top cuentas · MRR', headers: ['Cuenta', 'Plan', 'MRR/mes'],
+            { title: t('reports.section.mrrByPlan'), headers: [t('label.plan'), t('nav.accounts'), 'MRR'],
+              rows: [...byPlan.entries()].map(([p, v]) => [t(`plan.${p}` as Parameters<typeof t>[0]) || p, v.count, eur(v.mrr, lang)]) },
+            { title: t('reports.section.topAccountsMrr'), headers: [t('nav.accounts'), t('label.plan'), t('reports.mrrMonth')],
               rows: accounts.filter(a => a.mrr > 0).sort((a, b) => b.mrr - a.mrr).slice(0, 10)
-                .map(a => [a.name, t(`plan.${a.plan}` as Parameters<typeof t>[0]) || a.plan, eur(a.mrr)]) },
+                .map(a => [a.name, t(`plan.${a.plan}` as Parameters<typeof t>[0]) || a.plan, eur(a.mrr, lang)]) },
           ],
         };
       }
@@ -113,15 +114,15 @@ export default function Reports() {
         const neg = leads.filter(l => l.stage === 'negotiation').length;
         const interested = leads.filter(l => l.stage === 'interested').length;
         return {
-          title: 'Pipeline y conversión', subtitle: periodLabel,
+          title: t('reports.pipeline.title'), subtitle: periodLabel,
           kpis: [
-            { label: 'Leads totales', value: String(leads.length) },
-            { label: 'En negociación', value: String(neg) },
-            { label: 'Interesados', value: String(interested) },
-            { label: 'Conversión', value: `${convRate}%` },
+            { label: t('reports.kpi.totalLeads'), value: String(leads.length) },
+            { label: t('stage.negotiation'), value: String(neg) },
+            { label: t('stage.interested'), value: String(interested) },
+            { label: t('reports.kpi.conversion'), value: `${convRate}%` },
           ],
           sections: [
-            { title: 'Leads por etapa', headers: ['Etapa', 'Nº'],
+            { title: t('reports.section.leadsByStage'), headers: [t('label.stage'), t('reports.count')],
               rows: groupCount(leads, l => t(`stage.${l.stage}` as Parameters<typeof t>[0]) || l.stage) },
           ],
         };
@@ -129,7 +130,7 @@ export default function Reports() {
       case 'activity': {
         const byType = (ty: string) => actsP.filter(a => a.type === ty).length;
         return {
-          title: 'Actividad comercial', subtitle: periodLabel,
+          title: t('reports.activity.title'), subtitle: periodLabel,
           kpis: [
             { label: t('activity.call'),  value: String(byType('call')) },
             { label: t('activity.email'), value: String(byType('email')) },
@@ -137,40 +138,40 @@ export default function Reports() {
             { label: t('activity.note'),  value: String(byType('note')) },
           ],
           sections: [
-            { title: 'Actividad por agente', headers: ['Agente', 'Actividades'],
+            { title: t('reports.section.activityByAgent'), headers: [t('label.agent'), t('nav.activities')],
               rows: groupCount(actsP, a => a.agent) },
           ],
         };
       }
       case 'leads': {
         return {
-          title: 'Leads y prospección', subtitle: periodLabel,
+          title: t('reports.leads.title'), subtitle: periodLabel,
           kpis: [
-            { label: 'Leads nuevos', value: String(leadsP.length) },
-            { label: 'Contactados', value: String(leads.filter(l => l.stage === 'contacted').length) },
-            { label: 'Interesados', value: String(leads.filter(l => l.stage === 'interested').length) },
-            { label: 'Convertidos', value: String(converted) },
+            { label: t('reports.kpi.newLeads'), value: String(leadsP.length) },
+            { label: t('stage.contacted'), value: String(leads.filter(l => l.stage === 'contacted').length) },
+            { label: t('stage.interested'), value: String(leads.filter(l => l.stage === 'interested').length) },
+            { label: t('stage.converted'), value: String(converted) },
           ],
           sections: [
-            { title: 'Leads por fuente', headers: ['Fuente', 'Nº'], rows: groupCount(leads, l => l.source) },
-            { title: 'Leads por zona', headers: ['Zona', 'Nº'], rows: groupCount(leads, l => l.zone) },
+            { title: t('reports.section.leadsBySource'), headers: [t('label.source'), t('reports.count')], rows: groupCount(leads, l => l.source) },
+            { title: t('reports.section.leadsByZone'), headers: [t('label.zone'), t('reports.count')], rows: groupCount(leads, l => l.zone) },
           ],
         };
       }
       case 'billing': {
         const churn = accounts.filter(a => a.stage === 'churned').reduce((s, a) => s + (a.mrr || 0), 0);
         return {
-          title: 'Facturación y MRR', subtitle: periodLabel,
+          title: t('reports.billing.title'), subtitle: periodLabel,
           kpis: [
-            { label: 'MRR actual', value: eur(mrr) },
-            { label: 'ARR proyectado', value: eur(mrr * 12) },
-            { label: 'Cuentas activas', value: String(activeAccts) },
-            { label: 'Churn (MRR)', value: eur(churn) },
+            { label: t('reports.kpi.currentMrr'), value: eur(mrr, lang) },
+            { label: t('reports.kpi.projectedArr'), value: eur(mrr * 12, lang) },
+            { label: t('dash.activeAccounts'), value: String(activeAccts) },
+            { label: t('reports.kpi.churnMrr'), value: eur(churn, lang) },
           ],
           sections: [
-            { title: 'MRR por cuenta', headers: ['Cuenta', 'MRR/mes', 'ARR'],
+            { title: t('reports.section.mrrByAccount'), headers: [t('nav.accounts'), t('reports.mrrMonth'), 'ARR'],
               rows: accounts.filter(a => a.mrr > 0).sort((a, b) => b.mrr - a.mrr)
-                .map(a => [a.name, eur(a.mrr), eur(a.mrr * 12)]) },
+                .map(a => [a.name, eur(a.mrr, lang), eur(a.mrr * 12, lang)]) },
           ],
         };
       }
@@ -178,35 +179,35 @@ export default function Reports() {
       default: {
         const names = [...new Set([...accounts.map(a => a.assigned_to), ...leads.map(l => l.assigned_to), ...activities.map(a => a.agent)].filter(Boolean))];
         return {
-          title: 'Rendimiento por agente', subtitle: periodLabel,
+          title: t('reports.agents.title'), subtitle: periodLabel,
           kpis: [
-            { label: 'Agentes', value: String(names.length) },
-            { label: 'Cuentas', value: String(accounts.length) },
+            { label: t('reports.agents'), value: String(names.length) },
+            { label: t('nav.accounts'), value: String(accounts.length) },
             { label: 'Leads', value: String(leads.length) },
-            { label: 'Actividades', value: String(actsP.length) },
+            { label: t('nav.activities'), value: String(actsP.length) },
           ],
           sections: [
-            { title: 'Rendimiento por agente', headers: ['Agente', 'Leads', 'Cuentas', 'MRR', 'Activ.'],
+            { title: t('reports.agents.title'), headers: [t('label.agent'), 'Leads', t('nav.accounts'), 'MRR', t('reports.activitiesShort')],
               rows: names.map(n => [
                 n,
                 leads.filter(l => l.assigned_to === n).length,
                 accounts.filter(a => a.assigned_to === n).length,
-                eur(accounts.filter(a => a.assigned_to === n && a.stage === 'active').reduce((s, a) => s + (a.mrr || 0), 0)),
+                eur(accounts.filter(a => a.assigned_to === n && a.stage === 'active').reduce((s, a) => s + (a.mrr || 0), 0), lang),
                 actsP.filter(a => a.agent === n).length,
               ]) },
           ],
         };
       }
     }
-  }, [reportType, period, accounts, leads, activities, PERIODS, t]);
+  }, [reportType, period, accounts, leads, activities, PERIODS, t, lang]);
 
-  const stamp = () => new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const stamp = () => new Date().toLocaleDateString(LOCALE_BY_LANG[lang], { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   function exportPdf() {
     const doc = new jsPDF();
     doc.setFontSize(16); doc.text(`PulseCosta — ${report.title}`, 14, 18);
     doc.setFontSize(10); doc.setTextColor(120);
-    doc.text(`${report.subtitle} · Generado ${stamp()}`, 14, 25);
+    doc.text(`${report.subtitle} · ${t('reports.generated')} ${stamp()}`, 14, 25);
     let y = 34;
     doc.setTextColor(20); doc.setFontSize(11);
     report.kpis.forEach((k, i) => { doc.text(`${k.label}: ${k.value}`, 14 + (i % 2) * 95, y + Math.floor(i / 2) * 7); });
@@ -216,7 +217,7 @@ export default function Reports() {
       autoTable(doc, {
         startY: y + 3,
         head: [sec.headers],
-        body: sec.rows.length ? sec.rows.map(r => r.map(String)) : [['Sin datos', ...Array(sec.headers.length - 1).fill('')]],
+        body: sec.rows.length ? sec.rows.map(r => r.map(String)) : [[t('reports.noData'), ...Array(sec.headers.length - 1).fill('')]],
         styles: { fontSize: 9 }, headStyles: { fillColor: [15, 46, 56] },
       });
       y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
@@ -228,13 +229,13 @@ export default function Reports() {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(report.title.slice(0, 28));
     ws.addRow([`PulseCosta — ${report.title}`]);
-    ws.addRow([`${report.subtitle} · Generado ${stamp()}`]);
+    ws.addRow([`${report.subtitle} · ${t('reports.generated')} ${stamp()}`]);
     ws.addRow([]);
-    ws.addRow(['Indicador', 'Valor']);
+    ws.addRow([t('reports.indicator'), t('reports.value')]);
     report.kpis.forEach(k => ws.addRow([k.label, k.value]));
     report.sections.forEach(sec => {
       ws.addRow([]); ws.addRow([sec.title]); ws.addRow(sec.headers);
-      if (sec.rows.length) sec.rows.forEach(r => ws.addRow(r)); else ws.addRow(['Sin datos']);
+      if (sec.rows.length) sec.rows.forEach(r => ws.addRow(r)); else ws.addRow([t('reports.noData')]);
     });
     ws.columns.forEach(c => { c.width = 22; });
     const buf = await wb.xlsx.writeBuffer();
@@ -282,7 +283,7 @@ export default function Reports() {
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 800 }}>{report.title}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--muted-tint)', marginTop: 2 }}>
-                  {report.subtitle} · {loading ? 'Cargando…' : `Generado ${stamp()}`}
+                  {report.subtitle} · {loading ? t('common.loading') : `${t('reports.generated')} ${stamp()}`}
                 </div>
               </div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.7rem', color: 'var(--muted-tint)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>PulseCosta CRM</div>
@@ -305,7 +306,7 @@ export default function Reports() {
                   <thead><tr>{sec.headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
                   <tbody>
                     {sec.rows.length === 0 ? (
-                      <tr><td colSpan={sec.headers.length} style={{ textAlign: 'center', color: 'var(--gris)', padding: '18px 0' }}>Sin datos en este periodo</td></tr>
+                      <tr><td colSpan={sec.headers.length} style={{ textAlign: 'center', color: 'var(--gris)', padding: '18px 0' }}>{t('reports.noDataPeriod')}</td></tr>
                     ) : sec.rows.map((r, i) => (
                       <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>
                     ))}

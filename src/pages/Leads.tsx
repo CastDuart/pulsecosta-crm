@@ -89,7 +89,7 @@ export default function Leads() {
 
         <div className="card">
           {loading ? (
-            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>Cargando...</p>
+            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>{t('common.loading')}</p>
           ) : (
             <div className="table-wrap">
               <table>
@@ -106,11 +106,11 @@ export default function Leads() {
                 </thead>
                 <tbody>
                   {filtered.map(l => (
-                    <tr key={l.id} onClick={() => setSelected(l)} style={{ cursor: 'pointer' }} title="Abrir ficha">
+                    <tr key={l.id} onClick={() => setSelected(l)} style={{ cursor: 'pointer' }} title={t('common.openRecord')}>
                       <td className="td-name">{l.name}</td>
                       <td>
                         <span className={`badge ${l.type === 'hotel' ? 'badge-purple' : 'badge-teal'}`}>
-                          {l.type === 'hotel' ? 'Hotel' : 'Local'}
+                          {l.type === 'hotel' ? t('type.hotel') : t('type.local')}
                         </span>
                       </td>
                       <td className="zone-tag">{l.zone}</td>
@@ -129,7 +129,7 @@ export default function Leads() {
                   {filtered.length === 0 && (
                     <tr>
                       <td colSpan={7} style={{ textAlign: 'center', color: 'var(--gris)', padding: '24px' }}>
-                        Sin leads registrados
+                        {t('leads.empty')}
                       </td>
                     </tr>
                   )}

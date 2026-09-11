@@ -38,7 +38,7 @@ export default function Activities() {
       <div className="page-content">
         <div className="filter-bar">
           <select className="filter-select">
-            <option>Todos los tipos</option>
+            <option>{t('activity.allTypes')}</option>
             {['call', 'email', 'visit', 'note', 'system'].map(type => (
               <option key={type}>{t(`activity.${type}`)}</option>
             ))}
@@ -57,12 +57,12 @@ export default function Activities() {
 
         <div className="card">
           {loading ? (
-            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>Cargando...</p>
+            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>{t('common.loading')}</p>
           ) : (
             <>
               <div className="card-title">{activities.length} {t('nav.activities').toLowerCase()}</div>
               {activities.length === 0 && (
-                <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>Sin actividades registradas.</p>
+                <p style={{ color: 'var(--gris)', fontSize: '0.82rem' }}>{t('activity.empty')}</p>
               )}
               {activities.map(a => {
                 const ic = ACTIVITY_CONFIG[a.type] ?? ACTIVITY_CONFIG.system;

@@ -51,9 +51,6 @@ function StatCard({ label, value, color, accent, icon }: { label: string; value:
   );
 }
 
-const RESET_CONFIRM = 'Esto BORRARÁ TODOS los datos (clientes, facturas, caja, visitas, jornadas) y reiniciará la numeración a cero.\n\nEsta acción no se puede deshacer. ¿Continuar?';
-const RESET_SUCCESS = 'Todos los datos de prueba eliminados correctamente.';
-
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useLang();
@@ -79,14 +76,14 @@ export default function Dashboard() {
   }, []);
 
   async function handleReset() {
-    if (!window.confirm(RESET_CONFIRM)) return;
+    if (!window.confirm(t('ops.resetConfirm'))) return;
     setResetting(true);
     try {
       await apiFetch('/ops/admin/reset', { method: 'POST' });
-      alert(RESET_SUCCESS);
+      alert(t('ops.resetSuccess'));
       await load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error');
+      alert(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setResetting(false);
     }
@@ -154,7 +151,7 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <StatCard label="Cobrado"   value={formatEur(collected)}   color="var(--verde-text)"   accent="var(--verde)"   icon={<TrendingUp size={28} />} />
+        <StatCard label={t('ops.collected')} value={formatEur(collected)} color="var(--verde-text)" accent="var(--verde)" icon={<TrendingUp size={28} />} />
         <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="var(--naranja-text)" accent="var(--naranja)" icon={<Clock size={28} />} />
         <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="var(--teal-accent)"  accent="var(--teal)"    icon={<Wallet size={28} />} />
         <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="var(--muted)"        accent="var(--gold)"    icon={<BarChart3 size={28} />} />
@@ -195,7 +192,7 @@ export default function Dashboard() {
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{t('ops.vatReport')}</h3>
             <select value={vatQ} onChange={e => setVatQ(e.target.value as QFilter)} style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
               {(['all','Q1','Q2','Q3','Q4'] as QFilter[]).map(q => (
-                <option key={q} value={q}>{q === 'all' ? 'Todos' : q}</option>
+                <option key={q} value={q}>{q === 'all' ? t('ops.allTime') : q}</option>
               ))}
             </select>
           </div>
@@ -247,7 +244,7 @@ export default function Dashboard() {
                   <td style={{ padding: '8px 12px', color: 'var(--muted)' }}>{formatDate(f.fecha_emision)}</td>
                   <td style={{ padding: '8px 12px', color: f.estado === 'vencida' ? 'var(--rojo-text)' : 'var(--muted)' }}>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}</td>
                   <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: 'var(--ink)' }}>{formatEur(f.total)}</td>
-                  <td style={{ padding: '8px 12px' }}><StatusBadge estado={f.estado} /></td>
+                  <td style={{ padding: '8px 12px' }}><StatusBadge estado={f.estado} label={t(`invoice.status.${f.estado}`)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -267,13 +264,13 @@ const STATUS_BADGE_MAP: Record<string, { bg: string; color: string; label: strin
   anulada: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Anulada' },
 };
 
-function StatusBadge({ estado }: { estado: string }) {
+function StatusBadge({ estado, label }: { estado: string; label: string }) {
   const s = STATUS_BADGE_MAP[estado] || STATUS_BADGE_MAP.borrador;
   return (
     <span style={{
       background: s.bg, color: s.color, borderRadius: 20,
       padding: '3px 10px', fontSize: 11, fontWeight: 600,
       fontFamily: 'DM Sans, sans-serif',
-    }}>{s.label}</span>
+    }}>{label || s.label}</span>
   );
 }

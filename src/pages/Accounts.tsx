@@ -71,7 +71,7 @@ export default function Accounts() {
 
         <div className="card">
           {loading ? (
-            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', padding: '24px 0', textAlign: 'center' }}>Cargando...</p>
+            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', padding: '24px 0', textAlign: 'center' }}>{t('common.loading')}</p>
           ) : (
             <div className="table-wrap">
               <table>
@@ -108,7 +108,7 @@ export default function Accounts() {
                     </tr>
                   ))}
                   {filtered.length === 0 && !loading && (
-                    <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--gris)', padding: '24px 0' }}>Sin cuentas</td></tr>
+                    <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--gris)', padding: '24px 0' }}>{t('accounts.empty')}</td></tr>
                   )}
                 </tbody>
               </table>

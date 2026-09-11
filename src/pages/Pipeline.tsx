@@ -54,7 +54,7 @@ export default function Pipeline() {
           <button
             className={`btn ${view === 'list' ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setView('list')}
-          >≡ Lista</button>
+          >≡ {t('pipeline.list')}</button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             {t('btn.newLead')}
           </button>
@@ -63,8 +63,8 @@ export default function Pipeline() {
 
       {openLeads > 0 && (
         <div style={{ margin: '10px 24px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,122,26,0.10)', border: '1px solid rgba(255,122,26,0.30)', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <span>El pipeline muestra <b>cuentas</b>. Tienes <b>{openLeads}</b> leads sin convertir que no aparecen aquí.</span>
-          <Link to="/leads" className="btn btn-ghost" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Ver leads →</Link>
+          <span>{t('pipeline.accountsOnlyPrefix')} <b>{t('nav.accounts').toLowerCase()}</b>. {t('pipeline.openLeads', { count: openLeads })}</span>
+          <Link to="/leads" className="btn btn-ghost" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{t('pipeline.viewLeads')}</Link>
         </div>
       )}
       <div className="page-content" style={{ flex: 1, overflow: 'hidden' }}>

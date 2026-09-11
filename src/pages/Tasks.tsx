@@ -52,7 +52,7 @@ export default function Tasks() {
         </span>
         <div className="topbar-actions">
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            + Tarea
+            {t('tasks.new')}
           </button>
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function Tasks() {
               className={`btn ${filter === f ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setFilter(f)}
             >
-              {f === 'all' ? 'Todas' : f === 'pending' ? 'Pendientes' : 'Completadas'}
+              {f === 'all' ? t('tasks.all') : f === 'pending' ? t('tasks.pending') : t('tasks.completed')}
             </button>
           ))}
           <select className="filter-select">
@@ -79,7 +79,7 @@ export default function Tasks() {
 
         <div className="card">
           {loading ? (
-            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>Cargando...</p>
+            <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>{t('common.loading')}</p>
           ) : (
             <>
               {filtered.map(task => (
@@ -110,7 +110,7 @@ export default function Tasks() {
               ))}
               {filtered.length === 0 && (
                 <p style={{ color: 'var(--gris)', fontSize: '0.82rem', textAlign: 'center', padding: '24px 0' }}>
-                  No hay tareas en esta categoría.
+                  {t('tasks.emptyCategory')}
                 </p>
               )}
             </>
