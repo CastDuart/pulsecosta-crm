@@ -136,6 +136,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
           </label>
           <input
             type="text"
+            aria-label={t('ops.visits.publicSearch')}
             value={venueSearch}
             onChange={e => { setVenueSearch(e.target.value); setShowSug(true); }}
             onFocus={() => setShowSug(true)}
@@ -169,14 +170,14 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
 
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label={`${t('ops.visits.venueCompany')} *`}><input value={f.venue} onChange={set('venue')} required /></Field>
+          <Field label={`${t('ops.visits.venueCompany')} *`}><input aria-label={t('ops.visits.venueCompany')} value={f.venue} onChange={set('venue')} required /></Field>
         </div>
-        <Field label={t('label.city')}><input value={f.ciudad} onChange={set('ciudad')} /></Field>
-        <Field label={t('label.address')}><input value={f.direccion} onChange={set('direccion')} /></Field>
-        <Field label={t('label.contactPerson')}><input value={f.contacto} onChange={set('contacto')} /></Field>
-        <Field label={t('common.phone')}><input value={f.telefono} onChange={set('telefono')} /></Field>
-        <Field label={t('common.email')}><input type="email" value={f.email} onChange={set('email')} /></Field>
-        <Field label="NIF/CIF (VAT)"><input value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" /></Field>
+        <Field label={t('label.city')}><input aria-label={t('label.city')} value={f.ciudad} onChange={set('ciudad')} /></Field>
+        <Field label={t('label.address')}><input aria-label={t('label.address')} value={f.direccion} onChange={set('direccion')} /></Field>
+        <Field label={t('label.contactPerson')}><input aria-label={t('label.contactPerson')} value={f.contacto} onChange={set('contacto')} /></Field>
+        <Field label={t('common.phone')}><input aria-label={t('common.phone')} value={f.telefono} onChange={set('telefono')} /></Field>
+        <Field label={t('common.email')}><input type="email" aria-label={t('common.email')} value={f.email} onChange={set('email')} /></Field>
+        <Field label="NIF/CIF (VAT)"><input aria-label="NIF/CIF (VAT)" value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" /></Field>
       </div>
 
       {/* Visit details */}
@@ -192,7 +193,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
             searchPlaceholder={t('ops.visits.clientSearchPh')}
           />
         </Field>
-        <Field label={t('label.date')}><input type="date" value={f.fecha} onChange={set('fecha')} /></Field>
+        <Field label={t('label.date')}><input type="date" aria-label={t('label.date')} value={f.fecha} onChange={set('fecha')} /></Field>
         <Field label={t('label.plan')}>
           <ChipSelect
             value={f.plan}
@@ -227,10 +228,10 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
             options={[{ value: 'no', label: t('common.no') }, { value: 'yes', label: t('common.yes') }]}
           />
         </Field>
-        <Field label={t('ops.visits.followUpDate')}><input type="date" value={f.fecha_seguimiento} onChange={set('fecha_seguimiento')} /></Field>
-        <Field label={t('ops.visits.nextAction')}><input value={f.proxima_accion} onChange={set('proxima_accion')} /></Field>
+        <Field label={t('ops.visits.followUpDate')}><input type="date" aria-label={t('ops.visits.followUpDate')} value={f.fecha_seguimiento} onChange={set('fecha_seguimiento')} /></Field>
+        <Field label={t('ops.visits.nextAction')}><input aria-label={t('ops.visits.nextAction')} value={f.proxima_accion} onChange={set('proxima_accion')} /></Field>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label={t('label.notes')}><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
+          <Field label={t('label.notes')}><textarea aria-label={t('label.notes')} value={f.notas} onChange={set('notas')} rows={3} /></Field>
         </div>
       </div>
       {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}

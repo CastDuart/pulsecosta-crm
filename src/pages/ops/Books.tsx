@@ -135,11 +135,11 @@ export default function Books() {
             </button>
           ))}
           {tab === 'mensual' && (
-            <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--linea)', background: 'var(--ivory-alt)', color: 'var(--ink)' }}>
+            <select aria-label={t('books.month')} value={month} onChange={e => setMonth(Number(e.target.value))} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--linea)', background: 'var(--ivory-alt)', color: 'var(--ink)' }}>
               {months.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
             </select>
           )}
-          <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--linea)', background: 'var(--ivory-alt)', color: 'var(--ink)' }}>
+          <select aria-label={t('books.year')} value={year} onChange={e => setYear(Number(e.target.value))} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--linea)', background: 'var(--ivory-alt)', color: 'var(--ink)' }}>
             {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>

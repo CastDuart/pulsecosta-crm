@@ -46,6 +46,7 @@ export default function Leads() {
   });
   const sourceOptions = [...new Set(leads.map(l => l.source).filter(Boolean))].sort();
   const stageOptions = [...new Set(leads.map(l => l.stage).filter(Boolean))].sort();
+  const agentOptions = [...new Set(leads.map(l => l.assigned_to).filter(Boolean))].sort();
 
   return (
     <>
@@ -89,8 +90,7 @@ export default function Leads() {
           </select>
           <select className="filter-select" aria-label={t('label.agent')} value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
             <option value="">{t('filter.allAgents')}</option>
-            <option>Cipry</option>
-            <option>Heidi</option>
+            {agentOptions.map(agent => <option key={agent} value={agent}>{agent}</option>)}
           </select>
         </div>
 

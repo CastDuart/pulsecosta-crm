@@ -80,21 +80,21 @@ function ClientForm({
     <form onSubmit={submit}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label={`${t('label.companyName')} *`}><input className="form-input" value={f.nombre} onChange={set('nombre')} required /></Field>
+          <Field label={`${t('label.companyName')} *`}><input className="form-input" aria-label={t('label.companyName')} value={f.nombre} onChange={set('nombre')} required /></Field>
         </div>
-        <Field label={t('label.contactPerson')}><input className="form-input" value={f.contacto} onChange={set('contacto')} /></Field>
+        <Field label={t('label.contactPerson')}><input className="form-input" aria-label={t('label.contactPerson')} value={f.contacto} onChange={set('contacto')} /></Field>
         <Field label="NIF / VAT">
-          <input className="form-input" value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" />
+          <input className="form-input" aria-label="NIF / VAT" value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" />
         </Field>
-        <Field label={t('common.email')}><input className="form-input" type="email" value={f.email} onChange={set('email')} /></Field>
-        <Field label={t('common.phone')}><input className="form-input" value={f.telefono} onChange={set('telefono')} /></Field>
+        <Field label={t('common.email')}><input className="form-input" type="email" aria-label={t('common.email')} value={f.email} onChange={set('email')} /></Field>
+        <Field label={t('common.phone')}><input className="form-input" aria-label={t('common.phone')} value={f.telefono} onChange={set('telefono')} /></Field>
         <div style={{ gridColumn: 'span 2' }}>
           <Field label={t('label.address')}>
-            <input className="form-input" value={f.direccion} onChange={set('direccion')} placeholder={t('ops.clients.addressPh')} />
+            <input className="form-input" aria-label={t('label.address')} value={f.direccion} onChange={set('direccion')} placeholder={t('ops.clients.addressPh')} />
           </Field>
         </div>
-        <Field label={t('label.postalCode')}><input className="form-input" value={f.codigo_postal} onChange={set('codigo_postal')} /></Field>
-        <Field label={t('label.city')}><input className="form-input" value={f.ciudad} onChange={set('ciudad')} /></Field>
+        <Field label={t('label.postalCode')}><input className="form-input" aria-label={t('label.postalCode')} value={f.codigo_postal} onChange={set('codigo_postal')} /></Field>
+        <Field label={t('label.city')}><input className="form-input" aria-label={t('label.city')} value={f.ciudad} onChange={set('ciudad')} /></Field>
         <Field label={t('label.country')}>
           <ChipSelect
             value={f.pais}
@@ -110,7 +110,7 @@ function ClientForm({
           />
         </Field>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label={t('label.notes')}><textarea className="form-input" value={f.notas} onChange={set('notas')} rows={3} style={{ resize: 'vertical' }} /></Field>
+          <Field label={t('label.notes')}><textarea className="form-input" aria-label={t('label.notes')} value={f.notas} onChange={set('notas')} rows={3} style={{ resize: 'vertical' }} /></Field>
         </div>
       </div>
       {err && <div style={{ color: 'var(--rojo-text)', fontSize: 13, marginBottom: 12 }}>{err}</div>}

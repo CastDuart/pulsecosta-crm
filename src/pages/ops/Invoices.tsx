@@ -178,8 +178,8 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
           />
         </Field>
 
-        <Field label={t('invoice.issueDate')}><input type="date" value={fechaEmision} onChange={e => setFechaEmision(e.target.value)} /></Field>
-        <Field label={t('invoice.dueDate')}><input type="date" value={fechaVenc} onChange={e => setFechaVenc(e.target.value)} /></Field>
+        <Field label={t('invoice.issueDate')}><input type="date" aria-label={t('invoice.issueDate')} value={fechaEmision} onChange={e => setFechaEmision(e.target.value)} /></Field>
+        <Field label={t('invoice.dueDate')}><input type="date" aria-label={t('invoice.dueDate')} value={fechaVenc} onChange={e => setFechaVenc(e.target.value)} /></Field>
         <Field label={t('invoice.paymentMethod')}>
           <ChipSelect
             value={metodoPago}
@@ -255,13 +255,13 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
             {lineas.map((l, i) => (
               <tr key={i}>
                 <td style={{ padding:'4px 6px' }}>
-                  <input value={l.descripcion} onChange={e => setLinea(i,'descripcion',e.target.value)} placeholder={t('invoice.serviceDescription')} />
+                  <input value={l.descripcion} aria-label={t('invoice.serviceDescription')} onChange={e => setLinea(i,'descripcion',e.target.value)} placeholder={t('invoice.serviceDescription')} />
                 </td>
                 <td style={{ padding:'4px 6px',width:60 }}>
-                  <input type="number" value={l.cantidad} min={0} onChange={e => setLinea(i,'cantidad',Number(e.target.value))} style={{ width:60 }} />
+                  <input type="number" aria-label={t('invoice.qty')} value={l.cantidad} min={0} onChange={e => setLinea(i,'cantidad',Number(e.target.value))} style={{ width:60 }} />
                 </td>
                 <td style={{ padding:'4px 6px',width:100 }}>
-                  <input type="number" value={l.precio_unitario} min={0} step={0.01} onChange={e => setLinea(i,'precio_unitario',Number(e.target.value))} style={{ width:100 }} />
+                  <input type="number" aria-label={t('invoice.unitPrice')} value={l.precio_unitario} min={0} step={0.01} onChange={e => setLinea(i,'precio_unitario',Number(e.target.value))} style={{ width:100 }} />
                 </td>
                 <td style={{ padding:'4px 6px',width:90,fontFamily:'JetBrains Mono, monospace',color:'var(--ink)',textAlign:'right' }}>
                   {formatEur(l.importe)}
@@ -308,7 +308,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
         )}
       </div>
 
-      <Field label={t('label.notes')}><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder={t('invoice.notesPh')} /></Field>
+      <Field label={t('label.notes')}><textarea aria-label={t('label.notes')} value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder={t('invoice.notesPh')} /></Field>
 
       {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}
       <div style={{ display:'flex',gap:10,justifyContent:'flex-end',marginTop:8 }}>

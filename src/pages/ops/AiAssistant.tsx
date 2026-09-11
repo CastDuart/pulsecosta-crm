@@ -194,10 +194,10 @@ export default function AiAssistant() {
 
         {mode === 'billing' && (<>
           <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{t('aiOps.from')}</label>
-          <input type="date" value={desde} max={today} onChange={e => setDesde(e.target.value)}
+          <input type="date" aria-label={t('aiOps.from')} value={desde} max={today} onChange={e => setDesde(e.target.value)}
             style={inputStyle} />
           <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{t('aiOps.to')}</label>
-          <input type="date" value={hasta} max={today} onChange={e => setHasta(e.target.value)}
+          <input type="date" aria-label={t('aiOps.to')} value={hasta} max={today} onChange={e => setHasta(e.target.value)}
             style={inputStyle} />
           <button onClick={runBilling} disabled={loading} style={btnStyle}>
             {loading ? <Loader2 size={14} className="spin" /> : null}
@@ -221,14 +221,14 @@ export default function AiAssistant() {
 
         {mode === 'accountant' && (<>
           <label style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{t('books.month')}</label>
-          <select value={mes} onChange={e => setMes(Number(e.target.value))} style={inputStyle}>
+          <select aria-label={t('books.month')} value={mes} onChange={e => setMes(Number(e.target.value))} style={inputStyle}>
             {Array.from({ length: 12 }, (_, i) => (
               <option key={i + 1} value={i + 1}>
                 {new Date(2000, i, 1).toLocaleString(LOCALE_BY_LANG[lang], { month: 'long' })}
               </option>
             ))}
           </select>
-          <select value={anio} onChange={e => setAnio(Number(e.target.value))} style={inputStyle}>
+          <select aria-label={t('books.year')} value={anio} onChange={e => setAnio(Number(e.target.value))} style={inputStyle}>
             {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <button onClick={runAccountant} disabled={loading} style={btnStyle}>
@@ -290,6 +290,7 @@ export default function AiAssistant() {
           <input
             style={{ ...inputStyle, flex: 1, fontSize: '0.88rem' }}
             placeholder={t('aiOps.questionPh')}
+            aria-label={t('aiOps.questionPh')}
             value={question}
             onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendHeidi()}

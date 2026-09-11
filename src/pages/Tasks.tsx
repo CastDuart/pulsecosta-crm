@@ -42,6 +42,7 @@ export default function Tasks() {
     });
 
   const pending = tasks.filter(t => !t.done).length;
+  const agentOptions = [...new Set(tasks.map(t => t.assigned_to).filter(Boolean))].sort();
 
   return (
     <>
@@ -74,8 +75,7 @@ export default function Tasks() {
           ))}
           <select className="filter-select" aria-label={t('label.agent')} value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
             <option value="">{t('filter.allAgents')}</option>
-            <option>Cipry</option>
-            <option>Heidi</option>
+            {agentOptions.map(agent => <option key={agent} value={agent}>{agent}</option>)}
           </select>
         </div>
 

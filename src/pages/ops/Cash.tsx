@@ -92,8 +92,8 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
         <div style={{ gridColumn:'span 2' }}>
           <Field label={`${t('ops.cash.concept')} *`}><input value={concepto} onChange={e => setConcepto(e.target.value)} required placeholder={tipo==='ingreso'?t('ops.cash.conceptIncomePh'):t('ops.cash.conceptExpensePh')} /></Field>
         </div>
-        <Field label={`${t('ops.cash.amount')} (€)`}><input type="number" value={importe} onChange={e => setImporte(e.target.value)} min={0} step={0.01} required /></Field>
-        <Field label={t('label.date')}><input type="date" value={fecha} onChange={e => setFecha(e.target.value)} /></Field>
+        <Field label={`${t('ops.cash.amount')} (€)`}><input type="number" aria-label={t('ops.cash.amount')} value={importe} onChange={e => setImporte(e.target.value)} min={0} step={0.01} required /></Field>
+        <Field label={t('label.date')}><input type="date" aria-label={t('label.date')} value={fecha} onChange={e => setFecha(e.target.value)} /></Field>
         <Field label={t('ops.cash.category')}>
           <ChipSelect
             value={categoria}
@@ -157,7 +157,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
           </div>
         </div>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label={t('label.notes')}><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} /></Field>
+          <Field label={t('label.notes')}><textarea aria-label={t('label.notes')} value={notas} onChange={e => setNotas(e.target.value)} rows={2} /></Field>
         </div>
       </div>
 

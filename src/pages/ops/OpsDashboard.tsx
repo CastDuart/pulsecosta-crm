@@ -190,7 +190,7 @@ export default function Dashboard() {
         <div style={{ background: 'var(--ivory-alt)', borderRadius: 12, padding: '20px 24px', border: '1px solid var(--linea)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{t('ops.vatReport')}</h3>
-            <select value={vatQ} onChange={e => setVatQ(e.target.value as QFilter)} style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
+            <select aria-label={t('ops.vatReport')} value={vatQ} onChange={e => setVatQ(e.target.value as QFilter)} style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
               {(['all','Q1','Q2','Q3','Q4'] as QFilter[]).map(q => (
                 <option key={q} value={q}>{q === 'all' ? t('ops.allTime') : q}</option>
               ))}

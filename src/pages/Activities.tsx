@@ -29,7 +29,8 @@ export default function Activities() {
     const d = new Date();
     if (filterPeriod === 'today') d.setHours(0, 0, 0, 0);
     if (filterPeriod === 'week') d.setDate(d.getDate() - 7);
-    if (filterPeriod === 'month') d.setMonth(d.getMonth() - 1);
+    if (filterPeriod === 'month') d.setDate(1);
+    d.setHours(0, 0, 0, 0);
     return d;
   };
   const filtered = activities.filter(a => {
@@ -37,6 +38,7 @@ export default function Activities() {
     if (filterAgent && a.agent !== filterAgent) return false;
     return new Date(a.created_at) >= periodStart();
   });
+  const agentOptions = [...new Set(activities.map(a => a.agent).filter(Boolean))].sort();
 
   return (
     <>
@@ -61,8 +63,7 @@ export default function Activities() {
           </select>
           <select className="filter-select" aria-label={t('label.agent')} value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
             <option value="">{t('filter.allAgents')}</option>
-            <option>Cipry</option>
-            <option>Heidi</option>
+            {agentOptions.map(agent => <option key={agent} value={agent}>{agent}</option>)}
           </select>
           <select className="filter-select" aria-label={t('reports.period')} value={filterPeriod} onChange={e => setFilterPeriod(e.target.value as 'month' | 'week' | 'today')}>
             <option value="month">{t('common.thisMonth')}</option>
