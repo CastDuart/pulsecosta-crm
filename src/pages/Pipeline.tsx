@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '../context/LangContext';
 import { apiFetch } from '../lib/api';
+import { Link } from 'react-router-dom';
+import type { Lead } from '../types';
 import type { Account, PipelineStage } from '../types';
 import PlanBadge from '../components/ui/PlanBadge';
 import NewLeadModal from '../components/ui/NewLeadModal';
@@ -27,6 +29,8 @@ export default function Pipeline() {
   const [showModal, setShowModal] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
+  const [openLeads, setOpenLeads] = useState(0);
+  useEffect(() => { apiFetch<Lead[]>('/crm/leads').then(ls => setOpenLeads(ls.filter(l => l.stage !== 'converted').length)).catch(() => {}); }, []);
   useEffect(() => {
     apiFetch<Account[]>('/crm/accounts').then(setAccounts).catch(() => {});
   }, []);
@@ -57,6 +61,12 @@ export default function Pipeline() {
         </div>
       </div>
 
+      {openLeads > 0 && (
+        <div style={{ margin: '10px 24px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,122,26,0.10)', border: '1px solid rgba(255,122,26,0.30)', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span>El pipeline muestra <b>cuentas</b>. Tienes <b>{openLeads}</b> leads sin convertir que no aparecen aquí.</span>
+          <Link to="/leads" className="btn btn-ghost" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Ver leads →</Link>
+        </div>
+      )}
       <div className="page-content" style={{ flex: 1, overflow: 'hidden' }}>
         {view === 'kanban' ? (
           <div className="kanban-wrap">

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export type Lang = 'es' | 'en' | 'fi' | 'et' | 'sv';
 
@@ -31,7 +31,7 @@ const T: Record<Lang, Record<string, string>> = {
     'stage.contacted': 'Contactado', 'stage.interested': 'Interesado',
     'stage.demo_scheduled': 'Demo agendada', 'stage.proposal_sent': 'Propuesta enviada',
     'stage.negotiation': 'Negociación', 'stage.onboarding_pending': 'Onboarding',
-    'stage.payment_pending': 'Pago pendiente', 'stage.active': 'Activo',
+    'stage.payment_pending': 'Pago pendiente', 'stage.active': 'Activo', 'stage.converted': 'Convertido',
     'stage.at_risk': 'En riesgo', 'stage.churned': 'Churned', 'stage.lost': 'Perdido',
     'plan.premium_local': 'Premium Local', 'plan.pro_bi': 'Pro BI',
     'plan.hotel_analytics': 'Hotel Analytics', 'plan.hotel_elite': 'Hotel Elite',
@@ -111,7 +111,7 @@ const T: Record<Lang, Record<string, string>> = {
     'stage.contacted': 'Contacted', 'stage.interested': 'Interested',
     'stage.demo_scheduled': 'Demo scheduled', 'stage.proposal_sent': 'Proposal sent',
     'stage.negotiation': 'Negotiation', 'stage.onboarding_pending': 'Onboarding',
-    'stage.payment_pending': 'Payment pending', 'stage.active': 'Active',
+    'stage.payment_pending': 'Payment pending', 'stage.active': 'Active', 'stage.converted': 'Converted',
     'stage.at_risk': 'At risk', 'stage.churned': 'Churned', 'stage.lost': 'Lost',
     'plan.premium_local': 'Premium Local', 'plan.pro_bi': 'Pro BI',
     'plan.hotel_analytics': 'Hotel Analytics', 'plan.hotel_elite': 'Hotel Elite',
@@ -221,7 +221,7 @@ const T: Record<Lang, Record<string, string>> = {
     'stage.negotiation': 'Neuvottelu',
     'stage.onboarding_pending': 'Työhön perehdyttäminen',
     'stage.payment_pending': 'Maksu odottaa suoritusta',
-    'stage.active': 'Aktiivinen',
+    'stage.active': 'Aktiivinen', 'stage.converted': 'Muunnettu',
     'stage.at_risk': 'Vaarassa',
     'stage.churned': 'Churned',
     'stage.lost': 'Kadonnut',
@@ -369,7 +369,7 @@ const T: Record<Lang, Record<string, string>> = {
     'stage.negotiation': 'Läbirääkimised',
     'stage.onboarding_pending': 'Uute töötajate sisseelamine',
     'stage.payment_pending': 'Makse on veel tasumata',
-    'stage.active': 'Aktiiv',
+    'stage.active': 'Aktiiv', 'stage.converted': 'Konverteeritud',
     'stage.at_risk': 'Ohustatud',
     'stage.churned': 'Churned',
     'stage.lost': 'Kadunud',
@@ -517,7 +517,7 @@ const T: Record<Lang, Record<string, string>> = {
     'stage.negotiation': 'Förhandling',
     'stage.onboarding_pending': 'Introduktion',
     'stage.payment_pending': 'Utestående betalning',
-    'stage.active': 'Tillgång',
+    'stage.active': 'Tillgång', 'stage.converted': 'Konverterad',
     'stage.at_risk': 'I riskzonen',
     'stage.churned': 'Churned',
     'stage.lost': 'Försvunnen',
@@ -629,6 +629,8 @@ export function LangProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (key: string): string => T[lang][key] ?? T.es[key] ?? key;
+  // El <html lang> sigue al idioma elegido: evita que Chrome ofrezca traducir la app (y traduzca nombres de locales)
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
   return <LangContext.Provider value={{ lang, setLang, t }}>{children}</LangContext.Provider>;
 }

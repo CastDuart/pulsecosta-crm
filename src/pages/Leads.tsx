@@ -4,6 +4,7 @@ import { ZONES } from '../lib/zones';
 import { apiFetch } from '../lib/api';
 import type { Lead } from '../types';
 import NewLeadModal from '../components/ui/NewLeadModal';
+import LeadDrawer from '../components/ui/LeadDrawer';
 import { exportLeadsCsv } from '../lib/csv';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -19,6 +20,7 @@ export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [selected, setSelected] = useState<Lead | null>(null);
   const [search, setSearch] = useState('');
   const [filterZone, setFilterZone] = useState('');
   const [filterAgent, setFilterAgent] = useState('');
@@ -31,6 +33,7 @@ export default function Leads() {
 
   useEffect(() => { fetchLeads(); }, []);
 
+  const zoneOptions = [...new Set([...ZONES, ...leads.map(l => l.zone).filter(Boolean)])];
   const filtered = leads.filter(l => {
     if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterZone && l.zone !== filterZone) return false;
@@ -41,6 +44,7 @@ export default function Leads() {
   return (
     <>
       {showModal && <NewLeadModal onClose={() => { setShowModal(false); fetchLeads(); }} />}
+      {selected && <LeadDrawer lead={selected} onClose={() => setSelected(null)} onSaved={fetchLeads} />}
 
       <div className="topbar">
         <span className="topbar-title">{t('nav.leads')}</span>
@@ -62,7 +66,7 @@ export default function Leads() {
           />
           <select className="filter-select" value={filterZone} onChange={e => setFilterZone(e.target.value)}>
             <option value="">{t('filter.allZones')}</option>
-            {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+            {zoneOptions.map(z => <option key={z} value={z}>{z}</option>)}
           </select>
           <select className="filter-select">
             <option>{t('filter.allSources')}</option>
@@ -102,7 +106,7 @@ export default function Leads() {
                 </thead>
                 <tbody>
                   {filtered.map(l => (
-                    <tr key={l.id}>
+                    <tr key={l.id} onClick={() => setSelected(l)} style={{ cursor: 'pointer' }} title="Abrir ficha">
                       <td className="td-name">{l.name}</td>
                       <td>
                         <span className={`badge ${l.type === 'hotel' ? 'badge-purple' : 'badge-teal'}`}>

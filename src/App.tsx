@@ -64,6 +64,13 @@ function AppRoutes() {
         <Route path="ops/visits" element={<OpsRoute><OpsVisits /></OpsRoute>} />
         <Route path="ops/venues" element={<OpsRoute><OpsVenues /></OpsRoute>} />
         <Route path="ops/ai" element={<OpsRoute><AiAssistant /></OpsRoute>} />
+        {/* Alias en español y cualquier ruta desconocida: nunca una pantalla en blanco */}
+        <Route path="cuentas" element={<Navigate to="/accounts" replace />} />
+        <Route path="tareas" element={<Navigate to="/tasks" replace />} />
+        <Route path="actividades" element={<Navigate to="/activities" replace />} />
+        <Route path="informes" element={<Navigate to="/reports" replace />} />
+        <Route path="localidades" element={<Navigate to="/ops/venues" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );
