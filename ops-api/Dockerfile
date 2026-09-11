@@ -6,5 +6,6 @@ COPY server.js .
 COPY llmClient.js .
 COPY legalKb.js .
 COPY verifactu.js .
+COPY revolut.js .
 EXPOSE 3011
 CMD ["node", "server.js"]
