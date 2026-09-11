@@ -5,14 +5,13 @@ import { formatDate } from '../../lib/iva';
 import { exportVisitasExcel } from '../../lib/excel';
 import { Plus, X, Download, UserCheck } from 'lucide-react';
 import ChipSelect from '../../components/ui/ChipSelect';
+import { useLang } from '../../context/LangContext';
 
 type VisitaEstado = Visita['estado'];
 type VisitaPrioridad = Visita['prioridad'];
 
 const PLANES = ['Premium Local €29/mes', 'Pro BI €59/mes', 'Hotel Analytics €129/mes', 'Hotel Elite €429/mes', 'Other'];
 const ESTADOS: VisitaEstado[] = ['pending', 'follow_up', 'closed', 'lost'];
-const PRIORIDAD_LABEL: Record<VisitaPrioridad, string> = { low:'Baja', medium:'Media', high:'Alta' };
-const ESTADO_LABEL: Record<VisitaEstado, string> = { pending:'Pendiente', follow_up:'Seguimiento', closed:'Cerrada', lost:'Perdida' };
 // [texto, fondo] — el texto va sobre su propio tinte, de ahi las variantes hondas
 const ESTADO_COLOR: Record<VisitaEstado, [string, string]> = {
   pending:   ['var(--naranja-tint)', 'rgba(255,122,26,0.15)'],
@@ -22,12 +21,13 @@ const ESTADO_COLOR: Record<VisitaEstado, [string, string]> = {
 };
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const { t } = useLang();
   return (
     <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
       <div style={{ background:'var(--ivory-alt)',borderRadius:16,padding:32,width:'100%',maxWidth:620,border:'1px solid var(--linea)',maxHeight:'90vh',overflowY:'auto' }}>
         <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
           <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'var(--ink)' }}>{title}</h2>
-          <button onClick={onClose} style={{ background:'none',border:'none',color:'var(--muted)',cursor:'pointer' }}><X size={20}/></button>
+          <button onClick={onClose} aria-label={t('common.close')} style={{ background:'none',border:'none',color:'var(--muted)',cursor:'pointer' }}><X size={20}/></button>
         </div>
         {children}
       </div>
@@ -53,6 +53,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
   initial?: Partial<Visita>; clientes: Cliente[];
   onSave: (d: Partial<Visita>) => Promise<void>; onClose: () => void;
 }) {
+  const { t } = useLang();
   const [f, setF] = useState({
     venue: initial?.venue || '',
     ciudad: initial?.ciudad || '',
@@ -118,20 +119,20 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
         venue_id: f.venue_id || undefined,
       } as Partial<Visita>);
       onClose();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
+    } catch (e) { setErr(e instanceof Error ? e.message : t('common.saveError')); }
     finally { setSaving(false); }
   }
 
   return (
     <form onSubmit={submit}>
       {/* Prospect / Company */}
-      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',marginBottom:12,borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Prospecto / Empresa</div>
+      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',marginBottom:12,borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>{t('ops.visits.prospectSection')}</div>
 
       {/* Typeahead venues públicos (Costa del Sol) */}
       {!f.venue_id ? (
         <div style={{ marginBottom:12, position:'relative' }}>
           <label style={{ fontSize:12,color:'var(--muted)',display:'block',marginBottom:5 }}>
-            Buscar local en base pública (1269 Costa del Sol)
+            {t('ops.visits.publicSearch')}
           </label>
           <input
             type="text"
@@ -139,7 +140,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
             onChange={e => { setVenueSearch(e.target.value); setShowSug(true); }}
             onFocus={() => setShowSug(true)}
             onBlur={() => setTimeout(() => setShowSug(false), 200)}
-            placeholder="Escribe 2+ letras del nombre…"
+            placeholder={t('ops.visits.publicSearchPh')}
             style={{ width:'100%', padding:'10px 12px', background:'var(--ivory)', border:'1px solid var(--linea)', borderRadius:8, color:'var(--ink)', fontSize:14 }}
           />
           {showSug && suggestions.length > 0 && (
@@ -154,89 +155,89 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
             </div>
           )}
           <div style={{ fontSize:11, color:'var(--muted)', marginTop:4 }}>
-            ¿No está en la base? Deja este campo vacío y rellena manualmente abajo (prospect libre).
+            {t('ops.visits.publicSearchHelp')}
           </div>
         </div>
       ) : (
         <div style={{ marginBottom:12, padding:10, background:'rgba(23,129,127,0.10)', border:'1px solid var(--teal-accent)', borderRadius:8, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={{ fontSize:13 }}>
-            <span style={{ color:'var(--teal-accent)', fontWeight:700 }}>Local de base pública:</span> <span style={{ color:'var(--ink)' }}>{f.venue}</span>
+            <span style={{ color:'var(--teal-accent)', fontWeight:700 }}>{t('ops.visits.publicVenue')}</span> <span style={{ color:'var(--ink)' }}>{f.venue}</span>
           </div>
-          <button type="button" onClick={clearVenue} style={{ background:'none', border:'1px solid var(--linea)', color:'var(--muted)', padding:'4px 10px', borderRadius:6, cursor:'pointer', fontSize:12 }}>Cambiar</button>
+          <button type="button" onClick={clearVenue} style={{ background:'none', border:'1px solid var(--linea)', color:'var(--muted)', padding:'4px 10px', borderRadius:6, cursor:'pointer', fontSize:12 }}>{t('ops.visits.changeVenue')}</button>
         </div>
       )}
 
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label="Local / Empresa *"><input value={f.venue} onChange={set('venue')} required /></Field>
+          <Field label={`${t('ops.visits.venueCompany')} *`}><input value={f.venue} onChange={set('venue')} required /></Field>
         </div>
-        <Field label="Ciudad"><input value={f.ciudad} onChange={set('ciudad')} /></Field>
-        <Field label="Dirección"><input value={f.direccion} onChange={set('direccion')} /></Field>
-        <Field label="Persona de contacto"><input value={f.contacto} onChange={set('contacto')} /></Field>
-        <Field label="Teléfono"><input value={f.telefono} onChange={set('telefono')} /></Field>
-        <Field label="Email"><input type="email" value={f.email} onChange={set('email')} /></Field>
+        <Field label={t('label.city')}><input value={f.ciudad} onChange={set('ciudad')} /></Field>
+        <Field label={t('label.address')}><input value={f.direccion} onChange={set('direccion')} /></Field>
+        <Field label={t('label.contactPerson')}><input value={f.contacto} onChange={set('contacto')} /></Field>
+        <Field label={t('common.phone')}><input value={f.telefono} onChange={set('telefono')} /></Field>
+        <Field label={t('common.email')}><input type="email" value={f.email} onChange={set('email')} /></Field>
         <Field label="NIF/CIF (VAT)"><input value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" /></Field>
       </div>
 
       {/* Visit details */}
-      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',margin:'16px 0 12px',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Detalles de la visita</div>
+      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',margin:'16px 0 12px',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>{t('ops.visits.detailsSection')}</div>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
-        <Field label="Cliente existente (opcional — solo para visitas de upsell)">
+        <Field label={t('ops.visits.existingClient')}>
           <ChipSelect
             value={String(f.cliente_id ?? '')}
             onChange={v => setF(p => ({ ...p, cliente_id: v === '' ? '' : Number(v) }))}
             options={clientes.map(c => ({ value: String(c.id), label: c.nombre }))}
             allowEmpty
-            emptyLabel="— Prospecto (nuevo) —"
-            searchPlaceholder="Buscar cliente…"
+            emptyLabel={t('ops.visits.newProspect')}
+            searchPlaceholder={t('ops.visits.clientSearchPh')}
           />
         </Field>
-        <Field label="Fecha"><input type="date" value={f.fecha} onChange={set('fecha')} /></Field>
-        <Field label="Plan">
+        <Field label={t('label.date')}><input type="date" value={f.fecha} onChange={set('fecha')} /></Field>
+        <Field label={t('label.plan')}>
           <ChipSelect
             value={f.plan}
             onChange={v => setF(p => ({ ...p, plan: v }))}
             options={PLANES.map(p => ({ value: p, label: p }))}
             allowEmpty
-            emptyLabel="Seleccionar plan…"
+            emptyLabel={t('ops.visits.selectPlan')}
           />
         </Field>
-        <Field label="Estado">
+        <Field label={t('label.status')}>
           <ChipSelect
             value={f.estado}
             onChange={v => setF(p => ({ ...p, estado: v as VisitaEstado }))}
-            options={ESTADOS.map(e => ({ value: e, label: ESTADO_LABEL[e] }))}
+            options={ESTADOS.map(e => ({ value: e, label: t(`visit.status.${e}`) }))}
           />
         </Field>
-        <Field label="Prioridad">
+        <Field label={t('label.priority')}>
           <ChipSelect
             value={f.prioridad}
             onChange={v => setF(p => ({ ...p, prioridad: v as VisitaPrioridad }))}
             options={[
-              { value: 'low', label: 'Baja' },
-              { value: 'medium', label: 'Media' },
-              { value: 'high', label: 'Alta' },
+              { value: 'low', label: t('priority.low') },
+              { value: 'medium', label: t('priority.medium') },
+              { value: 'high', label: t('priority.high') },
             ]}
           />
         </Field>
-        <Field label="Propuesta enviada">
+        <Field label={t('ops.visits.proposalSent')}>
           <ChipSelect
             value={f.propuesta_enviada ? 'yes' : 'no'}
             onChange={v => setF(p => ({ ...p, propuesta_enviada: v === 'yes' }))}
-            options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Sí' }]}
+            options={[{ value: 'no', label: t('common.no') }, { value: 'yes', label: t('common.yes') }]}
           />
         </Field>
-        <Field label="Fecha de seguimiento"><input type="date" value={f.fecha_seguimiento} onChange={set('fecha_seguimiento')} /></Field>
-        <Field label="Siguiente acción"><input value={f.proxima_accion} onChange={set('proxima_accion')} /></Field>
+        <Field label={t('ops.visits.followUpDate')}><input type="date" value={f.fecha_seguimiento} onChange={set('fecha_seguimiento')} /></Field>
+        <Field label={t('ops.visits.nextAction')}><input value={f.proxima_accion} onChange={set('proxima_accion')} /></Field>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label="Notas"><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
+          <Field label={t('label.notes')}><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
         </div>
       </div>
       {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}
       <div style={{ display:'flex',gap:10,justifyContent:'flex-end',marginTop:8 }}>
-        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancelar</button>
+        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>{t('btn.cancel')}</button>
         <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'var(--pulse)',color:'var(--petrol)',fontWeight:700,cursor:'pointer' }}>
-          {saving ? 'Guardando...' : 'Guardar visita'}
+          {saving ? t('common.saving') : t('ops.visits.save')}
         </button>
       </div>
     </form>
@@ -244,6 +245,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
 }
 
 export default function Visits() {
+  const { t } = useLang();
   const [visitas, setVisitas]         = useState<Visita[]>([]);
   const [clientes, setClientes]       = useState<Cliente[]>([]);
   const [filterEstado, setFilter]     = useState<'all' | VisitaEstado>('all');
@@ -291,9 +293,9 @@ export default function Visits() {
         body: JSON.stringify({ cliente_id: cliente.id }),
       });
       await load();
-      alert(`Cliente "${cliente.nombre}" creado. Ve a Facturas para crear su primera factura.`);
+      alert(t('ops.visits.clientCreated', { name: cliente.nombre }));
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al convertir en cliente');
+      alert(e instanceof Error ? e.message : t('ops.visits.convertError'));
     } finally {
       setConverting(null);
     }
@@ -301,20 +303,20 @@ export default function Visits() {
 
   const filtered = visitas.filter(v => filterEstado === 'all' || v.estado === filterEstado);
 
-  if (loading) return <div style={{ color:'var(--muted)' }}>Cargando...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>{t('common.loading')}</div>;
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
         <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>
-          CRM de visitas <span style={{ fontSize:14,color:'var(--muted)',fontFamily:'DM Sans, sans-serif' }}>({visitas.length})</span>
+          {t('ops.visits.title')} <span style={{ fontSize:14,color:'var(--muted)',fontFamily:'DM Sans, sans-serif' }}>({visitas.length})</span>
         </h1>
         <div style={{ display:'flex',gap:10 }}>
           <button onClick={() => exportVisitasExcel(visitas)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
-            <Download size={14}/> Exportar
+            <Download size={14}/> {t('btn.export')}
           </button>
           <button onClick={() => { setEditVisita(null); setShowModal(true); }} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'var(--pulse)',border:'none',borderRadius:8,color:'var(--petrol)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
-            <Plus size={16}/> Nueva visita
+            <Plus size={16}/> {t('ops.visits.new')}
           </button>
         </div>
       </div>
@@ -327,7 +329,7 @@ export default function Visits() {
             background: filterEstado === e ? 'var(--pulse)' : 'var(--ivory-alt)',
             color: filterEstado === e ? 'var(--petrol)' : 'var(--muted)',
           }}>
-            {e === 'all' ? 'Todas' : ESTADO_LABEL[e]}
+            {e === 'all' ? t('ops.visits.all') : t(`visit.status.${e}`)}
             {e !== 'all' && (
               <span style={{ marginLeft:6,opacity:0.7 }}>
                 ({visitas.filter(v => v.estado === e).length})
@@ -339,7 +341,7 @@ export default function Visits() {
 
       <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
         {filtered.length === 0
-          ? <div style={{ color:'var(--muted)',padding:20 }}>No se han encontrado visitas</div>
+          ? <div style={{ color:'var(--muted)',padding:20 }}>{t('ops.visits.empty')}</div>
           : filtered.map(v => (
           <div key={v.id} style={{ background:'var(--ivory-alt)',borderRadius:12,border:'1px solid var(--linea)',padding:'16px 20px' }}>
             <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
@@ -349,14 +351,14 @@ export default function Visits() {
                   <span style={{
                     background:ESTADO_COLOR[v.estado][1],color:ESTADO_COLOR[v.estado][0],
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
-                  }}>{ESTADO_LABEL[v.estado]}</span>
+                  }}>{t(`visit.status.${v.estado}`)}</span>
                   <span style={{
                     background: v.prioridad==='high'?'rgba(229,72,77,0.15)':v.prioridad==='medium'?'rgba(255,122,26,0.15)':'rgba(15,46,56,0.15)',
                     color: v.prioridad==='high'?'var(--rojo-tint)':v.prioridad==='medium'?'var(--naranja-tint)':'var(--muted-tint)',
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
-                  }}>{PRIORIDAD_LABEL[v.prioridad] ?? v.prioridad}</span>
+                  }}>{t(`priority.${v.prioridad}`)}</span>
                   {v.origen === 'field' && (
-                    <span title="Registrada en PulseField" style={{ background:'rgba(15,46,56,0.10)',color:'var(--muted-tint)',borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:700 }}>
+                    <span title={t('ops.visits.fieldTitle')} style={{ background:'rgba(15,46,56,0.10)',color:'var(--muted-tint)',borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:700 }}>
                       Field{v.agente ? ` · ${v.agente}` : ''}
                     </span>
                   )}
@@ -366,9 +368,9 @@ export default function Visits() {
                   {v.contacto && <span>{v.contacto}</span>}
                   {v.telefono && <span>{v.telefono}</span>}
                   {v.plan && <span style={{ color:'var(--muted)' }}>{v.plan}</span>}
-                  <span>Visita: {formatDate(v.fecha)}</span>
-                  {v.propuesta_enviada && <span style={{ color:'var(--verde-text)' }}>✓ Propuesta enviada</span>}
-                  {v.fecha_seguimiento && <span>Seguimiento: {formatDate(v.fecha_seguimiento)}</span>}
+                  <span>{t('ops.visits.visitDate')}: {formatDate(v.fecha)}</span>
+                  {v.propuesta_enviada && <span style={{ color:'var(--verde-text)' }}>✓ {t('ops.visits.proposalSent')}</span>}
+                  {v.fecha_seguimiento && <span>{t('ops.visits.followUp')}: {formatDate(v.fecha_seguimiento)}</span>}
                 </div>
                 {v.proxima_accion && (
                   <div style={{ marginTop:6,fontSize:12,color:'var(--teal-tint)' }}>→ {v.proxima_accion}</div>
@@ -377,7 +379,7 @@ export default function Visits() {
                   <div style={{ marginTop:4,fontSize:12,color:'var(--muted)',fontStyle:'italic' }}>{v.notas}</div>
                 )}
                 {v.cliente_nombre && (
-                  <div style={{ marginTop:6,fontSize:12,color:'var(--verde-text)' }}>Cliente: {v.cliente_nombre}</div>
+                  <div style={{ marginTop:6,fontSize:12,color:'var(--verde-text)' }}>{t('ops.visits.client')}: {v.cliente_nombre}</div>
                 )}
               </div>
               <div style={{ display:'flex',gap:8,flexShrink:0,marginLeft:16 }}>
@@ -393,14 +395,14 @@ export default function Visits() {
                     }}
                   >
                     <UserCheck size={14}/>
-                    {converting === v.id ? 'Convirtiendo...' : 'Convertir en cliente'}
+                    {converting === v.id ? t('ops.visits.converting') : t('ops.visits.convertToClient')}
                   </button>
                 )}
                 {v.origen !== 'field' && <button
                   onClick={() => { setEditVisita(v); setShowModal(true); }}
                   style={{ padding:'7px 14px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12 }}
                 >
-                  Editar
+                  {t('btn.edit')}
                 </button>}
               </div>
             </div>
@@ -409,7 +411,7 @@ export default function Visits() {
       </div>
 
       {showModal && (
-        <Modal title={editVisita ? 'Editar visita' : 'Nueva visita'} onClose={() => setShowModal(false)}>
+        <Modal title={editVisita ? t('ops.visits.edit') : t('ops.visits.new')} onClose={() => setShowModal(false)}>
           <VisitaForm initial={editVisita || undefined} clientes={clientes} onSave={saveVisita} onClose={() => setShowModal(false)} />
         </Modal>
       )}
