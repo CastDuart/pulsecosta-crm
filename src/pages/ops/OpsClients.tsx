@@ -4,11 +4,12 @@ import type { Cliente, Factura, Visita } from '../../types';
 import { formatEur, formatDate } from '../../lib/iva';
 import { Plus, X, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import ChipSelect from '../../components/ui/ChipSelect';
+import { useLang } from '../../context/LangContext';
 
-const VISITA_ESTADO_LABEL: Record<Visita['estado'], string> = { pending:'Pendiente', follow_up:'Seguimiento', closed:'Cerrada', lost:'Perdida' };
 const PAISES = ['Estonia','Spain','Finland','Germany','France','Netherlands','Sweden','Portugal','Italy','Belgium','Austria','Other'];
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const { t } = useLang();
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100,
@@ -21,7 +22,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{title}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label={t('common.close')} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>
@@ -47,6 +48,7 @@ function ClientForm({
   onSave: (data: Partial<Cliente>) => Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useLang();
   const [f, setF] = useState({
     nombre: initial?.nombre || '',
     contacto: initial?.contacto || '',
@@ -67,7 +69,7 @@ function ClientForm({
     e.preventDefault();
     setSaving(true); setErr('');
     try { await onSave(f); onClose(); }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
+    catch (e) { setErr(e instanceof Error ? e.message : t('common.saveError')); }
     finally { setSaving(false); }
   }
 
@@ -78,29 +80,29 @@ function ClientForm({
     <form onSubmit={submit}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label="Empresa / Nombre *"><input className="form-input" value={f.nombre} onChange={set('nombre')} required /></Field>
+          <Field label={`${t('label.companyName')} *`}><input className="form-input" value={f.nombre} onChange={set('nombre')} required /></Field>
         </div>
-        <Field label="Persona de contacto"><input className="form-input" value={f.contacto} onChange={set('contacto')} /></Field>
+        <Field label={t('label.contactPerson')}><input className="form-input" value={f.contacto} onChange={set('contacto')} /></Field>
         <Field label="NIF / VAT">
           <input className="form-input" value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" />
         </Field>
-        <Field label="Email"><input className="form-input" type="email" value={f.email} onChange={set('email')} /></Field>
-        <Field label="Teléfono"><input className="form-input" value={f.telefono} onChange={set('telefono')} /></Field>
+        <Field label={t('common.email')}><input className="form-input" type="email" value={f.email} onChange={set('email')} /></Field>
+        <Field label={t('common.phone')}><input className="form-input" value={f.telefono} onChange={set('telefono')} /></Field>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label="Dirección">
-            <input className="form-input" value={f.direccion} onChange={set('direccion')} placeholder="Calle y número" />
+          <Field label={t('label.address')}>
+            <input className="form-input" value={f.direccion} onChange={set('direccion')} placeholder={t('ops.clients.addressPh')} />
           </Field>
         </div>
-        <Field label="Código postal"><input className="form-input" value={f.codigo_postal} onChange={set('codigo_postal')} /></Field>
-        <Field label="Ciudad"><input className="form-input" value={f.ciudad} onChange={set('ciudad')} /></Field>
-        <Field label="País">
+        <Field label={t('label.postalCode')}><input className="form-input" value={f.codigo_postal} onChange={set('codigo_postal')} /></Field>
+        <Field label={t('label.city')}><input className="form-input" value={f.ciudad} onChange={set('ciudad')} /></Field>
+        <Field label={t('label.country')}>
           <ChipSelect
             value={f.pais}
             onChange={v => setF(p => ({ ...p, pais: v }))}
             options={PAISES.map(p => ({ value: p, label: p }))}
           />
         </Field>
-        <Field label="Tipo">
+        <Field label={t('label.type')}>
           <ChipSelect
             value={f.tipo_cliente}
             onChange={v => setF(p => ({ ...p, tipo_cliente: v as 'b2b' | 'b2c' }))}
@@ -108,14 +110,14 @@ function ClientForm({
           />
         </Field>
         <div style={{ gridColumn: 'span 2' }}>
-          <Field label="Notas"><textarea className="form-input" value={f.notas} onChange={set('notas')} rows={3} style={{ resize: 'vertical' }} /></Field>
+          <Field label={t('label.notes')}><textarea className="form-input" value={f.notas} onChange={set('notas')} rows={3} style={{ resize: 'vertical' }} /></Field>
         </div>
       </div>
       {err && <div style={{ color: 'var(--rojo-text)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-        <button type="button" onClick={onClose} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--linea)', background: 'none', color: 'var(--muted)', cursor: 'pointer' }}>Cancelar</button>
+        <button type="button" onClick={onClose} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--linea)', background: 'none', color: 'var(--muted)', cursor: 'pointer' }}>{t('btn.cancel')}</button>
         <button type="submit" disabled={saving} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'var(--pulse)', color: 'var(--petrol)', fontWeight: 700, cursor: 'pointer' }}>
-          {saving ? 'Guardando...' : 'Guardar cliente'}
+          {saving ? t('common.saving') : t('ops.clients.save')}
         </button>
       </div>
     </form>
@@ -126,6 +128,7 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
   cliente: Cliente; facturas: Factura[]; visitas: Visita[]; onEdit: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useLang();
   const clientFacturas = facturas.filter(f => f.cliente_id === cliente.id);
   const clientVisitas  = visitas.filter(v => v.cliente_id === cliente.id);
   const openBalance = clientFacturas
@@ -150,14 +153,14 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {openBalance > 0 && (
             <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: 'var(--naranja-text)', fontWeight: 700 }}>
-              Pendiente: {formatEur(openBalance)}
+              {t('ops.clients.pending')}: {formatEur(openBalance)}
             </span>
           )}
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>
             <FileText size={12} style={{ display: 'inline', marginRight: 4 }} />
             {clientFacturas.length}
           </span>
-          <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: '1px solid var(--linea)', borderRadius: 6, padding: '4px 10px', color: 'var(--muted)', cursor: 'pointer', fontSize: 12 }}>Editar</button>
+          <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: '1px solid var(--linea)', borderRadius: 6, padding: '4px 10px', color: 'var(--muted)', cursor: 'pointer', fontSize: 12 }}>{t('ops.clients.edit')}</button>
           {expanded ? <ChevronUp size={16} color="var(--muted)" /> : <ChevronDown size={16} color="var(--muted)" />}
         </div>
       </div>
@@ -167,9 +170,9 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             {/* Invoice history */}
             <div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Historial de facturas</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>{t('ops.clients.invoiceHistory')}</div>
               {clientFacturas.length === 0
-                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Sin facturas</div>
+                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('ops.noInvoices')}</div>
                 : clientFacturas.slice(0, 5).map(f => (
                   <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid var(--linea)' }}>
                     <span style={{ color: 'var(--naranja-text)', fontFamily: 'JetBrains Mono, monospace' }}>{f.numero}</span>
@@ -181,14 +184,14 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
             </div>
             {/* Visit history */}
             <div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Historial de visitas</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>{t('ops.clients.visitHistory')}</div>
               {clientVisitas.length === 0
-                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Sin visitas</div>
+                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('ops.clients.noVisits')}</div>
                 : clientVisitas.slice(0, 5).map(v => (
                   <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid var(--linea)' }}>
                     <span style={{ color: 'var(--ink)' }}>{formatDate(v.fecha)}</span>
                     <span style={{ color: 'var(--muted)' }}>{v.venue}</span>
-                    <span style={{ color: v.estado === 'closed' ? 'var(--verde-text)' : 'var(--teal-accent)' }}>{VISITA_ESTADO_LABEL[v.estado] ?? v.estado}</span>
+                    <span style={{ color: v.estado === 'closed' ? 'var(--verde-text)' : 'var(--teal-accent)' }}>{t(`visit.status.${v.estado}`)}</span>
                   </div>
                 ))
               }
@@ -209,6 +212,7 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
 }
 
 export default function Clients() {
+  const { t } = useLang();
   const [clientes, setClientes]     = useState<Cliente[]>([]);
   const [facturas, setFacturas]     = useState<Factura[]>([]);
   const [visitas, setVisitas]       = useState<Visita[]>([]);
@@ -240,32 +244,32 @@ export default function Clients() {
     c.vat_number?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return <div style={{ color: 'var(--muted)' }}>Cargando...</div>;
+  if (loading) return <div style={{ color: 'var(--muted)' }}>{t('common.loading')}</div>;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
-          Clientes <span style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>({clientes.length})</span>
+          {t('ops.clients.title')} <span style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>({clientes.length})</span>
         </h1>
         <button onClick={() => { setEditClient(null); setShowModal(true); }} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px',
           background: 'var(--pulse)', border: 'none', borderRadius: 8,
           color: 'var(--petrol)', fontWeight: 700, cursor: 'pointer', fontSize: 14,
         }}>
-          <Plus size={16} /> Nuevo cliente
+          <Plus size={16} /> {t('ops.clients.new')}
         </button>
       </div>
 
       <input
         value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="Buscar por nombre, ciudad o NIF/CIF..."
+        placeholder={t('ops.clients.searchPh')}
         style={{ marginBottom: 16, maxWidth: 360 }}
       />
 
       <div>
         {filtered.length === 0
-          ? <div style={{ color: 'var(--muted)', padding: 20 }}>No se han encontrado clientes</div>
+          ? <div style={{ color: 'var(--muted)', padding: 20 }}>{t('ops.clients.empty')}</div>
           : filtered.map(c => (
             <ClientCard
               key={c.id} cliente={c} facturas={facturas} visitas={visitas}
@@ -276,7 +280,7 @@ export default function Clients() {
       </div>
 
       {showModal && (
-        <Modal title={editClient ? 'Editar cliente' : 'Nuevo cliente'} onClose={() => setShowModal(false)}>
+        <Modal title={editClient ? t('ops.clients.edit') : t('ops.clients.new')} onClose={() => setShowModal(false)}>
           <ClientForm initial={editClient || undefined} onSave={saveClient} onClose={() => setShowModal(false)} />
         </Modal>
       )}
