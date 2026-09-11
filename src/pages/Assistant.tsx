@@ -181,7 +181,7 @@ export default function Assistant() {
         ))}
         {loading && (
           <div style={{ color: 'var(--gris)', fontSize: '0.85rem', padding: '12px 20px' }}>
-            ⟳ {lang === 'es' ? 'Analizando con Gemini...' : 'Analysing with Gemini...'}
+            ⟳ {lang === 'es' ? 'Analizando con IA local (Spark)...' : 'Analysing with local AI (Spark)...'}
           </div>
         )}
       </div>

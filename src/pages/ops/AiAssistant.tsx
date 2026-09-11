@@ -12,20 +12,59 @@ interface Message {
 
 function MarkdownText({ text }: { text: string }) {
   const lines = text.split('\n');
-  return (
-    <div style={{ lineHeight: 1.7, fontSize: '0.88rem', color: 'var(--ink)' }}>
-      {lines.map((line, i) => {
-        const cleaned = line
-          .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-          .replace(/\*(.+?)\*/g, '<i>$1</i>');
-        if (line.startsWith('# '))  return <h2 key={i} style={{ color: 'var(--naranja-text)', marginTop: 16, fontSize: '1rem', fontFamily: 'Syne, sans-serif' }}>{line.slice(2)}</h2>;
-        if (line.startsWith('## ')) return <h3 key={i} style={{ color: 'var(--naranja-text)', marginTop: 12, fontSize: '0.92rem', fontFamily: 'Syne, sans-serif' }}>{line.slice(3)}</h3>;
-        if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} style={{ paddingLeft: 16, marginTop: 4 }}>• <span dangerouslySetInnerHTML={{ __html: cleaned.slice(2) }} /></div>;
-        if (line.trim() === '') return <div key={i} style={{ height: 8 }} />;
-        return <div key={i} dangerouslySetInnerHTML={{ __html: cleaned }} />;
-      })}
-    </div>
-  );
+  const inline = (line: string) => line
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/\*(.+?)\*/g, '<i>$1</i>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+  const out: React.ReactNode[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const t = line.trim();
+    // Tablas markdown: | a | b |
+    if (t.startsWith('|')) {
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        const cells = lines[i].trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+        if (!cells.every(c => /^:?-{2,}:?$/.test(c))) rows.push(cells);
+        i++;
+      }
+      i--;
+      out.push(
+        <div key={`t${i}`} style={{ overflowX: 'auto', margin: '8px 0' }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: 280 }}>
+            <tbody>
+              {rows.map((r, ri) => (
+                <tr key={ri} style={{ background: ri === 0 ? 'rgba(0,0,0,0.05)' : 'transparent' }}>
+                  {r.map((c, ci) => ri === 0
+                    ? <th key={ci} style={{ textAlign: 'left', padding: '6px 10px', borderBottom: '1px solid var(--border, #ddd)' }} dangerouslySetInnerHTML={{ __html: inline(c) }} />
+                    : <td key={ci} style={{ padding: '5px 10px', borderBottom: '1px solid rgba(0,0,0,0.06)' }} dangerouslySetInnerHTML={{ __html: inline(c) }} />)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+    if (/^-{3,}$/.test(t) || /^\*{3,}$/.test(t)) { out.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid rgba(0,0,0,0.1)', margin: '10px 0' }} />); continue; }
+    const h = t.match(/^(#{1,4})\s+(.*)$/);
+    if (h) {
+      const lvl = h[1].length;
+      const style = { color: 'var(--naranja-text)', marginTop: lvl <= 2 ? 16 : 12, marginBottom: 4, fontSize: lvl === 1 ? '1rem' : lvl === 2 ? '0.95rem' : '0.9rem', fontFamily: 'Syne, sans-serif' };
+      out.push(lvl <= 2 ? <h3 key={i} style={style} dangerouslySetInnerHTML={{ __html: inline(h[2]) }} /> : <h4 key={i} style={style} dangerouslySetInnerHTML={{ __html: inline(h[2]) }} />);
+      continue;
+    }
+    const li = t.match(/^[-*•]\s+(.*)$/) || t.match(/^(\d+)[.)]\s+(.*)$/);
+    if (li) {
+      const body = li.length === 3 ? `${li[1]}. ${li[2]}` : `• ${li[1]}`;
+      out.push(<div key={i} style={{ paddingLeft: 16 + (line.length - line.trimStart().length) * 4, marginTop: 4 }} dangerouslySetInnerHTML={{ __html: inline(body) }} />);
+      continue;
+    }
+    if (t === '') { out.push(<div key={i} style={{ height: 8 }} />); continue; }
+    out.push(<div key={i} dangerouslySetInnerHTML={{ __html: inline(line) }} />);
+  }
+  return <div style={{ lineHeight: 1.7, fontSize: '0.88rem', color: 'var(--ink)' }}>{out}</div>;
 }
 
 const MODES: { id: Mode; icon: React.ComponentType<{ size?: number }>; labelEs: string; labelEn: string; descEs: string; descEn: string }[] = [
@@ -239,7 +278,7 @@ export default function AiAssistant() {
         {loading && (
           <div style={{ color: 'var(--muted)', fontSize: '0.85rem', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            {isEs ? 'Analizando con Gemini...' : 'Analysing with Gemini...'}
+            {isEs ? 'Analizando con IA local (Spark)...' : 'Analysing with local AI (Spark)...'}
           </div>
         )}
       </div>
