@@ -103,6 +103,10 @@ export default function Campaigns() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [listLimit, setListLimit] = useState(LIST_STEP);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [campaignQueue, setCampaignQueue] = useState<Recipient[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState(TEMPLATES.whatsapp.subject);
   const [body, setBody] = useState(TEMPLATES.whatsapp.body);
   const [loading, setLoading] = useState(true);
@@ -175,6 +179,9 @@ export default function Campaigns() {
   const allDisplayedSelected = displayed.length > 0 && selectedDisplayed.length === displayed.length;
   const allVisibleSelected = visible.length > 0 && selected.length === visible.length;
   const preview = fillTemplate(body, selected[0] || visible[0]);
+  const activeRecipient = campaignQueue[queueIndex];
+  const queueDone = sentIds.size + skippedIds.size;
+  const queueFinished = campaignQueue.length > 0 && queueDone >= campaignQueue.length;
 
   const toggleDisplayed = () => {
     if (allDisplayedSelected) {
@@ -210,6 +217,8 @@ export default function Campaigns() {
     return `https://wa.me/${cleanPhone(r.phone)}?${params.toString()}`;
   };
 
+  const recipientHref = (r: Recipient) => (channel === 'email' ? emailHref(r) : whatsappHref(r));
+
   const exportCsv = () => {
     const rows = selected.length ? selected : visible;
     const csv = [
@@ -228,6 +237,7 @@ export default function Campaigns() {
     setZoneFilter('');
     setCategoryFilter('');
     setSelectedIds(new Set());
+    setCampaignQueue([]);
   };
 
   const changeChannel = (next: Channel) => {
@@ -236,6 +246,7 @@ export default function Campaigns() {
     setBody(TEMPLATES[next].body);
     setListLimit(LIST_STEP);
     setSelectedIds(new Set());
+    setCampaignQueue([]);
   };
 
   const changeSearch = (next: string) => {
@@ -247,12 +258,52 @@ export default function Campaigns() {
     setZoneFilter(next);
     setListLimit(LIST_STEP);
     setSelectedIds(new Set());
+    setCampaignQueue([]);
   };
 
   const changeCategory = (next: string) => {
     setCategoryFilter(next);
     setListLimit(LIST_STEP);
     setSelectedIds(new Set());
+    setCampaignQueue([]);
+  };
+
+  const startAssistedCampaign = () => {
+    if (!selected.length) {
+      setStatus('Selecciona destinatarios antes de iniciar la campaña');
+      return;
+    }
+    setCampaignQueue(selected);
+    setQueueIndex(0);
+    setSentIds(new Set());
+    setSkippedIds(new Set());
+    setStatus(`Campaña preparada con ${selected.length} destinatarios`);
+  };
+
+  const advanceQueue = (outcome: 'sent' | 'skipped') => {
+    const current = campaignQueue[queueIndex];
+    if (!current) return;
+    const nextSent = new Set(sentIds);
+    const nextSkipped = new Set(skippedIds);
+    if (outcome === 'sent') nextSent.add(current.id);
+    else nextSkipped.add(current.id);
+    setSentIds(nextSent);
+    setSkippedIds(nextSkipped);
+
+    const nextIndex = queueIndex + 1;
+    setQueueIndex(Math.min(nextIndex, campaignQueue.length));
+    setStatus(
+      nextIndex >= campaignQueue.length
+        ? `Campaña revisada: ${nextSent.size} enviados, ${nextSkipped.size} saltados`
+        : `${nextSent.size} enviados · ${nextSkipped.size} saltados`
+    );
+  };
+
+  const resetAssistedCampaign = () => {
+    setCampaignQueue([]);
+    setQueueIndex(0);
+    setSentIds(new Set());
+    setSkippedIds(new Set());
   };
 
   const addManualRecipient = () => {
@@ -395,6 +446,53 @@ export default function Campaigns() {
             </div>
 
             {status && <div className="campaign-status">{status}</div>}
+            <div className="campaign-assistant">
+              <div className="campaign-assistant-head">
+                <div>
+                  <strong>Envío asistido</strong>
+                  <span>
+                    {campaignQueue.length
+                      ? `${queueDone} de ${campaignQueue.length} revisados`
+                      : 'Selecciona contactos y trabaja uno a uno.'}
+                  </span>
+                </div>
+                <button className="btn btn-primary" onClick={startAssistedCampaign} disabled={!selected.length}>
+                  Iniciar
+                </button>
+              </div>
+
+              {campaignQueue.length > 0 && (
+                <div className="campaign-current">
+                  {queueFinished ? (
+                    <div>
+                      <strong>Campaña revisada</strong>
+                      <span>{sentIds.size} enviados · {skippedIds.size} saltados</span>
+                    </div>
+                  ) : activeRecipient ? (
+                    <>
+                      <div>
+                        <strong>{activeRecipient.name}</strong>
+                        <span>{activeRecipient.source}{activeRecipient.zone ? ` · ${activeRecipient.zone}` : ''}</span>
+                      </div>
+                      <div className="campaign-current-actions">
+                        <a
+                          className="btn btn-primary"
+                          href={recipientHref(activeRecipient)}
+                          target={channel === 'email' ? undefined : '_blank'}
+                          rel={channel === 'email' ? undefined : 'noopener noreferrer'}
+                        >
+                          {channel === 'email' ? <Mail size={15} /> : <Send size={15} />}
+                          Abrir
+                        </a>
+                        <button className="btn btn-ghost" onClick={() => advanceQueue('sent')}>Marcar enviado</button>
+                        <button className="btn btn-ghost" onClick={() => advanceQueue('skipped')}>Saltar</button>
+                      </div>
+                    </>
+                  ) : null}
+                  <button className="btn btn-ghost" onClick={resetAssistedCampaign}>Reiniciar</button>
+                </div>
+              )}
+            </div>
             {loading && <div className="campaign-empty">Cargando contactos...</div>}
             {!loading && !visible.length && <div className="campaign-empty">No hay contactos disponibles para este canal.</div>}
 
@@ -410,7 +508,7 @@ export default function Campaigns() {
                   </label>
                   <a
                     className="icon-action"
-                    href={channel === 'email' ? emailHref(r) : whatsappHref(r)}
+                    href={recipientHref(r)}
                     target={channel === 'email' ? undefined : '_blank'}
                     rel={channel === 'email' ? undefined : 'noopener noreferrer'}
                     title={channel === 'email' ? 'Abrir email' : 'Abrir WhatsApp'}

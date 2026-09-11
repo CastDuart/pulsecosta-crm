@@ -834,6 +834,57 @@ tr:hover td { background: rgba(255,122,26,0.03); }
   font-size: 0.82rem;
   font-weight: 600;
 }
+.campaign-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(15,46,56,0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(255,122,26,0.06);
+}
+.campaign-assistant-head,
+.campaign-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.campaign-assistant-head > div,
+.campaign-current > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.campaign-assistant strong,
+.campaign-current strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.campaign-assistant span,
+.campaign-current span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.campaign-current {
+  align-items: flex-start;
+  border-top: 1px solid rgba(15,46,56,0.10);
+  padding-top: 10px;
+}
+.campaign-current-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .campaign-empty {
   padding: 22px 12px;
   color: var(--muted);
@@ -1066,6 +1117,18 @@ tr:hover td { background: rgba(255,122,26,0.03); }
   }
   .campaign-selection-actions .btn {
     flex: 1 1 170px;
+    justify-content: center;
+  }
+  .campaign-assistant-head,
+  .campaign-current {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .campaign-current-actions {
+    justify-content: stretch;
+  }
+  .campaign-current-actions .btn {
+    flex: 1 1 150px;
     justify-content: center;
   }
   .recipient-list { max-height: none; }
