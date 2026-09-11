@@ -228,7 +228,7 @@ app.post('/api/ops/facturas', auth, async (req, res) => {
 
 app.put('/api/ops/facturas/:id', auth, async (req, res) => {
   // Enum canónico REAL de la BD (ops.facturas.estado CHECK): español.
-  const VALID_ESTADOS = ['borrador','enviada','cobrada','vencida'];
+  const VALID_ESTADOS = ['borrador','enviada','cobrada','vencida','anulada'];
   if (req.body.estado !== undefined && !VALID_ESTADOS.includes(req.body.estado))
     return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${VALID_ESTADOS.join(', ')}` });
   const allowed = ['estado','fecha_vencimiento','metodo_pago','tipo_iva','iva_jurisdiccion',

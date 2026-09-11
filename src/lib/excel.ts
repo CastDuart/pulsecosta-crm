@@ -45,7 +45,7 @@ export function exportFacturasExcel(facturas: Factura[]) {
 export function exportCajaExcel(movimientos: CajaMovimiento[]) {
   const rows = movimientos.map(m => ({
     'Fecha':          formatDate(m.fecha),
-    'Tipo':           m.tipo === 'income' ? 'Ingreso' : 'Gasto',
+    'Tipo':           m.tipo === 'ingreso' ? 'Ingreso' : 'Gasto',
     'Categoría':      m.categoria || '',
     'Cliente':        m.cliente_nombre || '',
     'Ref. factura':   m.factura_id ? `FAC-${m.factura_id}` : '',

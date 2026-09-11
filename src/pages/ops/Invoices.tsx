@@ -14,7 +14,7 @@ import QRCode from 'qrcode';
 
 // Etiquetas de estado de factura (ES) para badges y filtros.
 const ESTADO_LABEL: Record<string, string> = {
-  draft: 'Borrador', sent: 'Enviada', collected: 'Cobrada', overdue: 'Vencida', cancelled: 'Anulada',
+  borrador: 'Borrador', enviada: 'Enviada', cobrada: 'Cobrada', vencida: 'Vencida', anulada: 'Anulada',
 };
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
@@ -42,13 +42,13 @@ function Field({ label, children, span2 }: { label: string; children: React.Reac
 
 function StatusBadge({ estado }: { estado: string }) {
   const m: Record<string, [string,string]> = {
-    draft:['rgba(15,46,56,0.15)','var(--muted-tint)'],
-    sent:['rgba(23,129,127,0.15)','var(--teal-tint)'],
-    collected:['rgba(23,129,127,0.15)','var(--teal-tint)'],
-    overdue:['rgba(229,72,77,0.15)','var(--rojo-tint)'],
-    cancelled:['rgba(15,46,56,0.15)','var(--muted-tint)'],
+    borrador:['rgba(15,46,56,0.15)','var(--muted-tint)'],
+    enviada:['rgba(23,129,127,0.15)','var(--teal-tint)'],
+    cobrada:['rgba(23,129,127,0.15)','var(--teal-tint)'],
+    vencida:['rgba(229,72,77,0.15)','var(--rojo-tint)'],
+    anulada:['rgba(15,46,56,0.15)','var(--muted-tint)'],
   };
-  const [bg,color] = m[estado] || m.draft;
+  const [bg,color] = m[estado] || m.borrador;
   return <span style={{ background:bg,color,borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:600 }}>{ESTADO_LABEL[estado] ?? estado}</span>;
 }
 
@@ -73,7 +73,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
   const tipoIva: TipoIva = IVA_JURISDICCIONES[jurisdiccion].tipoIva;   // régimen derivado
   const jCfg = IVA_JURISDICCIONES[jurisdiccion];
   const [tipo, setTipo]                 = useState<TipoFactura>('normal');
-  const [intervalo, setIntervalo]       = useState('monthly');
+  const [intervalo, setIntervalo]       = useState('mensual');
   const [notas, setNotas]               = useState('');
   const [lineas, setLineas]             = useState<NewLine[]>([{ descripcion:'', cantidad:1, precio_unitario:0, importe:0 }]);
   const [saving, setSaving]             = useState(false);
@@ -123,7 +123,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
         iva_importe: ivaImporte,
         total,
         tipo,
-        intervalo_recurrencia: tipo === 'recurring' ? intervalo : null,
+        intervalo_recurrencia: tipo === 'recurrente' ? intervalo : null,
         notas: notas || null,
         lineas: lineas.filter(l => l.descripcion.trim()),
       });
@@ -170,15 +170,15 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
           <ChipSelect
             value={tipo}
             onChange={v => setTipo(v as TipoFactura)}
-            options={[{ value: 'normal', label: 'Normal' }, { value: 'recurring', label: 'Recurrente' }]}
+            options={[{ value: 'normal', label: 'Normal' }, { value: 'recurrente', label: 'Recurrente' }]}
           />
         </Field>
-        {tipo === 'recurring' && (
+        {tipo === 'recurrente' && (
           <Field label="Intervalo">
             <ChipSelect
               value={intervalo}
               onChange={setIntervalo}
-              options={[{ value: 'monthly', label: 'Mensual' }, { value: 'quarterly', label: 'Trimestral' }]}
+              options={[{ value: 'mensual', label: 'Mensual' }, { value: 'trimestral', label: 'Trimestral' }]}
             />
           </Field>
         )}
@@ -368,11 +368,11 @@ export default function Invoices() {
 
   useEffect(() => { load().finally(() => setLoading(false)); }, [load]);
 
-  const enriched = facturas.map(f => ({ ...f, estado: isOverdue(f) ? 'overdue' as const : f.estado }));
+  const enriched = facturas.map(f => ({ ...f, estado: isOverdue(f) ? 'vencida' as const : f.estado }));
   const filtered = enriched.filter(f => filterEstado === 'all' || f.estado === filterEstado);
 
-  const collected   = enriched.filter(f => f.estado==='collected').reduce((s,f)=>s+f.total,0);
-  const outstanding = enriched.filter(f=>['sent','overdue'].includes(f.estado)).reduce((s,f)=>s+f.total,0);
+  const collected   = enriched.filter(f => f.estado==='cobrada').reduce((s,f)=>s+f.total,0);
+  const outstanding = enriched.filter(f=>['enviada','vencida'].includes(f.estado)).reduce((s,f)=>s+f.total,0);
 
   async function createInvoice(data: Record<string, unknown>) {
     await apiFetch('/ops/facturas', { method:'POST', body:JSON.stringify(data) });
@@ -382,13 +382,13 @@ export default function Invoices() {
   async function updateEstado(id: number, estado: EstadoFactura, extra: Record<string, unknown> = {}) {
     const updated = await apiFetch<Factura>(`/ops/facturas/${id}`, { method:'PUT', body:JSON.stringify({ estado, ...extra }) });
     // Si se cobra → crea automáticamente el ingreso en Caja
-    if (estado === 'collected') {
+    if (estado === 'cobrada') {
       const f = enriched.find(x => x.id === id);
       if (f) {
         await apiFetch('/ops/caja', {
           method: 'POST',
           body: JSON.stringify({
-            tipo: 'income', concepto: `Factura ${f.numero}`,
+            tipo: 'ingreso', concepto: `Factura ${f.numero}`,
             importe: f.total, tipo_iva: f.tipo_iva, iva_rate: f.iva_rate,
             iva_importe: f.iva_importe, fecha: new Date().toISOString().split('T')[0],
             categoria: 'Invoice', cliente_id: f.cliente_id, factura_id: f.id,
@@ -413,7 +413,7 @@ export default function Invoices() {
 
   if (loading) return <div style={{ color:'var(--muted)' }}>Cargando...</div>;
 
-  const ESTADOS_FILTER: ('all' | EstadoFactura)[] = ['all','draft','sent','collected','overdue'];
+  const ESTADOS_FILTER: ('all' | EstadoFactura)[] = ['all','borrador','enviada','cobrada','vencida'];
 
   return (
     <div>
@@ -479,7 +479,7 @@ export default function Invoices() {
                   {f.tipo_iva === 'normal' && <span style={{ fontSize:11,color:'var(--muted)' }}>IVA {f.iva_rate}%</span>}
                 </td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{formatDate(f.fecha_emision)}</td>
-                <td style={{ padding:'10px 16px',color:f.estado==='overdue'?'var(--rojo-text)':'var(--muted)' }}>
+                <td style={{ padding:'10px 16px',color:f.estado==='vencida'?'var(--rojo-text)':'var(--muted)' }}>
                   {f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}
                 </td>
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontWeight:600,color:'var(--ink)' }}>{formatEur(f.total)}</td>
@@ -550,18 +550,18 @@ export default function Invoices() {
 
           {/* Transiciones de estado */}
           <div style={{ display:'flex',gap:10,flexWrap:'wrap',borderTop:'1px solid var(--linea)',paddingTop:16 }}>
-            {selected.estado === 'draft' && (
-              <button onClick={() => updateEstado(selected.id,'sent')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--teal-tint)',cursor:'pointer',fontWeight:600 }}>
+            {selected.estado === 'borrador' && (
+              <button onClick={() => updateEstado(selected.id,'enviada')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--teal-tint)',cursor:'pointer',fontWeight:600 }}>
                 Marcar como enviada
               </button>
             )}
-            {selected.estado === 'sent' && (
-              <button onClick={() => updateEstado(selected.id,'collected')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--verde-text)',cursor:'pointer',fontWeight:600 }}>
+            {selected.estado === 'enviada' && (
+              <button onClick={() => updateEstado(selected.id,'cobrada')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--verde-text)',cursor:'pointer',fontWeight:600 }}>
                 Marcar como cobrada → añade a Caja
               </button>
             )}
-            {(selected.estado === 'draft' || selected.estado === 'sent') && (
-              <button onClick={() => updateEstado(selected.id,'cancelled')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(15,46,56,0.1)',color:'var(--muted)',cursor:'pointer' }}>
+            {(selected.estado === 'borrador' || selected.estado === 'enviada') && (
+              <button onClick={() => updateEstado(selected.id,'anulada')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(15,46,56,0.1)',color:'var(--muted)',cursor:'pointer' }}>
                 Anular
               </button>
             )}

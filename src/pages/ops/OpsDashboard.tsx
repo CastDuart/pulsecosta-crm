@@ -94,24 +94,24 @@ export default function Dashboard() {
 
   const enriched = useMemo(() => facturas.map(f => ({
     ...f,
-    estado: isOverdue(f) ? 'overdue' as const : f.estado,
+    estado: isOverdue(f) ? 'vencida' as const : f.estado,
   })), [facturas]);
 
   const filtered = filterByTime(enriched, timeFilter);
   const vatFiltered = filterByQ(enriched, vatQ);
 
-  const collected   = filtered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.total, 0);
-  const outstanding = filtered.filter(f => ['sent','overdue'].includes(f.estado)).reduce((s, f) => s + f.total, 0);
-  const cashBalance = caja.reduce((s, m) => s + (m.tipo === 'income' ? m.importe : -m.importe), 0);
+  const collected   = filtered.filter(f => f.estado === 'cobrada').reduce((s, f) => s + f.total, 0);
+  const outstanding = filtered.filter(f => ['enviada','vencida'].includes(f.estado)).reduce((s, f) => s + f.total, 0);
+  const cashBalance = caja.reduce((s, m) => s + (m.tipo === 'ingreso' ? m.importe : -m.importe), 0);
 
   const in30days = new Date(); in30days.setDate(in30days.getDate() + 30);
   const forecast = enriched
-    .filter(f => f.estado === 'sent' && f.fecha_vencimiento && new Date(f.fecha_vencimiento) <= in30days)
+    .filter(f => f.estado === 'enviada' && f.fecha_vencimiento && new Date(f.fecha_vencimiento) <= in30days)
     .reduce((s, f) => s + f.total, 0);
 
-  const overdueList = enriched.filter(f => f.estado === 'overdue');
-  const outputVat   = vatFiltered.filter(f => f.estado === 'collected').reduce((s, f) => s + f.iva_importe, 0);
-  const inputVat    = filterByQ(caja, vatQ).filter(m => m.tipo === 'expense').reduce((s, m) => s + m.iva_importe, 0);
+  const overdueList = enriched.filter(f => f.estado === 'vencida');
+  const outputVat   = vatFiltered.filter(f => f.estado === 'cobrada').reduce((s, f) => s + f.iva_importe, 0);
+  const inputVat    = filterByQ(caja, vatQ).filter(m => m.tipo === 'gasto').reduce((s, m) => s + m.iva_importe, 0);
 
   if (loading) return <div style={{ color: 'var(--muted)', padding: 40 }}>{t('ops.loading')}</div>;
   if (loadError) return (
@@ -154,7 +154,7 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <StatCard label={t('ops.collected')}   value={formatEur(collected)}   color="var(--verde-text)"   accent="var(--verde)"   icon={<TrendingUp size={28} />} />
+        <StatCard label={t('ops.cobrada')}   value={formatEur(collected)}   color="var(--verde-text)"   accent="var(--verde)"   icon={<TrendingUp size={28} />} />
         <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="var(--naranja-text)" accent="var(--naranja)" icon={<Clock size={28} />} />
         <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="var(--teal-accent)"  accent="var(--teal)"    icon={<Wallet size={28} />} />
         <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="var(--muted)"        accent="var(--gold)"    icon={<BarChart3 size={28} />} />
@@ -219,8 +219,8 @@ export default function Dashboard() {
                 <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{m.concepto}</div>
                 <div style={{ color: 'var(--muted)', fontSize: 11 }}>{formatDate(m.fecha)}</div>
               </div>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: m.tipo === 'income' ? 'var(--verde-text)' : 'var(--rojo-text)' }}>
-                {m.tipo === 'income' ? '+' : '-'}{formatEur(m.importe)}
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: m.tipo === 'ingreso' ? 'var(--verde-text)' : 'var(--rojo-text)' }}>
+                {m.tipo === 'ingreso' ? '+' : '-'}{formatEur(m.importe)}
               </span>
             </div>
           ))}
@@ -245,7 +245,7 @@ export default function Dashboard() {
                   <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--naranja-text)' }}>{f.numero}</td>
                   <td style={{ padding: '8px 12px', color: 'var(--ink)' }}>{f.cliente_nombre}</td>
                   <td style={{ padding: '8px 12px', color: 'var(--muted)' }}>{formatDate(f.fecha_emision)}</td>
-                  <td style={{ padding: '8px 12px', color: f.estado === 'overdue' ? 'var(--rojo-text)' : 'var(--muted)' }}>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}</td>
+                  <td style={{ padding: '8px 12px', color: f.estado === 'vencida' ? 'var(--rojo-text)' : 'var(--muted)' }}>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : '-'}</td>
                   <td style={{ padding: '8px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: 'var(--ink)' }}>{formatEur(f.total)}</td>
                   <td style={{ padding: '8px 12px' }}><StatusBadge estado={f.estado} /></td>
                 </tr>
@@ -260,15 +260,15 @@ export default function Dashboard() {
 }
 
 const STATUS_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
-  draft:     { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Draft' },
-  sent:      { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Sent' },
-  collected: { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Collected' },
-  overdue:   { bg: 'rgba(229,72,77,0.15)',   color: 'var(--rojo-tint)', label: 'Overdue' },
-  cancelled: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Cancelled' },
+  borrador:     { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Draft' },
+  enviada:      { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Sent' },
+  cobrada: { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Collected' },
+  vencida:   { bg: 'rgba(229,72,77,0.15)',   color: 'var(--rojo-tint)', label: 'Overdue' },
+  anulada: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Cancelled' },
 };
 
 function StatusBadge({ estado }: { estado: string }) {
-  const s = STATUS_BADGE_MAP[estado] || STATUS_BADGE_MAP.draft;
+  const s = STATUS_BADGE_MAP[estado] || STATUS_BADGE_MAP.borrador;
   return (
     <span style={{
       background: s.bg, color: s.color, borderRadius: 20,

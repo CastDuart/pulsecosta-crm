@@ -101,9 +101,9 @@ export interface Cliente {
 }
 export type TipoIva = 'normal' | 'intracomunitario' | 'exento';
 export type IvaJurisdiccion = 'estonia' | 'spain' | 'eu' | 'exento';
-export type EstadoFactura = 'draft' | 'sent' | 'collected' | 'overdue' | 'cancelled';
-export type TipoFactura = 'normal' | 'recurring';
-export type IntervaloRecurrencia = 'monthly' | 'quarterly' | null;
+export type EstadoFactura = 'borrador' | 'enviada' | 'cobrada' | 'vencida' | 'anulada';
+export type TipoFactura = 'normal' | 'recurrente';
+export type IntervaloRecurrencia = 'mensual' | 'trimestral' | null;
 export interface FacturaLinea {
   id?: number; factura_id?: number; descripcion: string;
   cantidad: number; precio_unitario: number; importe: number; orden?: number;
@@ -118,7 +118,7 @@ export interface Factura {
   intervalo_recurrencia?: IntervaloRecurrencia; estado: EstadoFactura;
   notas?: string; created_at: string; lineas?: FacturaLinea[];
 }
-export type TipoMovimiento = 'income' | 'expense';
+export type TipoMovimiento = 'ingreso' | 'gasto';
 export interface CajaMovimiento {
   id: number; org_id: number; tipo: TipoMovimiento; concepto: string;
   importe: number; tipo_iva: TipoIva; iva_rate: number; iva_importe: number;

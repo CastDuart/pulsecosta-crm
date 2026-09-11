@@ -33,7 +33,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
-  tipo: 'income' | 'expense';
+  tipo: 'ingreso' | 'gasto';
   clientes: Cliente[];
   facturas: Factura[];
   onSave: (d: Record<string, unknown>) => Promise<void>;
@@ -48,7 +48,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
   const [tipoIva, setTipoIva]     = useState<TipoIva>('normal');
   const [ivaRate, setIvaRate]     = useState(0);
   const [recurrente, setRecurrente] = useState(false);
-  const [intervalo, setIntervalo] = useState('monthly');
+  const [intervalo, setIntervalo] = useState('mensual');
   const [notas, setNotas]         = useState('');
   const [saving, setSaving]       = useState(false);
   const [err, setErr]             = useState('');
@@ -59,7 +59,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
 
   useEffect(() => { setIvaRate(getDefaultIvaRate(tipoIva)); }, [tipoIva]);
 
-  const cats = tipo === 'income' ? INCOME_CATS : EXPENSE_CATS;
+  const cats = tipo === 'ingreso' ? INCOME_CATS : EXPENSE_CATS;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setSaving(true); setErr('');
@@ -82,7 +82,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
     <form onSubmit={submit}>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label="Concept *"><input value={concepto} onChange={e => setConcepto(e.target.value)} required placeholder={tipo==='income'?'e.g. Monthly subscription La Bahía':'e.g. VPS hosting Hostinger'} /></Field>
+          <Field label="Concept *"><input value={concepto} onChange={e => setConcepto(e.target.value)} required placeholder={tipo==='ingreso'?'e.g. Monthly subscription La Bahía':'e.g. VPS hosting Hostinger'} /></Field>
         </div>
         <Field label="Amount (€)"><input type="number" value={importe} onChange={e => setImporte(e.target.value)} min={0} step={0.01} required /></Field>
         <Field label="Date"><input type="date" value={fecha} onChange={e => setFecha(e.target.value)} /></Field>
@@ -119,7 +119,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
           <ChipSelect
             value={facturaId}
             onChange={setFacturaId}
-            options={facturas.filter(f => f.estado !== 'cancelled').map(f => ({ value: String(f.id), label: `${f.numero} — ${f.cliente_nombre} (${formatEur(f.total)})` }))}
+            options={facturas.filter(f => f.estado !== 'anulada').map(f => ({ value: String(f.id), label: `${f.numero} — ${f.cliente_nombre} (${formatEur(f.total)})` }))}
             allowEmpty
             emptyLabel="None"
             searchPlaceholder="Buscar factura…"
@@ -143,7 +143,7 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
               <ChipSelect
                 value={intervalo}
                 onChange={setIntervalo}
-                options={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }]}
+                options={[{ value: 'mensual', label: 'Monthly' }, { value: 'trimestral', label: 'Quarterly' }]}
               />
             )}
           </div>
@@ -176,11 +176,11 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
         <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancel</button>
         <button type="submit" disabled={saving} style={{
           padding:'9px 20px',borderRadius:8,border:'none',
-          background: tipo==='income'?'rgba(23,129,127,0.2)':'rgba(229,72,77,0.2)',
-          color: tipo==='income'?'var(--verde-text)':'var(--rojo-text)',
+          background: tipo==='ingreso'?'rgba(23,129,127,0.2)':'rgba(229,72,77,0.2)',
+          color: tipo==='ingreso'?'var(--verde-text)':'var(--rojo-text)',
           fontWeight:700,cursor:'pointer',
         }}>
-          {saving ? 'Saving...' : (tipo==='income' ? '+ Add Income' : '- Add Expense')}
+          {saving ? 'Saving...' : (tipo==='ingreso' ? '+ Add Income' : '- Add Expense')}
         </button>
       </div>
     </form>
@@ -191,7 +191,7 @@ export default function Cash() {
   const [movimientos, setMov]     = useState<CajaMovimiento[]>([]);
   const [clientes, setClientes]   = useState<Cliente[]>([]);
   const [facturas, setFacturas]   = useState<Factura[]>([]);
-  const [modal, setModal]         = useState<'income' | 'expense' | null>(null);
+  const [modal, setModal]         = useState<'ingreso' | 'gasto' | null>(null);
   const [loading, setLoading]     = useState(true);
 
   const load = () => Promise.all([
@@ -207,8 +207,8 @@ export default function Cash() {
     await load();
   }
 
-  const income   = movimientos.filter(m => m.tipo==='income').reduce((s,m) => s+m.importe, 0);
-  const expenses = movimientos.filter(m => m.tipo==='expense').reduce((s,m) => s+m.importe, 0);
+  const income   = movimientos.filter(m => m.tipo==='ingreso').reduce((s,m) => s+m.importe, 0);
+  const expenses = movimientos.filter(m => m.tipo==='gasto').reduce((s,m) => s+m.importe, 0);
   const balance  = income - expenses;
 
   if (loading) return <div style={{ color:'var(--muted)' }}>Loading...</div>;
@@ -221,10 +221,10 @@ export default function Cash() {
           <button onClick={() => exportCajaExcel(movimientos)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
             <Download size={14}/> Export
           </button>
-          <button onClick={() => setModal('expense')} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'rgba(229,72,77,0.15)',border:'none',borderRadius:8,color:'var(--rojo-text)',fontWeight:700,cursor:'pointer',fontSize:13 }}>
+          <button onClick={() => setModal('gasto')} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'rgba(229,72,77,0.15)',border:'none',borderRadius:8,color:'var(--rojo-text)',fontWeight:700,cursor:'pointer',fontSize:13 }}>
             <TrendingDown size={14}/> Expense
           </button>
-          <button onClick={() => setModal('income')} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'rgba(23,129,127,0.15)',border:'none',borderRadius:8,color:'var(--verde-text)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
+          <button onClick={() => setModal('ingreso')} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'rgba(23,129,127,0.15)',border:'none',borderRadius:8,color:'var(--verde-text)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
             <TrendingUp size={14}/> Income
           </button>
         </div>
@@ -271,8 +271,8 @@ export default function Cash() {
                 </td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)',fontSize:12 }}>{m.categoria || '-'}</td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)',fontSize:12 }}>{m.cliente_nombre || '-'}</td>
-                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:m.tipo==='income'?'var(--verde-text)':'var(--rojo-text)' }}>
-                  {m.tipo==='income'?'+':'-'}{formatEur(m.importe)}
+                <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:m.tipo==='ingreso'?'var(--verde-text)':'var(--rojo-text)' }}>
+                  {m.tipo==='ingreso'?'+':'-'}{formatEur(m.importe)}
                 </td>
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontSize:12,color:'var(--muted)' }}>
                   {m.iva_rate>0 ? formatEur(m.iva_importe) : '-'}
@@ -284,7 +284,7 @@ export default function Cash() {
       </div>
 
       {modal && (
-        <Modal title={modal==='income'?'+ New Income':'- New Expense'} onClose={() => setModal(null)}>
+        <Modal title={modal==='ingreso'?'+ New Income':'- New Expense'} onClose={() => setModal(null)}>
           <MovimientoForm tipo={modal} clientes={clientes} facturas={facturas} onSave={saveMov} onClose={() => setModal(null)} />
         </Modal>
       )}

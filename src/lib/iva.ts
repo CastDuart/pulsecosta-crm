@@ -80,7 +80,7 @@ export function invoiceLegalNote(tipo: TipoIva): string | null {
 }
 
 export function isOverdue(factura: { estado: string; fecha_vencimiento?: string }): boolean {
-  if (factura.estado !== 'sent') return false;
+  if (factura.estado !== 'enviada') return false;
   if (!factura.fecha_vencimiento) return false;
   return new Date(factura.fecha_vencimiento) < new Date(new Date().toDateString());
 }

@@ -128,7 +128,7 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
   const clientFacturas = facturas.filter(f => f.cliente_id === cliente.id);
   const clientVisitas  = visitas.filter(v => v.cliente_id === cliente.id);
   const openBalance = clientFacturas
-    .filter(f => ['sent','overdue'].includes(f.estado))
+    .filter(f => ['enviada','vencida'].includes(f.estado))
     .reduce((s, f) => s + f.total, 0);
 
   return (
@@ -173,7 +173,7 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
                   <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid var(--linea)' }}>
                     <span style={{ color: 'var(--naranja-text)', fontFamily: 'JetBrains Mono, monospace' }}>{f.numero}</span>
                     <span style={{ color: 'var(--ink)' }}>{formatEur(f.total)}</span>
-                    <span style={{ color: f.estado === 'collected' ? 'var(--verde-text)' : f.estado === 'overdue' ? 'var(--rojo-text)' : 'var(--muted)' }}>{f.estado}</span>
+                    <span style={{ color: f.estado === 'cobrada' ? 'var(--verde-text)' : f.estado === 'vencida' ? 'var(--rojo-text)' : 'var(--muted)' }}>{f.estado}</span>
                   </div>
                 ))
               }
