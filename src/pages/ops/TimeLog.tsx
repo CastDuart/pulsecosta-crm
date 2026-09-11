@@ -34,7 +34,7 @@ export default function TimeLog() {
     const j = await apiFetch<Jornada[]>('/ops/jornadas');
     setJornadas(j);
     const today = new Date().toISOString().split('T')[0];
-    const todayOpen = j.find(x => x.user_id === user?.id && x.fecha === today && !x.salida);
+    const todayOpen = j.find(x => x.user_id === user?.id && String(x.fecha).slice(0, 10) === today && !x.salida);
     setOpen(todayOpen || null);
   };
 
@@ -86,7 +86,7 @@ export default function TimeLog() {
 
   async function exportExcel() {
     const rows = jornadas.map(j => ({
-      'Date':        j.fecha,
+      'Date':        String(j.fecha).slice(0, 10),
       'Worker':      j.user_name || '',
       'Clock in':    formatTime(j.entrada),
       'Clock out':   j.salida ? formatTime(j.salida) : '',
