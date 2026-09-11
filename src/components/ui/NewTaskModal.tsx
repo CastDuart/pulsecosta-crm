@@ -57,7 +57,7 @@ export default function NewTaskModal({ onClose, onSaved }: { onClose: () => void
             </div>
             <div className="form-field">
               <label className="form-label">{t('label.date')}</label>
-              <input className="form-input" type="date" value={form.due_at}
+              <input className="form-input" type="date" aria-label={t('label.date')} value={form.due_at}
                 onChange={e => set('due_at', e.target.value)} />
             </div>
           </div>
