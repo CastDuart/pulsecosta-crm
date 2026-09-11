@@ -1066,7 +1066,9 @@ app.get('/api/ops/libros/mensual', auth, async (req, res) => {
       pool.query(`SELECT m.*, c.nombre AS cliente_nombre, f.numero AS factura_numero FROM ops.caja_movimientos m
                   LEFT JOIN ops.clientes c ON c.id=m.cliente_id LEFT JOIN ops.facturas f ON f.id=m.factura_id
                   WHERE m.org_id=$1 AND m.fecha BETWEEN $2 AND $3 ORDER BY m.fecha, m.created_at`, [orgId, desde, hasta]),
-      pool.query(`SELECT f.id, f.numero, f.fecha_emision, f.fecha_vencimiento, f.estado, f.subtotal, f.iva_importe, f.total, f.iva_rate, f.tipo_iva, c.nombre AS cliente_nombre
+      pool.query(`SELECT f.id, f.numero, f.fecha_emision, f.fecha_vencimiento, f.estado,
+                         f.subtotal, f.iva_importe, f.total, f.iva_rate, f.tipo_iva, f.iva_jurisdiccion,
+                         c.nombre AS cliente_nombre, c.pais, c.vat_number, c.tipo_cliente
                   FROM ops.facturas f LEFT JOIN ops.clientes c ON c.id=f.cliente_id
                   WHERE f.org_id=$1 AND f.fecha_emision BETWEEN $2 AND $3 ORDER BY f.numero`, [orgId, desde, hasta]),
       pool.query('SELECT * FROM ops.cierres_mensuales WHERE org_id=$1 AND year=$2 AND month=$3', [orgId, year, month]),

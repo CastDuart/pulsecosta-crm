@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/opsFetch';
 import { formatEur, formatDate } from '../../lib/iva';
-import { Download, Lock, Unlock } from 'lucide-react';
+import { AlertTriangle, Download, FileText, Lock, Unlock } from 'lucide-react';
 
 // Libros contables: Mensual (libro menor, se reinicia cada mes y se cierra) y Mayor (anual).
 type Mov = { id: number; fecha: string; tipo: 'ingreso' | 'gasto'; concepto: string; categoria?: string; cliente_nombre?: string; factura_numero?: string; importe: number; iva_importe: number; saldo: number };
-type Fac = { id: number; numero: string; fecha_emision: string; estado: string; cliente_nombre?: string; subtotal: number; iva_importe: number; total: number };
+type Fac = { id: number; numero: string; fecha_emision: string; estado: string; cliente_nombre?: string; subtotal: number; iva_importe: number; total: number; iva_rate?: number; tipo_iva?: string; iva_jurisdiccion?: string; pais?: string; vat_number?: string; tipo_cliente?: string };
 type Mensual = { year: number; month: number; ingresos: number; gastos: number; resultado: number; iva_soportado: number; iva_repercutido: number; iva_a_ingresar: number; facturado: number; pendiente_cobro: number; saldo_inicial: number; saldo_final: number; n_movimientos: number; n_facturas: number; movimientos: Mov[]; facturas: Fac[]; cierre: { cerrado_at: string; notas?: string } | null };
 type MesMayor = { month: number; ingresos: number; gastos: number; resultado: number; acumulado: number; iva_repercutido: number; iva_soportado: number; facturado: number; saldo_final: number; cerrado: boolean };
 type Mayor = { year: number; meses: MesMayor[]; cuentas: { tipo: string; categoria: string; total: number; iva: number; n: number }[]; clientes: { cliente: string; facturas: number; facturado: number; cobrado: number; pendiente: number }[]; trimestres: { trimestre: number; iva_repercutido: number; iva_soportado: number; a_ingresar: number; facturado: number }[]; totales: { ingresos: number; gastos: number; resultado: number; facturado: number; iva_repercutido: number; iva_soportado: number; saldo_final: number } };
@@ -16,6 +17,7 @@ const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', color
 const td: React.CSSProperties = { padding: '9px 14px', fontSize: 13, borderBottom: '1px solid var(--linea)' };
 const mono: React.CSSProperties = { fontFamily: 'JetBrains Mono, monospace' };
 const card: React.CSSProperties = { background: 'var(--ivory-alt)', borderRadius: 12, border: '1px solid var(--linea)', overflow: 'hidden' };
+const subtleCard: React.CSSProperties = { background: 'var(--ivory)', borderRadius: 8, border: '1px solid var(--linea)', padding: '12px 14px' };
 
 function Kpi({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
@@ -29,6 +31,32 @@ function csvDownload(name: string, rows: (string | number)[][]) {
   const esc = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const blob = new Blob(['﻿' + rows.map(r => r.map(esc).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function fiscalBucket(f: Fac): 'estonia' | 'euB2b' | 'b2cOss' | 'spainVat' | 'outsideEu' | 'needsReview' {
+  const country = (f.pais || '').trim().toUpperCase();
+  const isB2c = f.tipo_cliente === 'b2c';
+  const eu = ['AT','BE','BG','HR','CY','CZ','DK','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','SE'];
+  if ((f.iva_jurisdiccion || '').toLowerCase() === 'spain') return 'spainVat';
+  if (country === 'EE' || country === 'ESTONIA') return 'estonia';
+  if (isB2c && (eu.includes(country) || ['ESPAÑA','SPAIN','FINLANDIA','FINLAND','SUOMI'].includes(country))) return 'b2cOss';
+  if ((f.iva_jurisdiccion || '').toLowerCase() === 'eu' || f.tipo_iva === 'intracomunitario') return 'euB2b';
+  if (country && !eu.includes(country) && !['ESPAÑA','SPAIN','FINLANDIA','FINLAND','SUOMI'].includes(country)) return 'outsideEu';
+  return 'needsReview';
+}
+
+function sumFacturas(facturas: Fac[]) {
+  return facturas.reduce((s, f) => s + n(f.total), 0);
+}
+
+function FiscalMini({ label, count, amount, warn = false }: { label: string; count: number; amount: number; warn?: boolean }) {
+  return (
+    <div style={{ ...subtleCard, borderColor: warn && count > 0 ? 'rgba(255,122,26,0.35)' : 'var(--linea)' }}>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{label}</div>
+      <div style={{ ...mono, color: warn && count > 0 ? 'var(--naranja-text)' : 'var(--ink)', fontSize: 16, fontWeight: 800 }}>{formatEur(amount)}</div>
+      <div style={{ fontSize: 11, color: 'var(--muted-tint)', marginTop: 2 }}>{count} facturas</div>
+    </div>
+  );
 }
 
 export default function Books() {
@@ -58,6 +86,37 @@ export default function Books() {
     catch (e) { setErr(String(e)); } finally { setBusy(false); }
   };
   const mesTerminado = new Date(Date.UTC(year, month, 0)) < new Date(now.toISOString().slice(0, 10));
+  const fiscalSummary = mensual ? {
+    estonia: mensual.facturas.filter(f => fiscalBucket(f) === 'estonia'),
+    euB2b: mensual.facturas.filter(f => fiscalBucket(f) === 'euB2b'),
+    b2cOss: mensual.facturas.filter(f => fiscalBucket(f) === 'b2cOss'),
+    spainVat: mensual.facturas.filter(f => fiscalBucket(f) === 'spainVat'),
+    outsideEu: mensual.facturas.filter(f => fiscalBucket(f) === 'outsideEu'),
+    needsReview: mensual.facturas.filter(f => fiscalBucket(f) === 'needsReview' || (f.tipo_cliente === 'b2b' && fiscalBucket(f) === 'euB2b' && !f.vat_number)),
+  } : null;
+  const exportGestor = () => {
+    if (!mensual || !fiscalSummary) return;
+    const rows: (string | number)[][] = [
+      ['Bloque', 'Modelo/uso', 'Importe', 'Detalle'],
+      ['Resumen', 'Ingresos caja', n(mensual.ingresos), 'Cobros registrados en caja'],
+      ['Resumen', 'Gastos caja', n(mensual.gastos), 'Pagos/gastos registrados en caja'],
+      ['Resumen', 'Facturado emitido', n(mensual.facturado), 'Facturas emitidas no anuladas'],
+      ['Resumen', 'Pendiente cobro', n(mensual.pendiente_cobro), 'Facturas enviadas/vencidas'],
+      ['Estonia', 'KMD/KMD INF', sumFacturas(fiscalSummary.estonia), `${fiscalSummary.estonia.length} facturas Estonia`],
+      ['Estonia', 'VD / B2B UE reverse charge', sumFacturas(fiscalSummary.euB2b), `${fiscalSummary.euB2b.length} facturas B2B UE`],
+      ['Estonia', 'OSS / B2C UE', sumFacturas(fiscalSummary.b2cOss), `${fiscalSummary.b2cOss.length} facturas B2C UE`],
+      ['España', 'IVA español / Verifactu excepcional', sumFacturas(fiscalSummary.spainVat), `${fiscalSummary.spainVat.length} facturas marcadas como España`],
+      ['Fuera UE', 'Servicios exportados', sumFacturas(fiscalSummary.outsideEu), `${fiscalSummary.outsideEu.length} facturas fuera UE`],
+      ['Revisión', 'VAT/jurisdicción pendiente', sumFacturas(fiscalSummary.needsReview), `${fiscalSummary.needsReview.length} facturas a revisar`],
+      [],
+      ['Factura', 'Cliente', 'País', 'Tipo cliente', 'VAT cliente', 'Jurisdicción IVA', 'Tipo IVA', 'Base', 'IVA', 'Total', 'Estado'],
+      ...mensual.facturas.map(f => [f.numero, f.cliente_nombre ?? '', f.pais ?? '', f.tipo_cliente ?? '', f.vat_number ?? '', f.iva_jurisdiccion ?? '', f.tipo_iva ?? '', n(f.subtotal), n(f.iva_importe), n(f.total), f.estado]),
+      [],
+      ['Movimiento', 'Fecha', 'Tipo', 'Concepto', 'Categoría', 'Cliente', 'Factura', 'Importe', 'IVA'],
+      ...mensual.movimientos.map(m => [m.id, m.fecha.slice(0, 10), m.tipo, m.concepto, m.categoria ?? '', m.cliente_nombre ?? '', m.factura_numero ?? '', n(m.importe), n(m.iva_importe)]),
+    ];
+    csvDownload(`paquete-gestor-tallinn-${year}-${String(month).padStart(2, '0')}.csv`, rows);
+  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -101,6 +160,45 @@ export default function Books() {
             <Kpi label="IVA a ingresar" value={n(mensual.iva_a_ingresar)} color={n(mensual.iva_a_ingresar) > 0 ? 'var(--rojo-text)' : 'var(--verde-text)'} />
           </div>
 
+          {fiscalSummary && (
+            <div style={{ ...card, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)', fontWeight: 800, fontSize: 14 }}>
+                    <FileText size={16} /> Resumen para gestor Tallinn
+                  </div>
+                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>
+                    Agrupa facturas por KMD/VD/OSS y separa los casos España/UK/Finlandia que no deben usarse por defecto sin validación.
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Link to="/ops/tax-reference" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--linea)', color: 'var(--teal-tint)', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
+                    Ver fiscalidad
+                  </Link>
+                  <button onClick={exportGestor} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, border: 'none', background: 'var(--pulse)', color: 'var(--petrol)', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
+                    <Download size={14} /> Export gestor
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                <FiscalMini label="KMD Estonia" count={fiscalSummary.estonia.length} amount={sumFacturas(fiscalSummary.estonia)} />
+                <FiscalMini label="VD B2B UE" count={fiscalSummary.euB2b.length} amount={sumFacturas(fiscalSummary.euB2b)} />
+                <FiscalMini label="OSS B2C UE" count={fiscalSummary.b2cOss.length} amount={sumFacturas(fiscalSummary.b2cOss)} />
+                <FiscalMini label="IVA ES/Verifactu" count={fiscalSummary.spainVat.length} amount={sumFacturas(fiscalSummary.spainVat)} warn />
+                <FiscalMini label="Fuera UE" count={fiscalSummary.outsideEu.length} amount={sumFacturas(fiscalSummary.outsideEu)} />
+                <FiscalMini label="Revisar VAT" count={fiscalSummary.needsReview.length} amount={sumFacturas(fiscalSummary.needsReview)} warn />
+              </div>
+
+              {fiscalSummary.needsReview.length > 0 && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-start', color: 'var(--naranja-text)', fontSize: 12, background: 'rgba(255,122,26,0.08)', border: '1px solid rgba(255,122,26,0.20)', borderRadius: 8, padding: '9px 11px' }}>
+                  <AlertTriangle size={15} />
+                  <span>Hay facturas B2B UE sin VAT o con jurisdicción dudosa. Revisarlas antes de enviar KMD/VD al gestor.</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>
               {mensual.cierre
@@ -141,14 +239,18 @@ export default function Books() {
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Facturas emitidas en el mes</div>
           <div style={card}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['Número', 'Fecha', 'Cliente', 'Estado', 'Base', 'IVA', 'Total'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+              <thead><tr>{['Número', 'Fecha', 'Cliente', 'País', 'B2B/B2C', 'VAT', 'Jurisdicción', 'Estado', 'Base', 'IVA', 'Total'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
               <tbody>
-                {mensual.facturas.length === 0 && <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: 'var(--muted)', padding: 22 }}>Sin facturas emitidas este mes</td></tr>}
+                {mensual.facturas.length === 0 && <tr><td colSpan={11} style={{ ...td, textAlign: 'center', color: 'var(--muted)', padding: 22 }}>Sin facturas emitidas este mes</td></tr>}
                 {mensual.facturas.map(f => (
                   <tr key={f.id}>
                     <td style={{ ...td, ...mono }}>{f.numero}</td>
                     <td style={{ ...td, ...mono, color: 'var(--muted)' }}>{formatDate(f.fecha_emision)}</td>
                     <td style={{ ...td, color: 'var(--ink)' }}>{f.cliente_nombre ?? '—'}</td>
+                    <td style={{ ...td, color: 'var(--muted)' }}>{f.pais ?? '—'}</td>
+                    <td style={{ ...td, color: 'var(--muted)' }}>{f.tipo_cliente ?? '—'}</td>
+                    <td style={{ ...td, ...mono, color: f.tipo_cliente === 'b2b' && !f.vat_number ? 'var(--naranja-text)' : 'var(--muted)' }}>{f.vat_number ?? '—'}</td>
+                    <td style={{ ...td, color: fiscalBucket(f) === 'needsReview' ? 'var(--naranja-text)' : 'var(--muted)' }}>{f.iva_jurisdiccion ?? f.tipo_iva ?? '—'}</td>
                     <td style={{ ...td, color: 'var(--muted)' }}>{f.estado}</td>
                     <td style={{ ...td, ...mono }}>{formatEur(n(f.subtotal))}</td>
                     <td style={{ ...td, ...mono, color: 'var(--muted)' }}>{formatEur(n(f.iva_importe))}</td>
