@@ -88,7 +88,7 @@ export default function Dashboard() {
       <div className="topbar">
         <span className="topbar-title">{t('nav.dashboard')}</span>
         <div className="topbar-actions">
-          <span style={{ fontSize: '0.75rem', color: 'var(--gris)', textTransform: 'capitalize' }}>{today}</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--gris)' }}>{today}</span>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             {t('btn.newLead')}
           </button>
