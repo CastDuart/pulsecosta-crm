@@ -24,6 +24,7 @@ import Books from './pages/ops/Books';
 import Bank from './pages/ops/Bank';
 import ErrorBoundary from './components/ErrorBoundary';
 import AiAssistant from './pages/ops/AiAssistant';
+import TaxReference from './pages/ops/TaxReference';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -72,8 +73,10 @@ function AppRoutes() {
         <Route path="ops/books" element={<OpsRoute><Books /></OpsRoute>} />
         <Route path="ops/bank" element={<OpsRoute><Bank /></OpsRoute>} />
         <Route path="ops/bank/callback" element={<OpsRoute><Bank /></OpsRoute>} />
+        <Route path="ops/tax-reference" element={<OpsRoute><TaxReference /></OpsRoute>} />
         <Route path="banco" element={<Navigate to="/ops/bank" replace />} />
         <Route path="libros" element={<Navigate to="/ops/books" replace />} />
+        <Route path="fiscalidad" element={<Navigate to="/ops/tax-reference" replace />} />
         <Route path="ops/ai" element={<OpsRoute><AiAssistant /></OpsRoute>} />
         {/* Alias en español y cualquier ruta desconocida: nunca una pantalla en blanco */}
         <Route path="cuentas" element={<Navigate to="/accounts" replace />} />
