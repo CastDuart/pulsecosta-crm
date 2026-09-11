@@ -3,27 +3,32 @@ import { apiFetch } from '../../lib/opsFetch';
 import type { Factura, FacturaLinea, Cliente, TipoIva, IvaJurisdiccion, EstadoFactura, TipoFactura } from '../../types';
 import {
   formatEur, formatDate, isOverdue,
-  calcIva, calcTotal, tipoIvaLabel,
-  IVA_JURISDICCIONES, IVA_JURISDICCION_ORDER, jurisdiccionLabel, invoiceLegalNoteJurisdiccion, jurisdiccionFromFactura,
+  calcIva, calcTotal,
+  IVA_JURISDICCIONES, IVA_JURISDICCION_ORDER, invoiceLegalNoteJurisdiccion, jurisdiccionFromFactura,
 } from '../../lib/iva';
 import { exportFacturasExcel } from '../../lib/excel';
 import { generateInvoicePDF } from '../../lib/pdf';
 import { Plus, X, Download, Printer, ChevronRight, Trash2 } from 'lucide-react';
 import ChipSelect from '../../components/ui/ChipSelect';
 import QRCode from 'qrcode';
+import { useLang } from '../../context/LangContext';
 
-// Etiquetas de estado de factura (ES) para badges y filtros.
-const ESTADO_LABEL: Record<string, string> = {
-  borrador: 'Borrador', enviada: 'Enviada', cobrada: 'Cobrada', vencida: 'Vencida', anulada: 'Anulada',
+const ESTADO_KEY: Record<string, string> = {
+  borrador: 'invoice.status.draft',
+  enviada: 'invoice.status.sent',
+  cobrada: 'invoice.status.paid',
+  vencida: 'invoice.status.overdue',
+  anulada: 'invoice.status.cancelled',
 };
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  const { t } = useLang();
   return (
     <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
       <div style={{ background:'var(--ivory-alt)',borderRadius:16,padding:32,width:'100%',maxWidth:wide?760:560,border:'1px solid var(--linea)',maxHeight:'92vh',overflowY:'auto' }}>
         <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
           <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'var(--ink)' }}>{title}</h2>
-          <button onClick={onClose} style={{ background:'none',border:'none',color:'var(--muted)',cursor:'pointer' }}><X size={20}/></button>
+          <button aria-label={t('common.close')} onClick={onClose} style={{ background:'none',border:'none',color:'var(--muted)',cursor:'pointer' }}><X size={20}/></button>
         </div>
         {children}
       </div>
@@ -41,6 +46,7 @@ function Field({ label, children, span2 }: { label: string; children: React.Reac
 }
 
 function StatusBadge({ estado }: { estado: string }) {
+  const { t } = useLang();
   const m: Record<string, [string,string]> = {
     borrador:['rgba(15,46,56,0.15)','var(--muted-tint)'],
     enviada:['rgba(23,129,127,0.15)','var(--teal-tint)'],
@@ -49,7 +55,17 @@ function StatusBadge({ estado }: { estado: string }) {
     anulada:['rgba(15,46,56,0.15)','var(--muted-tint)'],
   };
   const [bg,color] = m[estado] || m.borrador;
-  return <span style={{ background:bg,color,borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:600 }}>{ESTADO_LABEL[estado] ?? estado}</span>;
+  return <span style={{ background:bg,color,borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:600 }}>{t(ESTADO_KEY[estado] ?? estado)}</span>;
+}
+
+function ivaTypeLabel(t: (key: string, vars?: Record<string, string | number>) => string, tipo: TipoIva, rate?: number) {
+  if (tipo === 'normal') return rate === undefined ? t('invoice.vat.normal') : t('invoice.vat.normalRate', { rate });
+  if (tipo === 'intracomunitario') return t('invoice.vat.reverseShort');
+  return t('invoice.vat.exempt');
+}
+
+function jurisdictionLabelT(t: (key: string) => string, j: IvaJurisdiccion) {
+  return t(`invoice.jurisdiction.${j}`);
 }
 
 type NewLine = Omit<FacturaLinea, 'id' | 'factura_id' | 'orden'>;
@@ -60,6 +76,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
   onClose: () => void;
   preClienteId?: number;
 }) {
+  const { t } = useLang();
   const today = new Date().toISOString().split('T')[0];
   const due30 = new Date(Date.now() + 30*864e5).toISOString().split('T')[0];
 
@@ -67,7 +84,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
   const [clienteId, setClienteId]     = useState<string>(preClienteId?.toString() || '');
   const [fechaEmision, setFechaEmision] = useState(today);
   const [fechaVenc, setFechaVenc]       = useState(due30);
-  const [metodoPago, setMetodoPago]     = useState('Transferencia');
+  const [metodoPago, setMetodoPago]     = useState('bank_transfer');
   const [jurisdiccion, setJurisdiccion] = useState<IvaJurisdiccion>('estonia');
   const [ivaRate, setIvaRate]           = useState(24);
   const tipoIva: TipoIva = IVA_JURISDICCIONES[jurisdiccion].tipoIva;   // régimen derivado
@@ -117,7 +134,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!clienteId) { setErr('Selecciona un cliente'); return; }
+    if (!clienteId) { setErr(t('invoice.error.selectClient')); return; }
     setSaving(true); setErr('');
     try {
       await onSave({
@@ -137,7 +154,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
         lineas: lineas.filter(l => l.descripcion.trim()),
       });
       onClose();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
+    } catch (e) { setErr(e instanceof Error ? e.message : t('common.saveError')); }
     finally { setSaving(false); }
   }
 
@@ -145,75 +162,75 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
     <form onSubmit={submit}>
       {/* Vista previa del número de factura */}
       <div style={{ background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.2)',borderRadius:8,padding:'10px 16px',marginBottom:20,display:'flex',justifyContent:'space-between' }}>
-        <span style={{ fontSize:13,color:'var(--muted-tint)' }}>Número de factura</span>
+        <span style={{ fontSize:13,color:'var(--muted-tint)' }}>{t('invoice.number')}</span>
         <span style={{ fontFamily:'JetBrains Mono, monospace',fontWeight:700,color:'var(--naranja-tint)',fontSize:15 }}>{nextNum}</span>
       </div>
 
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
-        <Field label="Cliente *" span2>
+        <Field label={`${t('ops.clientName')} *`} span2>
           <ChipSelect
             value={clienteId}
             onChange={setClienteId}
             options={clientes.map(c => ({ value: String(c.id), label: `${c.nombre}${c.vat_number ? ` (${c.vat_number})` : ''}` }))}
             allowEmpty
-            emptyLabel="Selecciona cliente…"
-            searchPlaceholder="Buscar cliente…"
+            emptyLabel={t('invoice.selectClient')}
+            searchPlaceholder={t('invoice.searchClient')}
           />
         </Field>
 
-        <Field label="Fecha de emisión"><input type="date" value={fechaEmision} onChange={e => setFechaEmision(e.target.value)} /></Field>
-        <Field label="Fecha de vencimiento"><input type="date" value={fechaVenc} onChange={e => setFechaVenc(e.target.value)} /></Field>
-        <Field label="Método de pago">
+        <Field label={t('invoice.issueDate')}><input type="date" value={fechaEmision} onChange={e => setFechaEmision(e.target.value)} /></Field>
+        <Field label={t('invoice.dueDate')}><input type="date" value={fechaVenc} onChange={e => setFechaVenc(e.target.value)} /></Field>
+        <Field label={t('invoice.paymentMethod')}>
           <ChipSelect
             value={metodoPago}
             onChange={setMetodoPago}
             options={[
-              { value: 'Transferencia', label: 'Transferencia' },
-              { value: 'SEPA', label: 'SEPA' },
-              { value: 'Stripe', label: 'Stripe' },
-              { value: 'Revolut', label: 'Revolut' },
-              { value: 'Cash', label: 'Efectivo' },
+              { value: 'bank_transfer', label: t('invoice.payment.bankTransfer') },
+              { value: 'sepa', label: 'SEPA' },
+              { value: 'stripe', label: 'Stripe' },
+              { value: 'revolut', label: 'Revolut' },
+              { value: 'cash', label: t('invoice.payment.cash') },
             ]}
           />
         </Field>
-        <Field label="Tipo">
+        <Field label={t('label.type')}>
           <ChipSelect
             value={tipo}
             onChange={v => setTipo(v as TipoFactura)}
-            options={[{ value: 'normal', label: 'Normal' }, { value: 'recurrente', label: 'Recurrente' }]}
+            options={[{ value: 'normal', label: t('invoice.type.normal') }, { value: 'recurrente', label: t('invoice.type.recurring') }]}
           />
         </Field>
         {tipo === 'recurrente' && (
-          <Field label="Intervalo">
+          <Field label={t('invoice.interval')}>
             <ChipSelect
               value={intervalo}
               onChange={setIntervalo}
-              options={[{ value: 'mensual', label: 'Mensual' }, { value: 'trimestral', label: 'Trimestral' }]}
+              options={[{ value: 'mensual', label: t('invoice.interval.monthly') }, { value: 'trimestral', label: t('invoice.interval.quarterly') }]}
             />
           </Field>
         )}
 
         {/* Jurisdicción de IVA — determina régimen, tasas y nota legal */}
-        <Field label="Jurisdicción de IVA" span2>
+        <Field label={t('invoice.vatJurisdiction')} span2>
           <ChipSelect
             value={jurisdiccion}
             onChange={v => setJurisdiccion(v as IvaJurisdiccion)}
-            options={IVA_JURISDICCION_ORDER.map(j => ({ value: j, label: jurisdiccionLabel(j) }))}
+            options={IVA_JURISDICCION_ORDER.map(j => ({ value: j, label: jurisdictionLabelT(t, j) }))}
           />
         </Field>
 
         {/* Aviso inversión del sujeto pasivo (UE) */}
         {jCfg.reverseCharge && (
           <div style={{ gridColumn:'span 2',background:'rgba(255,122,26,0.08)',border:'1px solid rgba(255,122,26,0.25)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'var(--naranja-tint)' }}>
-            <strong>Inversión del sujeto pasivo (Art. 44):</strong> IVA = 0%. Se requiere el número VAT del cliente. La nota legal aparecerá en el PDF.
+            <strong>{t('invoice.reverseTitle')}:</strong> {t('invoice.reverseHelp')}
             {cliente && !cliente.vat_number && (
-              <div style={{ marginTop:4,color:'var(--rojo-text)' }}>⚠ Este cliente no tiene VAT — añádelo en Clientes antes de emitir la factura.</div>
+              <div style={{ marginTop:4,color:'var(--rojo-text)' }}>{t('invoice.missingVatWarning')}</div>
             )}
           </div>
         )}
 
         {jCfg.rates.length > 1 && (
-          <Field label={`Tasa de IVA · ${jurisdiccionLabel(jurisdiccion)} (%)`}>
+          <Field label={t('invoice.vatRateFor', { jurisdiction: jurisdictionLabelT(t, jurisdiccion) })}>
             <ChipSelect
               value={String(ivaRate)}
               onChange={v => setIvaRate(Number(v))}
@@ -224,12 +241,12 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
       </div>
 
       {/* Líneas */}
-      <div style={{ margin:'16px 0 8px',fontSize:13,fontWeight:700,color:'var(--naranja-text)',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Líneas</div>
+      <div style={{ margin:'16px 0 8px',fontSize:13,fontWeight:700,color:'var(--naranja-text)',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>{t('invoice.lines')}</div>
       <div style={{ overflowX:'auto' }}>
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:'1px solid var(--linea)' }}>
-              {['Descripción','Cant.','Precio unit.','Importe',''].map(h => (
+              {[t('invoice.description'),t('invoice.qty'),t('invoice.unitPrice'),t('invoice.amount'),''].map(h => (
                 <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'var(--muted)',fontWeight:500,fontSize:11 }}>{h}</th>
               ))}
             </tr>
@@ -238,7 +255,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
             {lineas.map((l, i) => (
               <tr key={i}>
                 <td style={{ padding:'4px 6px' }}>
-                  <input value={l.descripcion} onChange={e => setLinea(i,'descripcion',e.target.value)} placeholder="Descripción del servicio" />
+                  <input value={l.descripcion} onChange={e => setLinea(i,'descripcion',e.target.value)} placeholder={t('invoice.serviceDescription')} />
                 </td>
                 <td style={{ padding:'4px 6px',width:60 }}>
                   <input type="number" value={l.cantidad} min={0} onChange={e => setLinea(i,'cantidad',Number(e.target.value))} style={{ width:60 }} />
@@ -263,19 +280,19 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
       </div>
       <button type="button" onClick={() => setLineas(p => [...p, { descripcion:'',cantidad:1,precio_unitario:0,importe:0 }])}
         style={{ marginTop:8,background:'none',border:'1px dashed var(--linea)',borderRadius:8,padding:'6px 16px',color:'var(--muted)',cursor:'pointer',fontSize:12 }}>
-        + Añadir línea
+        {t('invoice.addLine')}
       </button>
 
       {/* Totales */}
       <div style={{ marginTop:16,borderTop:'1px solid var(--linea)',paddingTop:12 }}>
         <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontSize:13 }}>
           <div style={{ display:'flex',gap:20 }}>
-            <span style={{ color:'var(--muted)' }}>Base imponible</span>
+            <span style={{ color:'var(--muted)' }}>{t('invoice.taxableBase')}</span>
             <span style={{ fontFamily:'JetBrains Mono, monospace',color:'var(--ink)',minWidth:90,textAlign:'right' }}>{formatEur(subtotal)}</span>
           </div>
           <div style={{ display:'flex',gap:20 }}>
             <span style={{ color: tipoIva==='normal'?'var(--muted)':'var(--naranja-text)' }}>
-              {tipoIva==='normal' ? `IVA (${ivaRate}%)` : tipoIvaLabel(tipoIva)}
+              {ivaTypeLabel(t, tipoIva, ivaRate)}
             </span>
             <span style={{ fontFamily:'JetBrains Mono, monospace',color: tipoIva==='normal'?'var(--ink)':'var(--naranja-text)',minWidth:90,textAlign:'right' }}>{formatEur(ivaImporte)}</span>
           </div>
@@ -291,13 +308,13 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
         )}
       </div>
 
-      <Field label="Notas"><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder="Notas internas o información adicional" /></Field>
+      <Field label={t('label.notes')}><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder={t('invoice.notesPh')} /></Field>
 
       {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}
       <div style={{ display:'flex',gap:10,justifyContent:'flex-end',marginTop:8 }}>
-        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancelar</button>
+        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>{t('btn.cancel')}</button>
         <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'var(--pulse)',color:'var(--petrol)',fontWeight:700,cursor:'pointer' }}>
-          {saving ? 'Guardando...' : 'Crear factura'}
+          {saving ? t('common.saving') : t('invoice.create')}
         </button>
       </div>
     </form>
@@ -310,6 +327,7 @@ type VerifactuRec = {
   fecha_expedicion: string; modo: string; certificado: boolean;
 };
 function VerifactuBlock({ facturaId }: { facturaId: number }) {
+  const { t } = useLang();
   const [rec, setRec] = useState<VerifactuRec | null>(null);
   const [qr, setQr] = useState('');
   const [loading, setLoading] = useState(false);
@@ -327,7 +345,7 @@ function VerifactuBlock({ facturaId }: { facturaId: number }) {
   async function generar() {
     setLoading(true); setErr('');
     try { setRec(await apiFetch<VerifactuRec>(`/ops/facturas/${facturaId}/verifactu`, { method: 'POST' })); }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
+    catch (e) { setErr(e instanceof Error ? e.message : t('common.saveError')); }
     finally { setLoading(false); }
   }
 
@@ -335,25 +353,25 @@ function VerifactuBlock({ facturaId }: { facturaId: number }) {
     <div style={{ border:'1px solid var(--linea)', borderRadius:8, padding:'12px 14px', marginBottom:16, background:'#FFFDF8' }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Verifactu</span>
-        <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:'var(--naranja-tint)', background:'rgba(255,122,26,0.12)', padding:'2px 6px', borderRadius:6 }}>modo pruebas · no activado</span>
+        <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:'var(--naranja-tint)', background:'rgba(255,122,26,0.12)', padding:'2px 6px', borderRadius:6 }}>{t('invoice.verifactu.testMode')}</span>
       </div>
       {!rec ? (
         <>
           <p style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
-            Genera el registro encadenado (huella SHA-256) y el QR de cotejo de la AEAT. No es cumplimiento activo hasta el alta en la AEAT + declaración responsable.
+            {t('invoice.verifactu.help')}
           </p>
           <button type="button" onClick={generar} disabled={loading}
             style={{ padding:'7px 14px', borderRadius:6, border:'none', background:'var(--petrol)', color:'var(--ivory)', fontWeight:700, fontSize:12, cursor:'pointer' }}>
-            {loading ? 'Generando…' : 'Generar registro Verifactu'}
+            {loading ? t('invoice.verifactu.generating') : t('invoice.verifactu.generate')}
           </button>
           {err && <p style={{ color:'var(--rojo-text)', fontSize:12, marginTop:6 }}>{err}</p>}
         </>
       ) : (
         <div style={{ display:'flex', gap:16, alignItems:'flex-start', flexWrap:'wrap' }}>
-          {qr && <img src={qr} alt="QR Verifactu" width={130} height={130} style={{ border:'1px solid var(--linea)', borderRadius:6 }} />}
+          {qr && <img src={qr} alt={t('invoice.verifactu.qrAlt')} width={130} height={130} style={{ border:'1px solid var(--linea)', borderRadius:6 }} />}
           <div style={{ flex:1, minWidth:220, fontSize:11, color:'var(--muted-tint)' }}>
-            <div style={{ marginBottom:4 }}><strong>Huella:</strong> <span style={{ fontFamily:'JetBrains Mono, monospace', wordBreak:'break-all' }}>{rec.huella}</span></div>
-            <div style={{ marginBottom:4 }}><strong>Encadenada a:</strong> <span style={{ fontFamily:'JetBrains Mono, monospace' }}>{rec.huella_anterior || '(primer registro)'}</span></div>
+            <div style={{ marginBottom:4 }}><strong>{t('invoice.verifactu.hash')}:</strong> <span style={{ fontFamily:'JetBrains Mono, monospace', wordBreak:'break-all' }}>{rec.huella}</span></div>
+            <div style={{ marginBottom:4 }}><strong>{t('invoice.verifactu.previous')}:</strong> <span style={{ fontFamily:'JetBrains Mono, monospace' }}>{rec.huella_anterior || t('invoice.verifactu.first')}</span></div>
             <div><strong>QR:</strong> <span style={{ wordBreak:'break-all' }}>{rec.qr_url}</span></div>
           </div>
         </div>
@@ -363,6 +381,7 @@ function VerifactuBlock({ facturaId }: { facturaId: number }) {
 }
 
 export default function Invoices() {
+  const { t } = useLang();
   const [facturas, setFacturas]       = useState<Factura[]>([]);
   const [clientes, setClientes]       = useState<Cliente[]>([]);
   const [filterEstado, setFilter]     = useState<'all' | EstadoFactura>('all');
@@ -421,7 +440,7 @@ export default function Invoices() {
     generateInvoicePDF(selected, selectedLineas);
   }
 
-  if (loading) return <div style={{ color:'var(--muted)' }}>Cargando...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>{t('common.loading')}</div>;
 
   const ESTADOS_FILTER: ('all' | EstadoFactura)[] = ['all','borrador','enviada','cobrada','vencida'];
 
@@ -429,14 +448,14 @@ export default function Invoices() {
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
         <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>
-          Facturas
+          {t('ops.nav.invoices')}
         </h1>
         <div style={{ display:'flex',gap:10 }}>
           <button onClick={() => exportFacturasExcel(enriched)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
-            <Download size={14}/> Exportar
+            <Download size={14}/> {t('btn.export')}
           </button>
           <button onClick={() => setShowModal(true)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'var(--pulse)',border:'none',borderRadius:8,color:'var(--petrol)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
-            <Plus size={16}/> Nueva factura
+            <Plus size={16}/> {t('invoice.new')}
           </button>
         </div>
       </div>
@@ -444,11 +463,11 @@ export default function Invoices() {
       {/* Tarjetas resumen */}
       <div style={{ display:'flex',gap:16,marginBottom:24 }}>
         <div style={{ background:'var(--ivory-alt)',borderRadius:12,padding:'16px 20px',border:'1px solid var(--linea)',flex:1 }}>
-          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>Cobrado</div>
+          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>{t('ops.collected')}</div>
           <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'var(--verde-text)' }}>{formatEur(collected)}</div>
         </div>
         <div style={{ background:'var(--ivory-alt)',borderRadius:12,padding:'16px 20px',border:'1px solid var(--linea)',flex:1 }}>
-          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>Pendiente</div>
+          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>{t('ops.outstanding')}</div>
           <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'var(--naranja-text)' }}>{formatEur(outstanding)}</div>
         </div>
       </div>
@@ -461,7 +480,7 @@ export default function Invoices() {
             background: filterEstado===e?'var(--pulse)':'var(--ivory-alt)',
             color: filterEstado===e?'var(--petrol)':'var(--muted)',
           }}>
-            {e==='all'?'Todas':(ESTADO_LABEL[e] ?? e)}
+            {e==='all'?t('filter.allStatuses'):t(ESTADO_KEY[e] ?? e)}
           </button>
         ))}
       </div>
@@ -471,22 +490,22 @@ export default function Invoices() {
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:'1px solid var(--linea)' }}>
-              {['Número','Cliente','Tipo IVA','Fecha','Vence','Total','Estado',''].map(h => (
+              {[t('ops.invoiceNumber'),t('ops.clientName'),t('invoice.vatType'),t('ops.date'),t('invoice.dueShort'),t('ops.total'),t('ops.status'),''].map(h => (
                 <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'var(--muted)',fontWeight:500,fontSize:12 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={8} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>No hay facturas</td></tr>
+              <tr><td colSpan={8} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>{t('ops.noInvoices')}</td></tr>
             ) : filtered.map(f => (
               <tr key={f.id} style={{ borderBottom:'1px solid var(--linea-alta)',cursor:'pointer' }} onClick={() => openDetail(f)}>
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',fontSize:12,color:'var(--naranja-text)' }}>{f.numero}</td>
                 <td style={{ padding:'10px 16px',color:'var(--ink)',fontWeight:500 }}>{f.cliente_nombre}</td>
                 <td style={{ padding:'10px 16px' }}>
-                  {f.tipo_iva === 'intracomunitario' && <span style={{ fontSize:11,color:'var(--naranja-tint)',background:'rgba(255,122,26,0.1)',padding:'2px 8px',borderRadius:20 }}>Inversión SP</span>}
-                  {f.tipo_iva === 'exento' && <span style={{ fontSize:11,color:'var(--muted)' }}>Exento</span>}
-                  {f.tipo_iva === 'normal' && <span style={{ fontSize:11,color:'var(--muted)' }}>IVA {f.iva_rate}%</span>}
+                  {f.tipo_iva === 'intracomunitario' && <span style={{ fontSize:11,color:'var(--naranja-tint)',background:'rgba(255,122,26,0.1)',padding:'2px 8px',borderRadius:20 }}>{t('invoice.vat.reverseShort')}</span>}
+                  {f.tipo_iva === 'exento' && <span style={{ fontSize:11,color:'var(--muted)' }}>{t('invoice.vat.exempt')}</span>}
+                  {f.tipo_iva === 'normal' && <span style={{ fontSize:11,color:'var(--muted)' }}>{t('invoice.vat.normalRate', { rate: f.iva_rate })}</span>}
                 </td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{formatDate(f.fecha_emision)}</td>
                 <td style={{ padding:'10px 16px',color:f.estado==='vencida'?'var(--rojo-text)':'var(--muted)' }}>
@@ -503,24 +522,24 @@ export default function Invoices() {
 
       {/* Detalle de factura */}
       {selected && (
-        <Modal title={`Factura ${selected.numero}`} onClose={() => setSelected(null)} wide>
+        <Modal title={t('invoice.detailTitle', { number: selected.numero })} onClose={() => setSelected(null)} wide>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:16,marginBottom:16,fontSize:13 }}>
             <div>
-              <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>Cliente</div>
+              <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>{t('ops.clientName')}</div>
               <div style={{ color:'var(--ink)',fontWeight:600 }}>{selected.cliente_nombre}</div>
               {selected.vat_number && <div style={{ color:'var(--muted)',fontSize:12 }}>VAT: {selected.vat_number}</div>}
             </div>
             <div>
-              <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>Importe</div>
+              <div style={{ color:'var(--muted)',fontSize:11,marginBottom:4 }}>{t('invoice.amount')}</div>
               <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:20,fontWeight:700,color:'var(--naranja-text)' }}>{formatEur(selected.total)}</div>
-              <div style={{ fontSize:12,color:'var(--muted)' }}>{jurisdiccionLabel(selected.iva_jurisdiccion ?? jurisdiccionFromFactura(selected.tipo_iva, selected.iva_rate))}{selected.tipo_iva==='normal'?` (${selected.iva_rate}%)`:' = 0%'}</div>
+              <div style={{ fontSize:12,color:'var(--muted)' }}>{jurisdictionLabelT(t, selected.iva_jurisdiccion ?? jurisdiccionFromFactura(selected.tipo_iva, selected.iva_rate))}{selected.tipo_iva==='normal'?` (${selected.iva_rate}%)`:' = 0%'}</div>
             </div>
             <div>
-              <div style={{ color:'var(--muted)',fontSize:11 }}>Emisión / Vencimiento</div>
-              <div style={{ color:'var(--ink)' }}>{formatDate(selected.fecha_emision)} → {selected.fecha_vencimiento ? formatDate(selected.fecha_vencimiento) : 'Sin vencimiento'}</div>
+              <div style={{ color:'var(--muted)',fontSize:11 }}>{t('invoice.issueDue')}</div>
+              <div style={{ color:'var(--ink)' }}>{formatDate(selected.fecha_emision)} → {selected.fecha_vencimiento ? formatDate(selected.fecha_vencimiento) : t('invoice.noDueDate')}</div>
             </div>
             <div>
-              <div style={{ color:'var(--muted)',fontSize:11 }}>Estado</div>
+              <div style={{ color:'var(--muted)',fontSize:11 }}>{t('ops.status')}</div>
               <StatusBadge estado={selected.estado} />
             </div>
           </div>
@@ -541,7 +560,7 @@ export default function Invoices() {
           {selectedLineas.length > 0 && (
             <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12,marginBottom:16 }}>
               <thead><tr style={{ borderBottom:'1px solid var(--linea)' }}>
-                {['Descripción','Cant.','Precio unit.','Importe'].map(h => (
+                {[t('invoice.description'),t('invoice.qty'),t('invoice.unitPrice'),t('invoice.amount')].map(h => (
                   <th key={h} style={{ textAlign:'left',padding:'6px 8px',color:'var(--muted)',fontWeight:500 }}>{h}</th>
                 ))}
               </tr></thead>
@@ -562,11 +581,11 @@ export default function Invoices() {
           {selected.estado !== 'anulada' && selected.estado !== 'cobrada' && (
             <div style={{ display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginBottom:12,fontSize:12 }}>
               {selected.enlace_pago
-                ? <><span style={{ color:'var(--muted)' }}>Enlace de pago:</span><a href={selected.enlace_pago} target="_blank" rel="noopener" style={{ color:'var(--teal-tint)',wordBreak:'break-all' }}>{selected.enlace_pago}</a>
-                    <button onClick={() => navigator.clipboard.writeText(selected.enlace_pago!)} style={{ padding:'4px 10px',borderRadius:6,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:11 }}>Copiar</button></>
+                ? <><span style={{ color:'var(--muted)' }}>{t('invoice.paymentLink')}:</span><a href={selected.enlace_pago} target="_blank" rel="noopener" style={{ color:'var(--teal-tint)',wordBreak:'break-all' }}>{selected.enlace_pago}</a>
+                    <button onClick={() => navigator.clipboard.writeText(selected.enlace_pago!)} style={{ padding:'4px 10px',borderRadius:6,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:11 }}>{t('campaign.copy')}</button></>
                 : <button onClick={async () => { try { const r = await apiFetch<{ url: string }>(`/ops/facturas/${selected.id}/enlace-pago`, { method:'POST' }); setSelected({ ...selected, enlace_pago: r.url }); await load(); } catch (e) { alert(String(e)); } }}
                     style={{ padding:'6px 14px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12 }}>
-                    🏦 Generar enlace de pago (Revolut)
+                    {t('invoice.generatePaymentLink')}
                   </button>}
             </div>
           )}
@@ -575,28 +594,28 @@ export default function Invoices() {
           <div style={{ display:'flex',gap:10,flexWrap:'wrap',borderTop:'1px solid var(--linea)',paddingTop:16 }}>
             {selected.estado === 'borrador' && (
               <button onClick={() => updateEstado(selected.id,'enviada')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--teal-tint)',cursor:'pointer',fontWeight:600 }}>
-                Marcar como enviada
+                {t('invoice.markSent')}
               </button>
             )}
             {selected.estado === 'enviada' && (
               <button onClick={() => updateEstado(selected.id,'cobrada')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(23,129,127,0.15)',color:'var(--verde-text)',cursor:'pointer',fontWeight:600 }}>
-                Marcar como cobrada → añade a Caja
+                {t('invoice.markPaid')}
               </button>
             )}
             {(selected.estado === 'borrador' || selected.estado === 'enviada') && (
               <button onClick={() => updateEstado(selected.id,'anulada')} style={{ padding:'8px 18px',borderRadius:8,border:'none',background:'rgba(15,46,56,0.1)',color:'var(--muted)',cursor:'pointer' }}>
-                Anular
+                {t('invoice.cancelInvoice')}
               </button>
             )}
             <button onClick={printInvoice} style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 18px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--ink)',cursor:'pointer' }}>
-              <Printer size={14}/> Descargar PDF
+              <Printer size={14}/> {t('invoice.downloadPdf')}
             </button>
           </div>
         </Modal>
       )}
 
       {showModal && (
-        <Modal title="Nueva factura" onClose={() => setShowModal(false)} wide>
+        <Modal title={t('invoice.new')} onClose={() => setShowModal(false)} wide>
           <InvoiceForm clientes={clientes} onSave={createInvoice} onClose={() => setShowModal(false)} />
         </Modal>
       )}
