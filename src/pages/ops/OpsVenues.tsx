@@ -26,6 +26,11 @@ type Venue = {
 type ListResp = { venues: Venue[]; total: number; limit: number; offset: number };
 
 const CATEGORIES = ['bar', 'hotel', 'restaurant', 'nightclub', 'beach_club', 'wellness', 'other'];
+// Etiquetas en español de las categorías (los valores se mantienen para la API).
+const CATEGORY_LABEL: Record<string, string> = {
+  bar: 'Bar', hotel: 'Hotel', restaurant: 'Restaurante', nightclub: 'Discoteca',
+  beach_club: 'Beach club', wellness: 'Bienestar', other: 'Otro',
+};
 const PAGE_SIZE = 50;
 
 export default function OpsVenues() {
@@ -124,7 +129,7 @@ export default function OpsVenues() {
         </select>
         <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle(false)}>
           <option value="">{L.allCategories}</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABEL[c] ?? c}</option>)}
         </select>
       </div>
 
@@ -182,7 +187,7 @@ export default function OpsVenues() {
                         padding: '2px 8px', background: 'var(--ivory)',
                         border: '1px solid var(--linea, #D9D5CC)', borderRadius: 4,
                         fontSize: 11, textTransform: 'capitalize', color: 'var(--ink)',
-                      }}>{v.category}</span>
+                      }}>{CATEGORY_LABEL[v.category] ?? v.category}</span>
                     </td>
                     <td style={{ ...tdStyle, color: 'var(--ink)' }}>{v.zone_name}</td>
                     <td style={tdStyle}>

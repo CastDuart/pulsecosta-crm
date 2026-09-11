@@ -154,7 +154,7 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <StatCard label={t('ops.cobrada')}   value={formatEur(collected)}   color="var(--verde-text)"   accent="var(--verde)"   icon={<TrendingUp size={28} />} />
+        <StatCard label="Cobrado"   value={formatEur(collected)}   color="var(--verde-text)"   accent="var(--verde)"   icon={<TrendingUp size={28} />} />
         <StatCard label={t('ops.outstanding')} value={formatEur(outstanding)} color="var(--naranja-text)" accent="var(--naranja)" icon={<Clock size={28} />} />
         <StatCard label={t('ops.cashBalance')} value={formatEur(cashBalance)} color="var(--teal-accent)"  accent="var(--teal)"    icon={<Wallet size={28} />} />
         <StatCard label={t('ops.forecast')}    value={formatEur(forecast)}    color="var(--muted)"        accent="var(--gold)"    icon={<BarChart3 size={28} />} />
@@ -195,7 +195,7 @@ export default function Dashboard() {
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{t('ops.vatReport')}</h3>
             <select value={vatQ} onChange={e => setVatQ(e.target.value as QFilter)} style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
               {(['all','Q1','Q2','Q3','Q4'] as QFilter[]).map(q => (
-                <option key={q} value={q}>{q === 'all' ? 'All' : q}</option>
+                <option key={q} value={q}>{q === 'all' ? 'Todos' : q}</option>
               ))}
             </select>
           </div>
@@ -260,11 +260,11 @@ export default function Dashboard() {
 }
 
 const STATUS_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
-  borrador:     { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Draft' },
-  enviada:      { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Sent' },
-  cobrada: { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Collected' },
-  vencida:   { bg: 'rgba(229,72,77,0.15)',   color: 'var(--rojo-tint)', label: 'Overdue' },
-  anulada: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Cancelled' },
+  borrador:     { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Borrador' },
+  enviada:      { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Enviada' },
+  cobrada: { bg: 'rgba(23,129,127,0.15)',  color: 'var(--teal-tint)', label: 'Cobrada' },
+  vencida:   { bg: 'rgba(229,72,77,0.15)',   color: 'var(--rojo-tint)', label: 'Vencida' },
+  anulada: { bg: 'rgba(15,46,56,0.15)', color: 'var(--muted-tint)', label: 'Anulada' },
 };
 
 function StatusBadge({ estado }: { estado: string }) {

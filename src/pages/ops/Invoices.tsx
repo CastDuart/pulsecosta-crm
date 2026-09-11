@@ -270,7 +270,7 @@ function InvoiceForm({ clientes, onSave, onClose, preClienteId }: {
       <div style={{ marginTop:16,borderTop:'1px solid var(--linea)',paddingTop:12 }}>
         <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontSize:13 }}>
           <div style={{ display:'flex',gap:20 }}>
-            <span style={{ color:'var(--muted)' }}>Subtotal</span>
+            <span style={{ color:'var(--muted)' }}>Base imponible</span>
             <span style={{ fontFamily:'JetBrains Mono, monospace',color:'var(--ink)',minWidth:90,textAlign:'right' }}>{formatEur(subtotal)}</span>
           </div>
           <div style={{ display:'flex',gap:20 }}>

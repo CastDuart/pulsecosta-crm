@@ -82,32 +82,32 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
     <form onSubmit={submit}>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label="Concept *"><input value={concepto} onChange={e => setConcepto(e.target.value)} required placeholder={tipo==='ingreso'?'e.g. Monthly subscription La Bahía':'e.g. VPS hosting Hostinger'} /></Field>
+          <Field label="Concepto *"><input value={concepto} onChange={e => setConcepto(e.target.value)} required placeholder={tipo==='ingreso'?'p. ej. Suscripción mensual La Bahía':'p. ej. Hosting VPS Hostinger'} /></Field>
         </div>
-        <Field label="Amount (€)"><input type="number" value={importe} onChange={e => setImporte(e.target.value)} min={0} step={0.01} required /></Field>
-        <Field label="Date"><input type="date" value={fecha} onChange={e => setFecha(e.target.value)} /></Field>
-        <Field label="Category">
+        <Field label="Importe (€)"><input type="number" value={importe} onChange={e => setImporte(e.target.value)} min={0} step={0.01} required /></Field>
+        <Field label="Fecha"><input type="date" value={fecha} onChange={e => setFecha(e.target.value)} /></Field>
+        <Field label="Categoría">
           <ChipSelect
             value={categoria}
             onChange={setCategoria}
             options={cats.map(c => ({ value: c, label: c }))}
             allowEmpty
-            emptyLabel="Select…"
+            emptyLabel="Seleccionar…"
           />
         </Field>
-        <Field label="VAT Type">
+        <Field label="Tipo de IVA">
           <ChipSelect
             value={tipoIva}
             onChange={v => setTipoIva(v as TipoIva)}
             options={[
-              { value: 'normal', label: 'Normal (with VAT)' },
-              { value: 'intracomunitario', label: 'Reverse Charge (EU B2B)' },
-              { value: 'exento', label: 'Exempt' },
+              { value: 'normal', label: 'Normal (con IVA)' },
+              { value: 'intracomunitario', label: 'Inversión del sujeto pasivo (UE B2B)' },
+              { value: 'exento', label: 'Exento' },
             ]}
           />
         </Field>
         {tipoIva === 'normal' && (
-          <Field label="VAT Rate (%)">
+          <Field label="Porcentaje de IVA (%)">
             <ChipSelect
               value={String(ivaRate)}
               onChange={v => setIvaRate(Number(v))}
@@ -115,41 +115,41 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
             />
           </Field>
         )}
-        <Field label="Link to invoice (optional)">
+        <Field label="Vincular a factura (opcional)">
           <ChipSelect
             value={facturaId}
             onChange={setFacturaId}
             options={facturas.filter(f => f.estado !== 'anulada').map(f => ({ value: String(f.id), label: `${f.numero} — ${f.cliente_nombre} (${formatEur(f.total)})` }))}
             allowEmpty
-            emptyLabel="None"
+            emptyLabel="Ninguna"
             searchPlaceholder="Buscar factura…"
           />
         </Field>
-        <Field label="Client (optional)">
+        <Field label="Cliente (opcional)">
           <ChipSelect
             value={clienteId}
             onChange={setClienteId}
             options={clientes.map(c => ({ value: String(c.id), label: c.nombre }))}
             allowEmpty
-            emptyLabel="None"
+            emptyLabel="Ninguno"
             searchPlaceholder="Buscar cliente…"
           />
         </Field>
         <div style={{ gridColumn:'span 2' }}>
           <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:12 }}>
             <input type="checkbox" id="rec" checked={recurrente} onChange={e => setRecurrente(e.target.checked)} style={{ width:'auto' }} />
-            <label htmlFor="rec" style={{ fontSize:13,color:'var(--ink)',cursor:'pointer' }}>Recurring</label>
+            <label htmlFor="rec" style={{ fontSize:13,color:'var(--ink)',cursor:'pointer' }}>Recurrente</label>
             {recurrente && (
               <ChipSelect
                 value={intervalo}
                 onChange={setIntervalo}
-                options={[{ value: 'mensual', label: 'Monthly' }, { value: 'trimestral', label: 'Quarterly' }]}
+                options={[{ value: 'mensual', label: 'Mensual' }, { value: 'trimestral', label: 'Trimestral' }]}
               />
             )}
           </div>
         </div>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label="Notes"><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} /></Field>
+          <Field label="Notas"><textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} /></Field>
         </div>
       </div>
 
@@ -157,11 +157,11 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
       {imp > 0 && (
         <div style={{ background:'rgba(255,122,26,0.05)',borderRadius:8,padding:'10px 14px',marginBottom:12,fontSize:12 }}>
           <div style={{ display:'flex',justifyContent:'space-between' }}>
-            <span style={{ color:'var(--muted)' }}>Amount</span>
+            <span style={{ color:'var(--muted)' }}>Importe</span>
             <span style={{ fontFamily:'JetBrains Mono, monospace',color:'var(--ink)' }}>{formatEur(imp)}</span>
           </div>
           <div style={{ display:'flex',justifyContent:'space-between' }}>
-            <span style={{ color:'var(--muted)' }}>VAT ({ivaRate}%)</span>
+            <span style={{ color:'var(--muted)' }}>IVA ({ivaRate}%)</span>
             <span style={{ fontFamily:'JetBrains Mono, monospace',color:'var(--muted)' }}>{formatEur(ivaImporte)}</span>
           </div>
           <div style={{ display:'flex',justifyContent:'space-between',borderTop:'1px solid var(--linea)',paddingTop:6,marginTop:6 }}>
@@ -173,14 +173,14 @@ function MovimientoForm({ tipo, clientes, facturas, onSave, onClose }: {
 
       {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}
       <div style={{ display:'flex',gap:10,justifyContent:'flex-end' }}>
-        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancel</button>
+        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancelar</button>
         <button type="submit" disabled={saving} style={{
           padding:'9px 20px',borderRadius:8,border:'none',
           background: tipo==='ingreso'?'rgba(23,129,127,0.2)':'rgba(229,72,77,0.2)',
           color: tipo==='ingreso'?'var(--verde-text)':'var(--rojo-text)',
           fontWeight:700,cursor:'pointer',
         }}>
-          {saving ? 'Saving...' : (tipo==='ingreso' ? '+ Add Income' : '- Add Expense')}
+          {saving ? 'Guardando...' : (tipo==='ingreso' ? '+ Añadir ingreso' : '- Añadir gasto')}
         </button>
       </div>
     </form>
@@ -211,21 +211,21 @@ export default function Cash() {
   const expenses = movimientos.filter(m => m.tipo==='gasto').reduce((s,m) => s+m.importe, 0);
   const balance  = income - expenses;
 
-  if (loading) return <div style={{ color:'var(--muted)' }}>Loading...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>Cargando...</div>;
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>Cash</h1>
+        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>Caja</h1>
         <div style={{ display:'flex',gap:10 }}>
           <button onClick={() => exportCajaExcel(movimientos)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
-            <Download size={14}/> Export
+            <Download size={14}/> Exportar
           </button>
           <button onClick={() => setModal('gasto')} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'rgba(229,72,77,0.15)',border:'none',borderRadius:8,color:'var(--rojo-text)',fontWeight:700,cursor:'pointer',fontSize:13 }}>
-            <TrendingDown size={14}/> Expense
+            <TrendingDown size={14}/> Gasto
           </button>
           <button onClick={() => setModal('ingreso')} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'rgba(23,129,127,0.15)',border:'none',borderRadius:8,color:'var(--verde-text)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
-            <TrendingUp size={14}/> Income
+            <TrendingUp size={14}/> Ingreso
           </button>
         </div>
       </div>
@@ -233,9 +233,9 @@ export default function Cash() {
       {/* Summary */}
       <div style={{ display:'flex',gap:16,marginBottom:24 }}>
         {[
-          { label:'Cash Balance', value:balance, color: balance>=0?'var(--verde-text)':'var(--rojo-text)', icon:<Wallet size={28}/> },
-          { label:'Total Income',   value:income,    color:'var(--verde-text)', icon:<TrendingUp size={28}/> },
-          { label:'Total Expenses', value:expenses,  color:'var(--rojo-text)', icon:<TrendingDown size={28}/> },
+          { label:'Saldo de caja', value:balance, color: balance>=0?'var(--verde-text)':'var(--rojo-text)', icon:<Wallet size={28}/> },
+          { label:'Total ingresos', value:income,    color:'var(--verde-text)', icon:<TrendingUp size={28}/> },
+          { label:'Total gastos',   value:expenses,  color:'var(--rojo-text)', icon:<TrendingDown size={28}/> },
         ].map(c => (
           <div key={c.label} style={{ background:'var(--ivory-alt)',borderRadius:12,padding:'20px 24px',border:'1px solid var(--linea)',flex:1 }}>
             <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
@@ -254,20 +254,20 @@ export default function Cash() {
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:'1px solid var(--linea)' }}>
-              {['Date','Concept','Category','Client','Amount','VAT'].map(h => (
+              {['Fecha','Concepto','Categoría','Cliente','Importe','IVA'].map(h => (
                 <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'var(--muted)',fontWeight:500,fontSize:12 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {movimientos.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>No movements yet</td></tr>
+              <tr><td colSpan={6} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>Aún no hay movimientos</td></tr>
             ) : movimientos.map(m => (
               <tr key={m.id} style={{ borderBottom:'1px solid var(--linea-alta)' }}>
                 <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{formatDate(m.fecha)}</td>
                 <td style={{ padding:'10px 16px',color:'var(--ink)',fontWeight:500 }}>
                   {m.concepto}
-                  {m.recurrente && <span style={{ marginLeft:6,fontSize:10,color:'var(--muted-tint)',background:'rgba(94,109,114,0.1)',padding:'1px 6px',borderRadius:20 }}>recurring</span>}
+                  {m.recurrente && <span style={{ marginLeft:6,fontSize:10,color:'var(--muted-tint)',background:'rgba(94,109,114,0.1)',padding:'1px 6px',borderRadius:20 }}>recurrente</span>}
                 </td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)',fontSize:12 }}>{m.categoria || '-'}</td>
                 <td style={{ padding:'10px 16px',color:'var(--muted)',fontSize:12 }}>{m.cliente_nombre || '-'}</td>
@@ -284,7 +284,7 @@ export default function Cash() {
       </div>
 
       {modal && (
-        <Modal title={modal==='ingreso'?'+ New Income':'- New Expense'} onClose={() => setModal(null)}>
+        <Modal title={modal==='ingreso'?'+ Nuevo ingreso':'- Nuevo gasto'} onClose={() => setModal(null)}>
           <MovimientoForm tipo={modal} clientes={clientes} facturas={facturas} onSave={saveMov} onClose={() => setModal(null)} />
         </Modal>
       )}

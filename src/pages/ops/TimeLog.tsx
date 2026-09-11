@@ -44,7 +44,7 @@ export default function TimeLog() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => setLocation(pos),
-        () => setLocError('Location unavailable — will clock without GPS'),
+        () => setLocError('Ubicación no disponible — se fichará sin GPS'),
       );
     }
   }, []);
@@ -86,15 +86,15 @@ export default function TimeLog() {
 
   async function exportExcel() {
     const rows = jornadas.map(j => ({
-      'Date':        String(j.fecha).slice(0, 10),
-      'Worker':      j.user_name || '',
-      'Clock in':    formatTime(j.entrada),
-      'Clock out':   j.salida ? formatTime(j.salida) : '',
-      'Hours':       j.total_minutos ? formatMinutes(j.total_minutos) : '',
-      'Location in': j.direccion_entrada || (j.lat_entrada ? `${Number(j.lat_entrada).toFixed(4)}, ${Number(j.lng_entrada ?? 0).toFixed(4)}` : ''),
+      'Fecha':             String(j.fecha).slice(0, 10),
+      'Trabajador':        j.user_name || '',
+      'Entrada':           formatTime(j.entrada),
+      'Salida':            j.salida ? formatTime(j.salida) : '',
+      'Horas':             j.total_minutos ? formatMinutes(j.total_minutos) : '',
+      'Ubicación entrada': j.direccion_entrada || (j.lat_entrada ? `${Number(j.lat_entrada).toFixed(4)}, ${Number(j.lng_entrada ?? 0).toFixed(4)}` : ''),
     }));
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Time Log');
+    const ws = wb.addWorksheet('Control horario');
     if (rows.length > 0) {
       ws.columns = Object.keys(rows[0]).map(key => ({ header: key, key, width: 22 }));
       ws.getRow(1).font = { bold: true };
@@ -103,7 +103,7 @@ export default function TimeLog() {
     const buf = await wb.xlsx.writeBuffer();
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a');
-    a.href = url; a.download = `TimeLog_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.href = url; a.download = `ControlHorario_${new Date().toISOString().slice(0,10)}.xlsx`;
     a.click(); URL.revokeObjectURL(url);
   }
 
@@ -116,26 +116,26 @@ export default function TimeLog() {
   });
   const totalMinutes = monthJornadas.reduce((s, j) => s + (j.total_minutos || 0), 0);
 
-  if (loading) return <div style={{ color:'var(--muted)' }}>Loading...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>Cargando...</div>;
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
-        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>Time Log</h1>
+        <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>Control horario</h1>
         <button onClick={exportExcel} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
-          <Download size={14}/> Export
+          <Download size={14}/> Exportar
         </button>
       </div>
 
       {/* Clock in/out panel */}
       <div style={{ background:'var(--ivory-alt)',borderRadius:16,padding:'28px 32px',border:'1px solid var(--linea)',marginBottom:28,display:'flex',alignItems:'center',gap:32 }}>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:13,color:'var(--muted)',marginBottom:6 }}>Today — {new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</div>
+          <div style={{ fontSize:13,color:'var(--muted)',marginBottom:6 }}>Hoy — {new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</div>
           {open ? (
             <div>
               <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:4 }}>
                 <div style={{ width:8,height:8,borderRadius:'50%',background:'var(--state-quiet)',animation:'pulse 2s infinite' }}/>
-                <span style={{ fontWeight:700,color:'var(--verde-text)',fontSize:16 }}>Active shift since {formatTime(open.entrada)}</span>
+                <span style={{ fontWeight:700,color:'var(--verde-text)',fontSize:16 }}>Jornada activa desde {formatTime(open.entrada)}</span>
               </div>
               {open.lat_entrada && (
                 <div style={{ fontSize:12,color:'var(--muted)',display:'flex',alignItems:'center',gap:4 }}>
@@ -144,7 +144,7 @@ export default function TimeLog() {
               )}
             </div>
           ) : (
-            <div style={{ color:'var(--muted)',fontSize:14 }}>No active shift</div>
+            <div style={{ color:'var(--muted)',fontSize:14 }}>Sin jornada activa</div>
           )}
           {locError && <div style={{ marginTop:6,fontSize:11,color:'var(--naranja-text)' }}>{locError}</div>}
         </div>
@@ -156,7 +156,7 @@ export default function TimeLog() {
               borderRadius:12,border:'none',background:'rgba(23,129,127,0.15)',
               color:'var(--verde-text)',fontWeight:800,fontSize:16,cursor:'pointer',
             }}>
-              <Play size={20} fill="var(--verde-text)"/> {clocking ? 'Clocking in...' : 'Clock In'}
+              <Play size={20} fill="var(--verde-text)"/> {clocking ? 'Fichando entrada...' : 'Fichar entrada'}
             </button>
           ) : (
             <button onClick={clockOut} disabled={clocking} style={{
@@ -164,17 +164,17 @@ export default function TimeLog() {
               borderRadius:12,border:'none',background:'rgba(229,72,77,0.15)',
               color:'var(--rojo-text)',fontWeight:800,fontSize:16,cursor:'pointer',
             }}>
-              <Square size={20} fill="var(--rojo-text)"/> {clocking ? 'Clocking out...' : 'Clock Out'}
+              <Square size={20} fill="var(--rojo-text)"/> {clocking ? 'Fichando salida...' : 'Fichar salida'}
             </button>
           )}
         </div>
 
         <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>This month</div>
+          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:4 }}>Este mes</div>
           <div style={{ fontFamily:'JetBrains Mono, monospace',fontSize:22,fontWeight:700,color:'var(--teal-tint)' }}>
             {formatMinutes(totalMinutes)}
           </div>
-          <div style={{ fontSize:11,color:'var(--muted)' }}>{monthJornadas.length} shifts</div>
+          <div style={{ fontSize:11,color:'var(--muted)' }}>{monthJornadas.length} jornadas</div>
         </div>
       </div>
 
@@ -183,21 +183,21 @@ export default function TimeLog() {
         <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:'1px solid var(--linea)' }}>
-              {['Date', ...(isAdmin ? ['Worker'] : []), 'Clock In', 'Clock Out', 'Duration', 'Location'].map(h => (
+              {['Fecha', ...(isAdmin ? ['Trabajador'] : []), 'Entrada', 'Salida', 'Duración', 'Ubicación'].map(h => (
                 <th key={h} style={{ textAlign:'left',padding:'12px 16px',color:'var(--muted)',fontWeight:500,fontSize:12 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {jornadas.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>No records yet</td></tr>
+              <tr><td colSpan={6} style={{ padding:'24px',color:'var(--muted)',textAlign:'center' }}>Aún no hay registros</td></tr>
             ) : jornadas.map(j => (
               <tr key={j.id} style={{ borderBottom:'1px solid var(--linea-alta)' }}>
                 <td style={{ padding:'10px 16px',color:'var(--ink)' }}>{formatDate(j.fecha)}</td>
                 {isAdmin && <td style={{ padding:'10px 16px',color:'var(--muted)' }}>{j.user_name}</td>}
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'var(--verde-text)' }}>{formatTime(j.entrada)}</td>
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:j.salida?'var(--rojo-text)':'var(--naranja-text)' }}>
-                  {j.salida ? formatTime(j.salida) : <span style={{ color:'var(--naranja-text)' }}>Active</span>}
+                  {j.salida ? formatTime(j.salida) : <span style={{ color:'var(--naranja-text)' }}>Activa</span>}
                 </td>
                 <td style={{ padding:'10px 16px',fontFamily:'JetBrains Mono, monospace',color:'var(--teal-tint)' }}>
                   {j.total_minutos ? formatMinutes(j.total_minutos) : '-'}

@@ -5,6 +5,7 @@ import { formatEur, formatDate } from '../../lib/iva';
 import { Plus, X, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import ChipSelect from '../../components/ui/ChipSelect';
 
+const VISITA_ESTADO_LABEL: Record<Visita['estado'], string> = { pending:'Pendiente', follow_up:'Seguimiento', closed:'Cerrada', lost:'Perdida' };
 const PAISES = ['Estonia','Spain','Finland','Germany','France','Netherlands','Sweden','Portugal','Italy','Belgium','Austria','Other'];
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -149,14 +150,14 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {openBalance > 0 && (
             <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: 'var(--naranja-text)', fontWeight: 700 }}>
-              Open: {formatEur(openBalance)}
+              Pendiente: {formatEur(openBalance)}
             </span>
           )}
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>
             <FileText size={12} style={{ display: 'inline', marginRight: 4 }} />
             {clientFacturas.length}
           </span>
-          <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: '1px solid var(--linea)', borderRadius: 6, padding: '4px 10px', color: 'var(--muted)', cursor: 'pointer', fontSize: 12 }}>Edit</button>
+          <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: '1px solid var(--linea)', borderRadius: 6, padding: '4px 10px', color: 'var(--muted)', cursor: 'pointer', fontSize: 12 }}>Editar</button>
           {expanded ? <ChevronUp size={16} color="var(--muted)" /> : <ChevronDown size={16} color="var(--muted)" />}
         </div>
       </div>
@@ -166,9 +167,9 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             {/* Invoice history */}
             <div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Invoice History</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Historial de facturas</div>
               {clientFacturas.length === 0
-                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>No invoices</div>
+                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Sin facturas</div>
                 : clientFacturas.slice(0, 5).map(f => (
                   <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid var(--linea)' }}>
                     <span style={{ color: 'var(--naranja-text)', fontFamily: 'JetBrains Mono, monospace' }}>{f.numero}</span>
@@ -180,14 +181,14 @@ function ClientCard({ cliente, facturas, visitas, onEdit }: {
             </div>
             {/* Visit history */}
             <div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Visit History</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Historial de visitas</div>
               {clientVisitas.length === 0
-                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>No visits</div>
+                ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Sin visitas</div>
                 : clientVisitas.slice(0, 5).map(v => (
                   <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: '1px solid var(--linea)' }}>
                     <span style={{ color: 'var(--ink)' }}>{formatDate(v.fecha)}</span>
                     <span style={{ color: 'var(--muted)' }}>{v.venue}</span>
-                    <span style={{ color: v.estado === 'closed' ? 'var(--verde-text)' : 'var(--teal-accent)' }}>{v.estado}</span>
+                    <span style={{ color: v.estado === 'closed' ? 'var(--verde-text)' : 'var(--teal-accent)' }}>{VISITA_ESTADO_LABEL[v.estado] ?? v.estado}</span>
                   </div>
                 ))
               }
@@ -239,32 +240,32 @@ export default function Clients() {
     c.vat_number?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return <div style={{ color: 'var(--muted)' }}>Loading...</div>;
+  if (loading) return <div style={{ color: 'var(--muted)' }}>Cargando...</div>;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
-          Clients <span style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>({clientes.length})</span>
+          Clientes <span style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>({clientes.length})</span>
         </h1>
         <button onClick={() => { setEditClient(null); setShowModal(true); }} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px',
           background: 'var(--pulse)', border: 'none', borderRadius: 8,
           color: 'var(--petrol)', fontWeight: 700, cursor: 'pointer', fontSize: 14,
         }}>
-          <Plus size={16} /> New Client
+          <Plus size={16} /> Nuevo cliente
         </button>
       </div>
 
       <input
         value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="Search by name, city or VAT..."
+        placeholder="Buscar por nombre, ciudad o NIF/CIF..."
         style={{ marginBottom: 16, maxWidth: 360 }}
       />
 
       <div>
         {filtered.length === 0
-          ? <div style={{ color: 'var(--muted)', padding: 20 }}>No clients found</div>
+          ? <div style={{ color: 'var(--muted)', padding: 20 }}>No se han encontrado clientes</div>
           : filtered.map(c => (
             <ClientCard
               key={c.id} cliente={c} facturas={facturas} visitas={visitas}
@@ -275,7 +276,7 @@ export default function Clients() {
       </div>
 
       {showModal && (
-        <Modal title={editClient ? 'Edit Client' : 'New Client'} onClose={() => setShowModal(false)}>
+        <Modal title={editClient ? 'Editar cliente' : 'Nuevo cliente'} onClose={() => setShowModal(false)}>
           <ClientForm initial={editClient || undefined} onSave={saveClient} onClose={() => setShowModal(false)} />
         </Modal>
       )}

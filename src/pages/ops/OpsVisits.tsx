@@ -11,7 +11,8 @@ type VisitaPrioridad = Visita['prioridad'];
 
 const PLANES = ['Premium Local €29/mes', 'Pro BI €59/mes', 'Hotel Analytics €129/mes', 'Hotel Elite €429/mes', 'Other'];
 const ESTADOS: VisitaEstado[] = ['pending', 'follow_up', 'closed', 'lost'];
-const ESTADO_LABEL: Record<VisitaEstado, string> = { pending:'Pending', follow_up:'Follow-up', closed:'Closed', lost:'Lost' };
+const PRIORIDAD_LABEL: Record<VisitaPrioridad, string> = { low:'Baja', medium:'Media', high:'Alta' };
+const ESTADO_LABEL: Record<VisitaEstado, string> = { pending:'Pendiente', follow_up:'Seguimiento', closed:'Cerrada', lost:'Perdida' };
 // [texto, fondo] — el texto va sobre su propio tinte, de ahi las variantes hondas
 const ESTADO_COLOR: Record<VisitaEstado, [string, string]> = {
   pending:   ['var(--naranja-tint)', 'rgba(255,122,26,0.15)'],
@@ -124,7 +125,7 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
   return (
     <form onSubmit={submit}>
       {/* Prospect / Company */}
-      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',marginBottom:12,borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Prospect / Company</div>
+      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',marginBottom:12,borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Prospecto / Empresa</div>
 
       {/* Typeahead venues públicos (Costa del Sol) */}
       {!f.venue_id ? (
@@ -167,75 +168,75 @@ function VisitaForm({ initial, clientes, onSave, onClose }: {
 
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label="Venue / Company *"><input value={f.venue} onChange={set('venue')} required /></Field>
+          <Field label="Local / Empresa *"><input value={f.venue} onChange={set('venue')} required /></Field>
         </div>
-        <Field label="City"><input value={f.ciudad} onChange={set('ciudad')} /></Field>
-        <Field label="Street Address"><input value={f.direccion} onChange={set('direccion')} /></Field>
-        <Field label="Contact person"><input value={f.contacto} onChange={set('contacto')} /></Field>
-        <Field label="Phone"><input value={f.telefono} onChange={set('telefono')} /></Field>
+        <Field label="Ciudad"><input value={f.ciudad} onChange={set('ciudad')} /></Field>
+        <Field label="Dirección"><input value={f.direccion} onChange={set('direccion')} /></Field>
+        <Field label="Persona de contacto"><input value={f.contacto} onChange={set('contacto')} /></Field>
+        <Field label="Teléfono"><input value={f.telefono} onChange={set('telefono')} /></Field>
         <Field label="Email"><input type="email" value={f.email} onChange={set('email')} /></Field>
-        <Field label="VAT Number"><input value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" /></Field>
+        <Field label="NIF/CIF (VAT)"><input value={f.vat_number} onChange={set('vat_number')} placeholder="ESB12345678" /></Field>
       </div>
 
       {/* Visit details */}
-      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',margin:'16px 0 12px',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Visit Details</div>
+      <div style={{ fontSize:13,fontWeight:700,color:'var(--naranja-text)',margin:'16px 0 12px',borderBottom:'1px solid var(--linea)',paddingBottom:8 }}>Detalles de la visita</div>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:10 }}>
-        <Field label="Existing client (optional — only for upsell visits)">
+        <Field label="Cliente existente (opcional — solo para visitas de upsell)">
           <ChipSelect
             value={String(f.cliente_id ?? '')}
             onChange={v => setF(p => ({ ...p, cliente_id: v === '' ? '' : Number(v) }))}
             options={clientes.map(c => ({ value: String(c.id), label: c.nombre }))}
             allowEmpty
-            emptyLabel="— Prospect (new) —"
+            emptyLabel="— Prospecto (nuevo) —"
             searchPlaceholder="Buscar cliente…"
           />
         </Field>
-        <Field label="Date"><input type="date" value={f.fecha} onChange={set('fecha')} /></Field>
+        <Field label="Fecha"><input type="date" value={f.fecha} onChange={set('fecha')} /></Field>
         <Field label="Plan">
           <ChipSelect
             value={f.plan}
             onChange={v => setF(p => ({ ...p, plan: v }))}
             options={PLANES.map(p => ({ value: p, label: p }))}
             allowEmpty
-            emptyLabel="Select plan…"
+            emptyLabel="Seleccionar plan…"
           />
         </Field>
-        <Field label="Status">
+        <Field label="Estado">
           <ChipSelect
             value={f.estado}
             onChange={v => setF(p => ({ ...p, estado: v as VisitaEstado }))}
             options={ESTADOS.map(e => ({ value: e, label: ESTADO_LABEL[e] }))}
           />
         </Field>
-        <Field label="Priority">
+        <Field label="Prioridad">
           <ChipSelect
             value={f.prioridad}
             onChange={v => setF(p => ({ ...p, prioridad: v as VisitaPrioridad }))}
             options={[
-              { value: 'low', label: 'Low' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'high', label: 'High' },
+              { value: 'low', label: 'Baja' },
+              { value: 'medium', label: 'Media' },
+              { value: 'high', label: 'Alta' },
             ]}
           />
         </Field>
-        <Field label="Proposal sent">
+        <Field label="Propuesta enviada">
           <ChipSelect
             value={f.propuesta_enviada ? 'yes' : 'no'}
             onChange={v => setF(p => ({ ...p, propuesta_enviada: v === 'yes' }))}
-            options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }]}
+            options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Sí' }]}
           />
         </Field>
-        <Field label="Follow-up date"><input type="date" value={f.fecha_seguimiento} onChange={set('fecha_seguimiento')} /></Field>
-        <Field label="Next action"><input value={f.proxima_accion} onChange={set('proxima_accion')} /></Field>
+        <Field label="Fecha de seguimiento"><input type="date" value={f.fecha_seguimiento} onChange={set('fecha_seguimiento')} /></Field>
+        <Field label="Siguiente acción"><input value={f.proxima_accion} onChange={set('proxima_accion')} /></Field>
         <div style={{ gridColumn:'span 2' }}>
-          <Field label="Notes"><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
+          <Field label="Notas"><textarea value={f.notas} onChange={set('notas')} rows={3} /></Field>
         </div>
       </div>
       {err && <div style={{ color:'var(--rojo-text)',fontSize:13,marginBottom:10 }}>{err}</div>}
       <div style={{ display:'flex',gap:10,justifyContent:'flex-end',marginTop:8 }}>
-        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancel</button>
+        <button type="button" onClick={onClose} style={{ padding:'9px 20px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer' }}>Cancelar</button>
         <button type="submit" disabled={saving} style={{ padding:'9px 20px',borderRadius:8,border:'none',background:'var(--pulse)',color:'var(--petrol)',fontWeight:700,cursor:'pointer' }}>
-          {saving ? 'Saving...' : 'Save Visit'}
+          {saving ? 'Guardando...' : 'Guardar visita'}
         </button>
       </div>
     </form>
@@ -290,9 +291,9 @@ export default function Visits() {
         body: JSON.stringify({ cliente_id: cliente.id }),
       });
       await load();
-      alert(`Client "${cliente.nombre}" created. Go to Invoices to create their first invoice.`);
+      alert(`Cliente "${cliente.nombre}" creado. Ve a Facturas para crear su primera factura.`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error converting to client');
+      alert(e instanceof Error ? e.message : 'Error al convertir en cliente');
     } finally {
       setConverting(null);
     }
@@ -300,20 +301,20 @@ export default function Visits() {
 
   const filtered = visitas.filter(v => filterEstado === 'all' || v.estado === filterEstado);
 
-  if (loading) return <div style={{ color:'var(--muted)' }}>Loading...</div>;
+  if (loading) return <div style={{ color:'var(--muted)' }}>Cargando...</div>;
 
   return (
     <div>
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24 }}>
         <h1 style={{ fontFamily:'Syne, sans-serif',fontSize:26,fontWeight:800,color:'var(--ink)',margin:0 }}>
-          Visits CRM <span style={{ fontSize:14,color:'var(--muted)',fontFamily:'DM Sans, sans-serif' }}>({visitas.length})</span>
+          CRM de visitas <span style={{ fontSize:14,color:'var(--muted)',fontFamily:'DM Sans, sans-serif' }}>({visitas.length})</span>
         </h1>
         <div style={{ display:'flex',gap:10 }}>
           <button onClick={() => exportVisitasExcel(visitas)} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 16px',background:'var(--ivory-alt)',border:'none',borderRadius:8,color:'var(--ink)',cursor:'pointer',fontSize:13 }}>
-            <Download size={14}/> Export
+            <Download size={14}/> Exportar
           </button>
           <button onClick={() => { setEditVisita(null); setShowModal(true); }} style={{ display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'var(--pulse)',border:'none',borderRadius:8,color:'var(--petrol)',fontWeight:700,cursor:'pointer',fontSize:14 }}>
-            <Plus size={16}/> New Visit
+            <Plus size={16}/> Nueva visita
           </button>
         </div>
       </div>
@@ -326,7 +327,7 @@ export default function Visits() {
             background: filterEstado === e ? 'var(--pulse)' : 'var(--ivory-alt)',
             color: filterEstado === e ? 'var(--petrol)' : 'var(--muted)',
           }}>
-            {e === 'all' ? 'All' : ESTADO_LABEL[e]}
+            {e === 'all' ? 'Todas' : ESTADO_LABEL[e]}
             {e !== 'all' && (
               <span style={{ marginLeft:6,opacity:0.7 }}>
                 ({visitas.filter(v => v.estado === e).length})
@@ -338,7 +339,7 @@ export default function Visits() {
 
       <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
         {filtered.length === 0
-          ? <div style={{ color:'var(--muted)',padding:20 }}>No visits found</div>
+          ? <div style={{ color:'var(--muted)',padding:20 }}>No se han encontrado visitas</div>
           : filtered.map(v => (
           <div key={v.id} style={{ background:'var(--ivory-alt)',borderRadius:12,border:'1px solid var(--linea)',padding:'16px 20px' }}>
             <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
@@ -353,7 +354,7 @@ export default function Visits() {
                     background: v.prioridad==='high'?'rgba(229,72,77,0.15)':v.prioridad==='medium'?'rgba(255,122,26,0.15)':'rgba(15,46,56,0.15)',
                     color: v.prioridad==='high'?'var(--rojo-tint)':v.prioridad==='medium'?'var(--naranja-tint)':'var(--muted-tint)',
                     borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,
-                  }}>{v.prioridad}</span>
+                  }}>{PRIORIDAD_LABEL[v.prioridad] ?? v.prioridad}</span>
                   {v.origen === 'field' && (
                     <span title="Registrada en PulseField" style={{ background:'rgba(15,46,56,0.10)',color:'var(--muted-tint)',borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:700 }}>
                       Field{v.agente ? ` · ${v.agente}` : ''}
@@ -365,9 +366,9 @@ export default function Visits() {
                   {v.contacto && <span>{v.contacto}</span>}
                   {v.telefono && <span>{v.telefono}</span>}
                   {v.plan && <span style={{ color:'var(--muted)' }}>{v.plan}</span>}
-                  <span>Visit: {formatDate(v.fecha)}</span>
-                  {v.propuesta_enviada && <span style={{ color:'var(--verde-text)' }}>✓ Proposal sent</span>}
-                  {v.fecha_seguimiento && <span>Follow-up: {formatDate(v.fecha_seguimiento)}</span>}
+                  <span>Visita: {formatDate(v.fecha)}</span>
+                  {v.propuesta_enviada && <span style={{ color:'var(--verde-text)' }}>✓ Propuesta enviada</span>}
+                  {v.fecha_seguimiento && <span>Seguimiento: {formatDate(v.fecha_seguimiento)}</span>}
                 </div>
                 {v.proxima_accion && (
                   <div style={{ marginTop:6,fontSize:12,color:'var(--teal-tint)' }}>→ {v.proxima_accion}</div>
@@ -376,7 +377,7 @@ export default function Visits() {
                   <div style={{ marginTop:4,fontSize:12,color:'var(--muted)',fontStyle:'italic' }}>{v.notas}</div>
                 )}
                 {v.cliente_nombre && (
-                  <div style={{ marginTop:6,fontSize:12,color:'var(--verde-text)' }}>Client: {v.cliente_nombre}</div>
+                  <div style={{ marginTop:6,fontSize:12,color:'var(--verde-text)' }}>Cliente: {v.cliente_nombre}</div>
                 )}
               </div>
               <div style={{ display:'flex',gap:8,flexShrink:0,marginLeft:16 }}>
@@ -392,14 +393,14 @@ export default function Visits() {
                     }}
                   >
                     <UserCheck size={14}/>
-                    {converting === v.id ? 'Converting...' : 'Convert to Client'}
+                    {converting === v.id ? 'Convirtiendo...' : 'Convertir en cliente'}
                   </button>
                 )}
                 {v.origen !== 'field' && <button
                   onClick={() => { setEditVisita(v); setShowModal(true); }}
                   style={{ padding:'7px 14px',borderRadius:8,border:'1px solid var(--linea)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12 }}
                 >
-                  Edit
+                  Editar
                 </button>}
               </div>
             </div>
@@ -408,7 +409,7 @@ export default function Visits() {
       </div>
 
       {showModal && (
-        <Modal title={editVisita ? 'Edit Visit' : 'New Visit'} onClose={() => setShowModal(false)}>
+        <Modal title={editVisita ? 'Editar visita' : 'Nueva visita'} onClose={() => setShowModal(false)}>
           <VisitaForm initial={editVisita || undefined} clientes={clientes} onSave={saveVisita} onClose={() => setShowModal(false)} />
         </Modal>
       )}

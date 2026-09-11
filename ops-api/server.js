@@ -631,7 +631,9 @@ app.post('/api/ai/ops/billing', auth, async (req, res) => {
       `- ${f.numero} | ${f.cliente} (${f.pais}) | €${f.total} | ${f.estado} | ${f.tipo_iva}`
     ).join('\n');
 
-    const prompt = `Eres el asistente financiero de Novitum Technologies OÜ (OÜ Estonia, opera en España y Escandinavia).
+    const hoyES = new Date().toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: 'long', year: 'numeric' });
+    const prompt = `Fecha de hoy: ${hoyES}. Usa exactamente esta fecha como fecha de emisión del informe; no inventes otra.
+Eres el asistente financiero de Novitum Technologies OÜ (OÜ Estonia, opera en España y Escandinavia).
 Analiza la situación de facturación del período ${dateFrom} al ${dateTo} y genera un informe ejecutivo en español con:
 1. Resumen financiero (facturado, cobrado, pendiente, IVA acumulado)
 2. Alertas de facturas vencidas (${overdue.rows.length} facturas)
@@ -707,7 +709,9 @@ app.post('/api/ai/ops/accountant-report', auth, async (req, res) => {
       `${f.numero} | ${f.fecha_emision?.toISOString().split('T')[0]} | ${f.cliente} | ${f.pais} | Base: €${f.subtotal} | IVA(${f.iva_rate}%): €${f.iva_importe} | Total: €${f.total} | ${f.tipo_iva} | ${f.estado}`
     ).join('\n');
 
-    const prompt = `Eres el asistente contable de Novitum Technologies OÜ (Estonia).
+    const hoyES = new Date().toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: 'long', year: 'numeric' });
+    const prompt = `Fecha de hoy: ${hoyES}. Usa exactamente esta fecha como fecha de emisión del informe; no inventes otra.
+Eres el asistente contable de Novitum Technologies OÜ (Estonia).
 La empresa opera desde Estonia y factura a clientes en España y Escandinavia.
 Genera el informe mensual para el gestor correspondiente al mes ${month}/${year} en español, estructurado así:
 
@@ -791,7 +795,9 @@ app.post('/api/ai/ops/contracts-review', auth, async (req, res) => {
       `- ${c.agent}: "${c.venue_name}" → ${c.plan || c.doc_type} · €${c.price || '?'} · ${c.billing || '?'} · firmado ${c.signed_at?.toISOString().split('T')[0]}`
     ).join('\n');
 
-    const prompt = `Eres el asistente comercial de PulseCosta. Analiza los contratos cerrados en los últimos ${days || 30} días y genera un informe en español con:
+    const hoyES = new Date().toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: 'long', year: 'numeric' });
+    const prompt = `Fecha de hoy: ${hoyES}. Usa exactamente esta fecha como fecha de emisión del informe; no inventes otra.
+Eres el asistente comercial de PulseCosta. Analiza los contratos cerrados en los últimos ${days || 30} días y genera un informe en español con:
 1. Resumen de contratos firmados (total, por plan, por agente)
 2. MRR generado por nuevos contratos
 3. Contratos destacados
@@ -876,7 +882,9 @@ app.post('/api/ai/ops/heidi', auth, async (req, res) => {
       `${a.name} | ${a.plan} | €${a.mrr}/mes | ${a.zone}`
     ).join('\n');
 
-    const prompt = `Eres el asistente personal de Heidi (COO/finanzas de Novitum Technologies OÜ, Estonia).
+    const hoyES = new Date().toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: 'long', year: 'numeric' });
+    const prompt = `Fecha de hoy: ${hoyES}. Usa exactamente esta fecha como fecha de emisión del informe; no inventes otra.
+Eres el asistente personal de Heidi (COO/finanzas de Novitum Technologies OÜ, Estonia).
 Heidi gestiona las finanzas, la base de clientes y las consultas fiscales.
 La empresa opera desde Estonia y tiene clientes en España y Escandinavia.
 

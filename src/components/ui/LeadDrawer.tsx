@@ -3,6 +3,7 @@ import { useLang } from '../../context/LangContext';
 import ChipSelect from './ChipSelect';
 import { ZONES } from '../../lib/zones';
 import { apiFetch } from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
 import type { Lead } from '../../types';
 
 const STAGES = ['new', 'attempting_contact', 'contacted', 'interested', 'converted'];
@@ -16,6 +17,8 @@ export default function LeadDrawer({ lead, onClose, onSaved }: { lead: Lead; onC
     phone: lead.phone ?? '', email: lead.email ?? '', notes: lead.notes ?? '',
   });
   const [saving, setSaving] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const navigate = useNavigate();
   const [error, setError] = useState('');
   const zones = ZONES.includes(form.zone) || !form.zone ? ZONES : [form.zone, ...ZONES];
   const sources = SOURCES.includes(form.source) || !form.source ? SOURCES : [form.source, ...SOURCES];
@@ -25,6 +28,22 @@ export default function LeadDrawer({ lead, onClose, onSaved }: { lead: Lead; onC
     try { await apiFetch<Lead>(`/crm/leads/${lead.id}`, { method: 'PUT', body: JSON.stringify(form) }); onSaved(); onClose(); }
     catch (err) { setError((err as Error).message ?? 'Error al guardar'); }
     finally { setSaving(false); }
+  };
+
+  // Convertir lead en cuenta: crea la cuenta en el pipeline con los datos del lead y marca el lead como 'converted'.
+  const convert = async () => {
+    if (!window.confirm(`¿Convertir "${form.name}" en cuenta del pipeline?`)) return;
+    setConverting(true); setError('');
+    try {
+      const acc = await apiFetch<{ id: number }>('/crm/accounts', { method: 'POST', body: JSON.stringify({
+        name: form.name, type: form.type, plan: 'free', stage: 'new', mrr: 0, zone: form.zone || null,
+        contact_phone: form.phone || null, contact_email: form.email || null,
+        notes: [form.notes, `Origen: lead #${lead.id}${form.source ? ` (${form.source})` : ''}`].filter(Boolean).join('\n'),
+      }) });
+      await apiFetch<Lead>(`/crm/leads/${lead.id}`, { method: 'PUT', body: JSON.stringify({ ...form, stage: 'converted' }) });
+      onSaved(); onClose(); navigate(`/accounts/${acc.id}`);
+    } catch (err) { setError((err as Error).message ?? 'Error al convertir'); }
+    finally { setConverting(false); }
   };
 
   return (
@@ -96,6 +115,11 @@ export default function LeadDrawer({ lead, onClose, onSaved }: { lead: Lead; onC
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t('btn.cancel')}</button>
+            {lead.stage !== 'converted' && (
+              <button type="button" className="btn btn-ghost" onClick={convert} disabled={converting || saving} style={{ marginRight: 'auto' }}>
+                {converting ? 'Convirtiendo…' : '➜ Convertir en cuenta'}
+              </button>
+            )}
             <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Guardando...' : t('btn.save')}</button>
           </div>
         </form>
