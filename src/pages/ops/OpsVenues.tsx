@@ -3,7 +3,7 @@ import { apiFetch } from '../../lib/opsFetch';
 import { useLang } from '../../context/LangContext';
 import { MapPin, Phone, Globe, Search, Filter } from 'lucide-react';
 
-const LOCALE_MAP: Record<string, string> = { es: 'es-ES', en: 'en-GB', fi: 'fi-FI', et: 'et-EE', sv: 'sv-SE' };
+const LOCALE_MAP: Record<string, string> = { es: 'es-ES', en: 'en-GB', fi: 'fi-FI', et: 'et-EE' };
 
 type Zone = { id: string; name: string; venue_count: number };
 type Venue = {

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy, ExternalLink, Mail, MessageCircle, Search, Send, Users } from 'lucide-react';
+import { useLang } from '../context/LangContext';
 import { apiFetch } from '../lib/api';
 import { apiFetch as opsFetch } from '../lib/opsFetch';
 import type { Account, Lead } from '../types';
@@ -28,29 +29,7 @@ type Recipient = {
   phone?: string | null;
 };
 
-const TEMPLATES: Record<Channel, { subject: string; body: string }> = {
-  email: {
-    subject: 'PulseCosta: activamos visibilidad local en la Costa del Sol',
-    body:
-      'Hola {nombre},\n\nSoy Cipriano de PulseCosta. Estamos preparando la campaña local para dar más visibilidad a negocios de la Costa del Sol con horarios, fotos y contacto actualizado.\n\n¿Te viene bien que revisemos vuestra ficha y la dejemos lista esta semana?\n\nGracias,\nPulseCosta',
-  },
-  whatsapp: {
-    subject: '',
-    body:
-      'Hola {nombre}, soy Cipriano de PulseCosta. Estamos actualizando fichas de negocios de la Costa del Sol para mejorar visibilidad, horarios y fotos. ¿Te viene bien que revisemos la vuestra esta semana?',
-  },
-};
 const LIST_STEP = 250;
-const CATEGORY_LABEL: Record<string, string> = {
-  bar: 'Bar',
-  hotel: 'Hotel',
-  restaurant: 'Restaurante',
-  nightclub: 'Discoteca',
-  beach_club: 'Beach club',
-  wellness: 'Bienestar',
-  other: 'Otro',
-};
-
 async function loadAllVenues() {
   const limit = 500;
   let offset = 0;
@@ -84,11 +63,16 @@ function fillTemplate(text: string, r?: Recipient) {
   return text.replaceAll('{nombre}', r.name);
 }
 
+function batchTemplate(text: string) {
+  return text.replace(/\s*\{nombre\}/g, '');
+}
+
 function copyText(text: string) {
   return navigator.clipboard?.writeText(text).catch(() => undefined);
 }
 
 export default function Campaigns() {
+  const { t } = useLang();
   const [audience, setAudience] = useState<Audience>('venues');
   const [channel, setChannel] = useState<Channel>('whatsapp');
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -107,10 +91,17 @@ export default function Campaigns() {
   const [queueIndex, setQueueIndex] = useState(0);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
-  const [subject, setSubject] = useState(TEMPLATES.whatsapp.subject);
-  const [body, setBody] = useState(TEMPLATES.whatsapp.body);
+  const [batchSize, setBatchSize] = useState(50);
+  const [batchIndex, setBatchIndex] = useState(0);
+  const [subject, setSubject] = useState(() => t('campaign.template.whatsapp.subject'));
+  const [body, setBody] = useState(() => t('campaign.template.whatsapp.body'));
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    setSubject(t(`campaign.template.${channel}.subject`));
+    setBody(t(`campaign.template.${channel}.body`));
+  }, [channel, t]);
 
   useEffect(() => {
     let alive = true;
@@ -125,17 +116,21 @@ export default function Campaigns() {
         setAccounts(accountRows);
         setVenues(venueRows);
       })
-      .catch(e => setStatus(e instanceof Error ? e.message : 'No se pudieron cargar los contactos'))
+      .catch(e => setStatus(e instanceof Error ? e.message : t('campaign.statusLoadError')))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, []);
+  }, [t]);
+
+  const categoryLabel = useCallback((category?: string | null) => (
+    category ? t(`category.${category}`) : t('campaign.sourceVenueNoCategory')
+  ), [t]);
 
   const recipients = useMemo<Recipient[]>(() => {
     if (audience === 'accounts') {
       return accounts.map(a => ({
         id: `account-${a.id}`,
         name: a.name,
-        source: `Cuenta · ${a.plan}`,
+        source: t('campaign.sourceAccount', { value: a.plan }),
         zone: a.zone,
         email: a.contact_email,
         phone: a.contact_phone,
@@ -145,7 +140,7 @@ export default function Campaigns() {
       return venues.map(v => ({
         id: `venue-${v.id}`,
         name: v.name,
-        source: `Local · ${CATEGORY_LABEL[v.category || ''] || 'Sin categoría'}`,
+        source: t('campaign.sourceVenue', { value: categoryLabel(v.category) }),
         category: v.category,
         zone: v.zone_name,
         email: v.email,
@@ -156,12 +151,12 @@ export default function Campaigns() {
     return leads.map(l => ({
       id: `lead-${l.id}`,
       name: l.name,
-      source: `Lead · ${l.stage}`,
+      source: t('campaign.sourceLead', { value: t(`stage.${l.stage}`) }),
       zone: l.zone,
       email: l.email,
       phone: l.phone,
     }));
-  }, [accounts, audience, leads, manual, venues]);
+  }, [accounts, audience, categoryLabel, leads, manual, t, venues]);
 
   const zones = useMemo(() => [...new Set(venues.map(v => v.zone_name).filter((v): v is string => Boolean(v)))].sort(), [venues]);
   const categories = useMemo(() => [...new Set(venues.map(v => v.category).filter((v): v is string => Boolean(v)))].sort(), [venues]);
@@ -182,6 +177,11 @@ export default function Campaigns() {
   const activeRecipient = campaignQueue[queueIndex];
   const queueDone = sentIds.size + skippedIds.size;
   const queueFinished = campaignQueue.length > 0 && queueDone >= campaignQueue.length;
+  const emailBatchRecipients = selected.filter(r => r.email);
+  const batchCount = Math.ceil(emailBatchRecipients.length / batchSize);
+  const currentBatchIndex = Math.min(batchIndex, Math.max(0, batchCount - 1));
+  const currentBatch = emailBatchRecipients.slice(currentBatchIndex * batchSize, (currentBatchIndex + 1) * batchSize);
+  const batchEmails = currentBatch.map(r => r.email).filter(Boolean).join(', ');
 
   const toggleDisplayed = () => {
     if (allDisplayedSelected) {
@@ -202,6 +202,7 @@ export default function Campaigns() {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setSelectedIds(next);
+    setBatchIndex(0);
   };
 
   const emailHref = (r: Recipient) => {
@@ -210,6 +211,15 @@ export default function Campaigns() {
       body: fillTemplate(body, r),
     });
     return `mailto:${r.email}?${params.toString()}`;
+  };
+
+  const batchEmailHref = () => {
+    const params = new URLSearchParams({
+      bcc: batchEmails,
+      subject,
+      body: batchTemplate(body),
+    });
+    return `mailto:?${params.toString()}`;
   };
 
   const whatsappHref = (r: Recipient) => {
@@ -228,7 +238,7 @@ export default function Campaigns() {
       .map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(','))
       .join('\n');
     copyText(csv);
-    setStatus(`${rows.length} contactos copiados como CSV`);
+    setStatus(t('campaign.statusCsvCopied', { count: rows.length }));
   };
 
   const changeAudience = (next: Audience) => {
@@ -238,20 +248,23 @@ export default function Campaigns() {
     setCategoryFilter('');
     setSelectedIds(new Set());
     setCampaignQueue([]);
+    setBatchIndex(0);
   };
 
   const changeChannel = (next: Channel) => {
     setChannel(next);
-    setSubject(TEMPLATES[next].subject);
-    setBody(TEMPLATES[next].body);
+    setSubject(t(`campaign.template.${next}.subject`));
+    setBody(t(`campaign.template.${next}.body`));
     setListLimit(LIST_STEP);
     setSelectedIds(new Set());
     setCampaignQueue([]);
+    setBatchIndex(0);
   };
 
   const changeSearch = (next: string) => {
     setSearch(next);
     setListLimit(LIST_STEP);
+    setBatchIndex(0);
   };
 
   const changeZone = (next: string) => {
@@ -259,6 +272,7 @@ export default function Campaigns() {
     setListLimit(LIST_STEP);
     setSelectedIds(new Set());
     setCampaignQueue([]);
+    setBatchIndex(0);
   };
 
   const changeCategory = (next: string) => {
@@ -266,18 +280,19 @@ export default function Campaigns() {
     setListLimit(LIST_STEP);
     setSelectedIds(new Set());
     setCampaignQueue([]);
+    setBatchIndex(0);
   };
 
   const startAssistedCampaign = () => {
     if (!selected.length) {
-      setStatus('Selecciona destinatarios antes de iniciar la campaña');
+      setStatus(t('campaign.statusSelectFirst'));
       return;
     }
     setCampaignQueue(selected);
     setQueueIndex(0);
     setSentIds(new Set());
     setSkippedIds(new Set());
-    setStatus(`Campaña preparada con ${selected.length} destinatarios`);
+    setStatus(t('campaign.statusPrepared', { count: selected.length }));
   };
 
   const advanceQueue = (outcome: 'sent' | 'skipped') => {
@@ -294,8 +309,8 @@ export default function Campaigns() {
     setQueueIndex(Math.min(nextIndex, campaignQueue.length));
     setStatus(
       nextIndex >= campaignQueue.length
-        ? `Campaña revisada: ${nextSent.size} enviados, ${nextSkipped.size} saltados`
-        : `${nextSent.size} enviados · ${nextSkipped.size} saltados`
+        ? t('campaign.statusReviewed', { sent: nextSent.size, skipped: nextSkipped.size })
+        : t('campaign.sentSkipped', { sent: nextSent.size, skipped: nextSkipped.size })
     );
   };
 
@@ -311,27 +326,32 @@ export default function Campaigns() {
     const email = manualEmail.trim();
     const phone = manualPhone.trim();
     if (!name || (!email && !phone)) {
-      setStatus('Añade nombre y al menos email o teléfono');
+      setStatus(t('campaign.statusManualMissing'));
       return;
     }
     const id = `manual-${Date.now()}`;
-    const next = { id, name, source: 'Manual', email, phone };
+    const next = { id, name, source: t('campaign.sourceManual'), email, phone };
     setManual(prev => [next, ...prev]);
     setAudience('manual');
     setSelectedIds(new Set([id]));
     setManualName('');
     setManualEmail('');
     setManualPhone('');
-    setStatus(`${name} añadido manualmente`);
+    setStatus(t('campaign.statusManualAdded', { name }));
+  };
+
+  const copyBatchEmails = () => {
+    copyText(batchEmails);
+    setStatus(t('campaign.statusBatchEmailsCopied'));
   };
 
   return (
     <>
       <div className="topbar">
-        <span className="topbar-title">Campañas</span>
+        <span className="topbar-title">{t('nav.campaigns')}</span>
         <div className="topbar-actions">
           <button className="btn btn-ghost" onClick={exportCsv}>
-            <Copy size={15} /> Copiar CSV
+            <Copy size={15} /> {t('campaign.copyCsv')}
           </button>
         </div>
       </div>
@@ -339,18 +359,18 @@ export default function Campaigns() {
       <div className="page-content campaigns-page">
         <section className="campaigns-toolbar">
           <div className="campaign-control">
-            <span>Audiencia</span>
-            <div className="segmented-control" role="group" aria-label="Audiencia">
-              <button className={audience === 'leads' ? 'active' : ''} onClick={() => changeAudience('leads')}>Leads</button>
-              <button className={audience === 'accounts' ? 'active' : ''} onClick={() => changeAudience('accounts')}>Cuentas</button>
-              <button className={audience === 'venues' ? 'active' : ''} onClick={() => changeAudience('venues')}>Locales</button>
-              <button className={audience === 'manual' ? 'active' : ''} onClick={() => changeAudience('manual')}>Manual</button>
+            <span>{t('campaign.audience')}</span>
+            <div className="segmented-control" role="group" aria-label={t('campaign.audience')}>
+              <button className={audience === 'leads' ? 'active' : ''} onClick={() => changeAudience('leads')}>{t('campaign.leads')}</button>
+              <button className={audience === 'accounts' ? 'active' : ''} onClick={() => changeAudience('accounts')}>{t('campaign.accounts')}</button>
+              <button className={audience === 'venues' ? 'active' : ''} onClick={() => changeAudience('venues')}>{t('campaign.venues')}</button>
+              <button className={audience === 'manual' ? 'active' : ''} onClick={() => changeAudience('manual')}>{t('campaign.manual')}</button>
             </div>
           </div>
 
           <div className="campaign-control">
-            <span>Canal</span>
-            <div className="segmented-control" role="group" aria-label="Canal">
+            <span>{t('campaign.channel')}</span>
+            <div className="segmented-control" role="group" aria-label={t('campaign.channel')}>
               <button className={channel === 'whatsapp' ? 'active' : ''} onClick={() => changeChannel('whatsapp')}>
                 <MessageCircle size={15} /> WhatsApp
               </button>
@@ -363,52 +383,56 @@ export default function Campaigns() {
           <div className="campaign-stats">
             <Users size={18} />
             <strong>{loading ? '...' : visible.length}</strong>
-            <span>{loading ? 'cargando contactos' : `${selected.length} seleccionados · ${channel === 'email' ? 'email' : 'teléfono'}`}</span>
+            <span>
+              {loading
+                ? t('campaign.loadingContacts')
+                : t('campaign.selectedWithChannel', { count: selected.length, channel: channel === 'email' ? t('common.email') : t('common.phone') })}
+            </span>
           </div>
         </section>
 
         {audience === 'venues' && (
           <section className="campaign-filters">
             <select value={zoneFilter} onChange={e => changeZone(e.target.value)}>
-              <option value="">Todas las zonas</option>
+              <option value="">{t('campaign.allZones')}</option>
               {zones.map(z => <option key={z} value={z}>{z}</option>)}
             </select>
             <select value={categoryFilter} onChange={e => changeCategory(e.target.value)}>
-              <option value="">Todas las categorías</option>
-              {categories.map(c => <option key={c} value={c}>{CATEGORY_LABEL[c] || c}</option>)}
+              <option value="">{t('campaign.allCategories')}</option>
+              {categories.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}
             </select>
           </section>
         )}
 
         <section className="manual-recipient">
           <div>
-            <strong>Añadir contacto manual</strong>
-            <span>Para un local que falte o una prueba puntual.</span>
+            <strong>{t('campaign.addManual')}</strong>
+            <span>{t('campaign.addManualHelp')}</span>
           </div>
-          <input value={manualName} onChange={e => setManualName(e.target.value)} placeholder="Nombre del local" />
-          <input value={manualPhone} onChange={e => setManualPhone(e.target.value)} placeholder="Teléfono" />
-          <input value={manualEmail} onChange={e => setManualEmail(e.target.value)} placeholder="Email" />
-          <button className="btn btn-primary" onClick={addManualRecipient}>Añadir</button>
+          <input value={manualName} onChange={e => setManualName(e.target.value)} placeholder={t('campaign.namePh')} />
+          <input value={manualPhone} onChange={e => setManualPhone(e.target.value)} placeholder={t('common.phone')} />
+          <input value={manualEmail} onChange={e => setManualEmail(e.target.value)} placeholder={t('common.email')} />
+          <button className="btn btn-primary" onClick={addManualRecipient}>{t('campaign.add')}</button>
         </section>
 
         <section className="campaigns-grid">
           <div className="campaign-panel">
             <div className="campaign-panel-head">
-              <h2>Mensaje</h2>
-              <button className="btn btn-ghost" onClick={() => { copyText(preview); setStatus('Mensaje copiado'); }}>
-                <Copy size={15} /> Copiar
+              <h2>{t('campaign.message')}</h2>
+              <button className="btn btn-ghost" onClick={() => { copyText(preview); setStatus(t('campaign.statusMessageCopied')); }}>
+                <Copy size={15} /> {t('campaign.copy')}
               </button>
             </div>
 
             {channel === 'email' && (
               <label className="form-field">
-                <span className="form-label">Asunto</span>
+                <span className="form-label">{t('campaign.subject')}</span>
                 <input className="form-input" value={subject} onChange={e => setSubject(e.target.value)} />
               </label>
             )}
 
             <label className="form-field">
-              <span className="form-label">Texto</span>
+              <span className="form-label">{t('campaign.text')}</span>
               <textarea
                 className="form-input campaign-textarea"
                 value={body}
@@ -417,7 +441,7 @@ export default function Campaigns() {
             </label>
 
             <div className="campaign-preview">
-              <span>Vista previa</span>
+              <span>{t('campaign.preview')}</span>
               <p>{preview}</p>
             </div>
           </div>
@@ -425,39 +449,39 @@ export default function Campaigns() {
           <div className="campaign-panel">
             <div className="campaign-panel-head">
               <div>
-                <h2>Destinatarios</h2>
+                <h2>{t('campaign.recipients')}</h2>
                 <span className="campaign-panel-subtitle">
-                  Mostrando {displayed.length} de {visible.length}
+                  {t('campaign.showing', { shown: displayed.length, total: visible.length })}
                 </span>
               </div>
               <div className="campaign-selection-actions">
                 <button className="btn btn-ghost" onClick={toggleDisplayed} disabled={!displayed.length}>
-                  {allDisplayedSelected ? 'Quitar mostrados' : 'Seleccionar mostrados'}
+                  {allDisplayedSelected ? t('campaign.unselectShown') : t('campaign.selectShown')}
                 </button>
                 <button className="btn btn-ghost" onClick={toggleVisible} disabled={!visible.length}>
-                  {allVisibleSelected ? 'Limpiar todo' : 'Seleccionar filtrados'}
+                  {allVisibleSelected ? t('campaign.clearAll') : t('campaign.selectFiltered')}
                 </button>
               </div>
             </div>
 
             <div className="campaign-search">
               <Search size={16} />
-              <input value={search} onChange={e => changeSearch(e.target.value)} placeholder="Buscar por nombre, zona o contacto" />
+              <input value={search} onChange={e => changeSearch(e.target.value)} placeholder={t('campaign.searchPh')} />
             </div>
 
             {status && <div className="campaign-status">{status}</div>}
             <div className="campaign-assistant">
               <div className="campaign-assistant-head">
                 <div>
-                  <strong>Envío asistido</strong>
+                  <strong>{t('campaign.assisted')}</strong>
                   <span>
                     {campaignQueue.length
-                      ? `${queueDone} de ${campaignQueue.length} revisados`
-                      : 'Selecciona contactos y trabaja uno a uno.'}
+                      ? t('campaign.reviewed', { done: queueDone, total: campaignQueue.length })
+                      : t('campaign.assistedHelp')}
                   </span>
                 </div>
                 <button className="btn btn-primary" onClick={startAssistedCampaign} disabled={!selected.length}>
-                  Iniciar
+                  {t('campaign.start')}
                 </button>
               </div>
 
@@ -465,8 +489,8 @@ export default function Campaigns() {
                 <div className="campaign-current">
                   {queueFinished ? (
                     <div>
-                      <strong>Campaña revisada</strong>
-                      <span>{sentIds.size} enviados · {skippedIds.size} saltados</span>
+                      <strong>{t('campaign.reviewedTitle')}</strong>
+                      <span>{t('campaign.sentSkipped', { sent: sentIds.size, skipped: skippedIds.size })}</span>
                     </div>
                   ) : activeRecipient ? (
                     <>
@@ -482,19 +506,54 @@ export default function Campaigns() {
                           rel={channel === 'email' ? undefined : 'noopener noreferrer'}
                         >
                           {channel === 'email' ? <Mail size={15} /> : <Send size={15} />}
-                          Abrir
+                          {t('campaign.open')}
                         </a>
-                        <button className="btn btn-ghost" onClick={() => advanceQueue('sent')}>Marcar enviado</button>
-                        <button className="btn btn-ghost" onClick={() => advanceQueue('skipped')}>Saltar</button>
+                        <button className="btn btn-ghost" onClick={() => advanceQueue('sent')}>{t('campaign.markSent')}</button>
+                        <button className="btn btn-ghost" onClick={() => advanceQueue('skipped')}>{t('campaign.skip')}</button>
                       </div>
                     </>
                   ) : null}
-                  <button className="btn btn-ghost" onClick={resetAssistedCampaign}>Reiniciar</button>
+                  <button className="btn btn-ghost" onClick={resetAssistedCampaign}>{t('campaign.restart')}</button>
                 </div>
               )}
             </div>
-            {loading && <div className="campaign-empty">Cargando contactos...</div>}
-            {!loading && !visible.length && <div className="campaign-empty">No hay contactos disponibles para este canal.</div>}
+            {channel === 'email' && (
+              <div className="campaign-assistant campaign-batches">
+                <div className="campaign-assistant-head">
+                  <div>
+                    <strong>{t('campaign.emailBatches')}</strong>
+                    <span>{emailBatchRecipients.length ? t('campaign.batchSummary', { current: currentBatchIndex + 1, total: batchCount, count: currentBatch.length }) : t('campaign.noEmailBatch')}</span>
+                  </div>
+                  <div className="campaign-current-actions">
+                    <label className="campaign-batch-size">
+                      <span>{t('campaign.batchSize')}</span>
+                      <select value={batchSize} onChange={e => { setBatchSize(Number(e.target.value)); setBatchIndex(0); }}>
+                        <option value={50}>50</option>
+                        <option value={60}>60</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <div className="campaign-current">
+                  <div>
+                    <strong>{currentBatch.length ? batchEmails : t('campaign.emailBatches')}</strong>
+                    <span>{t('campaign.batchPersonalizationWarning')}</span>
+                  </div>
+                  <div className="campaign-current-actions">
+                    <button className="btn btn-ghost" onClick={() => setBatchIndex(i => Math.max(0, i - 1))} disabled={currentBatchIndex <= 0}>{t('campaign.prevBatch')}</button>
+                    <button className="btn btn-ghost" onClick={() => setBatchIndex(i => Math.min(batchCount - 1, i + 1))} disabled={!batchCount || currentBatchIndex >= batchCount - 1}>{t('campaign.nextBatch')}</button>
+                    <button className="btn btn-ghost" onClick={copyBatchEmails} disabled={!currentBatch.length}><Copy size={15} /> {t('campaign.copyBatchEmails')}</button>
+                    {currentBatch.length ? (
+                      <a className="btn btn-primary" href={batchEmailHref()}>{t('campaign.openBatch')}</a>
+                    ) : (
+                      <button className="btn btn-primary" disabled>{t('campaign.openBatch')}</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            {loading && <div className="campaign-empty">{t('campaign.loadingEmpty')}</div>}
+            {!loading && !visible.length && <div className="campaign-empty">{t('campaign.noContacts')}</div>}
 
             <div className="recipient-list">
               {displayed.map(r => (
@@ -511,7 +570,7 @@ export default function Campaigns() {
                     href={recipientHref(r)}
                     target={channel === 'email' ? undefined : '_blank'}
                     rel={channel === 'email' ? undefined : 'noopener noreferrer'}
-                    title={channel === 'email' ? 'Abrir email' : 'Abrir WhatsApp'}
+                    title={channel === 'email' ? t('campaign.openEmail') : t('campaign.openWhatsapp')}
                   >
                     {channel === 'email' ? <Mail size={16} /> : <Send size={16} />}
                     <ExternalLink size={13} />
@@ -521,7 +580,7 @@ export default function Campaigns() {
             </div>
             {visible.length > displayed.length && (
               <button className="btn btn-ghost campaign-more" onClick={() => setListLimit(v => v + LIST_STEP)}>
-                Mostrar {Math.min(LIST_STEP, visible.length - displayed.length)} más de {visible.length}
+                {t('campaign.more', { count: Math.min(LIST_STEP, visible.length - displayed.length), total: visible.length })}
               </button>
             )}
           </div>

@@ -885,6 +885,26 @@ tr:hover td { background: rgba(255,122,26,0.03); }
   justify-content: flex-end;
   gap: 8px;
 }
+.campaign-batches {
+  background: rgba(23,129,127,0.08);
+}
+.campaign-batch-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.campaign-batch-size select {
+  min-height: 34px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 800;
+}
 .campaign-empty {
   padding: 22px 12px;
   color: var(--muted);

@@ -95,7 +95,6 @@ export default function Sidebar({ id, className = '' }: { id?: string; className
           ['en', '🇬🇧'],
           ['fi', '🇫🇮'],
           ['et', '🇪🇪'],
-          ['sv', '🇸🇪'],
         ] as const).map(([code, flag]) => (
           <button
             key={code}
